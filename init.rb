@@ -10,15 +10,13 @@ Redmine::Plugin.register :redmine_gtt_fiware do
 
   requires_redmine :version_or_higher => '4.2.0'
 
-  # settings(
-  #   default: {},
-  #   partial: 'gtt_fiware/settings'
-  # )
+  settings(
+    default: {},
+    partial: 'gtt_fiware/settings'
+  )
 
-  # project_module :gtt_fiware do
-  #   permission :view_gtt_fiware, {
-  #     fiware_tags: %i( project_tags global_tags default_notes_tags )
-  #   }, require: :member, read: true
-  # end
+  project_module :gtt_fiware do
+    permission :view_gtt_fiware, {}, require: :member, read: true
+  end
 
 end
