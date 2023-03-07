@@ -43,6 +43,24 @@ More information on installing (and uninstalling) Redmine plugins can be found
 
 TBD
 
+### "Context" API endpoint
+
+```txt
+http://localhost:3000/fiware/ngsi/ld/context.jsonld
+```
+
+### "Data Model" API endpoint
+
+```txt
+http://localhost:3000/fiware/data-models/[tracker_id].jsonld
+```
+
+### NGSI-LD "Issue" API endpoint
+
+```txt
+http://localhost:3000/issues/[issue_id].jsonld
+```
+
 ## Contributing and Support
 
 The GTT Project appreciates any [contributions](https://github.com/gtt-project/.github/blob/main/CONTRIBUTING.md)!

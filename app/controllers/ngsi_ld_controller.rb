@@ -6,7 +6,7 @@ class NgsiLdController < ApplicationController
 
   def context
     respond_to do |format|
-      format.jsonld { render jsonld: nil }
+      format.jsonld { render }
     end
   end
 

@@ -24,3 +24,7 @@ Redmine::Plugin.register :redmine_gtt_fiware do
     }, require: :member, read: true
   end
 end
+
+Rails.application.config.after_initialize do
+  RedmineGttFiware.setup_controller_patches
+end
