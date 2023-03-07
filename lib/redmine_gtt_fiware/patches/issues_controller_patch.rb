@@ -16,4 +16,3 @@ module RedmineGttFiware
     end
   end
 end
-
