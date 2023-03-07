@@ -1,5 +1,9 @@
 class NgsiLdController < ApplicationController
 
+  before_action :authorize_global
+
+  accept_api_auth :context, :data_model
+
   def context
     respond_to do |format|
       format.jsonld { render jsonld: nil }

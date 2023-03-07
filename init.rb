@@ -19,6 +19,8 @@ Redmine::Plugin.register :redmine_gtt_fiware do
   )
 
   project_module :gtt_fiware do
-    permission :view_gtt_fiware, {}, require: :member, read: true
+    permission :view_gtt_fiware, {
+      ngsi_ld: %i( context data_model )
+    }, require: :member, read: true
   end
 end
