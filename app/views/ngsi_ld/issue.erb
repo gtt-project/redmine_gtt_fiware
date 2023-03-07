@@ -1,3 +1,7 @@
 {
-  "@id": <%= url_for(:only_path => false) %>
+  "@id": "<%= url_for(only_path: false) %>",
+  "@context": [
+    "<%= url_for(action: 'context', controller: 'ngsi_ld', only_path: false) %>.jsonld",
+    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+  ]
 }
