@@ -10,7 +10,7 @@ open standards:
 Redmine GTT FIWARE **requires PostgreSQL/PostGIS** and will not work with SQLite
 or MariaDB/MySQL!!!
 
-- Redmine >= 4.2.0
+- Redmine >= 5.0.0
 - [redmine_gtt](https://github.com/gtt-project/redmine_gtt/) plugin
 
 ## Installation
