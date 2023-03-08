@@ -1,6 +1,6 @@
 json = {
-  "@context": [
-    url_for(action: 'context', controller: 'ngsi_ld', only_path: false, format: :jsonld),
+  "@context":
+    url_for(action: 'data_model', controller: 'ngsi_ld', tracker_id: @issue.tracker_id, only_path: false, format: :jsonld),
     'https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld'
   ],
   id: url_for(only_path: false, format: :jsonld),
