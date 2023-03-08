@@ -52,7 +52,7 @@ http://localhost:3000/fiware/ngsi/ld/context.jsonld
 ### "Data Model" API endpoint
 
 ```txt
-http://localhost:3000/fiware/data-models/[tracker_id].jsonld
+http://localhost:3000/fiware/data-models/[tracker_id]/context.jsonld
 ```
 
 ### NGSI-LD "Issue" API endpoint
