@@ -1,6 +1,6 @@
 json = {
-  "@context":
-    url_for(action: 'data_model', controller: 'ngsi_ld', tracker_id: @issue.tracker_id, only_path: false, format: :jsonld),
+  "@context": [
+    url_for(controller: 'ngsi_ld', action: 'data_model', tracker_id: @issue.tracker_id, only_path: false, format: :jsonld),
     'https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld'
   ],
   id: url_for(only_path: false, format: :jsonld),
@@ -53,10 +53,10 @@ json = {
 
 if @issue.project
   json[:project] = {
-    type: 'Property',
+    type: 'Relationship',
     value: {
-      "id": @issue.project_id,
-      "name": @issue.project.name
+      id: url_for(controller: 'projects', action: 'show', id: @issue.project_id, only_path: false, format: :json),
+      name: @issue.project.name
     }
   }
 end
@@ -65,8 +65,8 @@ if @issue.tracker
   json[:tracker] = {
     type: 'Property',
     value: {
-      "id": @issue.tracker_id,
-      "name": @issue.tracker.name
+      id: @issue.tracker_id,
+      name: @issue.tracker.name
     }
   }
 end
@@ -75,9 +75,9 @@ if @issue.status
   json[:status] = {
     type: 'Property',
     value: {
-      "id": @issue.status_id,
-      "name": @issue.status.name,
-      "is_closed": @issue.status.is_closed
+      id: @issue.status_id,
+      name: @issue.status.name,
+      is_closed: @issue.status.is_closed
     }
   }
 end
@@ -86,28 +86,28 @@ if @issue.priority
   json[:priority] = {
     type: 'Property',
     value: {
-      "id": @issue.priority_id,
-      "name": @issue.priority.name
+      id: @issue.priority_id,
+      name: @issue.priority.name
     }
   }
 end
 
 if @issue.author
   json[:author] = {
-    type: 'Property',
+    type: 'Relationship',
     value: {
-      "id": @issue.author_id,
-      "name": @issue.author.name
+      id: url_for(controller: 'users', action: 'show', id: @issue.author_id, only_path: false, format: :json),
+      name: @issue.author.name
     }
   }
 end
 
 if @issue.assigned_to
   json[:assigned_to] = {
-    type: 'Property',
+    type: 'Relationship',
     value: {
-      "id": @issue.assigned_to_id,
-      "name": @issue.assigned_to.name
+      id: url_for(controller: 'users', action: 'show', id: @issue.assigned_to_id, only_path: false, format: :json),
+      name: @issue.assigned_to.name
     }
   }
 end
@@ -116,18 +116,18 @@ if @issue.category
   json[:category] = {
     type: 'Property',
     value: {
-      "id": @issue.category_id,
-      "name": @issue.category.name
+      id: @issue.category_id,
+      name: @issue.category.name
     }
   }
 end
 
 if @issue.fixed_version
   json[:fixed_version] = {
-    type: 'Property',
+    type: 'Relationship',
     value: {
-      "id": @issue.fixed_version_id,
-      "name": @issue.fixed_version.name
+      id: @issue.fixed_version_id,
+      name: @issue.fixed_version.name
     }
   }
 end
@@ -144,7 +144,10 @@ if User.current.allowed_to?(:view_time_entries, @project)
 end
 
 if @issue.geom
-  json[:geojson] = @issue.geojson
+  json[:geojson] = {
+    type: 'GeoProperty',
+    value: @issue.geojson['geometry']
+  }
 else
   json[:geojson] = nil
 end
