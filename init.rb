@@ -28,3 +28,5 @@ end
 Rails.application.config.after_initialize do
   RedmineGttFiware.setup_controller_patches
 end
+
+Rails.application.config.generators.jb false

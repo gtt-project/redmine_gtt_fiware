@@ -1,0 +1,152 @@
+json = {
+  "@context": [
+    url_for(action: 'context', controller: 'ngsi_ld', only_path: false, format: :jsonld),
+    'https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld'
+  ],
+  id: url_for(only_path: false, format: :jsonld),
+  type: 'RedmineIssue',
+  subject: {
+    type: 'Property',
+    value: @issue.subject
+  },
+  description: {
+    type: 'Property',
+    value: @issue.description
+  },
+  created_at: {
+    type: 'Property',
+    value: @issue.created_on
+  },
+  updated_at: {
+    type: 'Property',
+    value: @issue.updated_on
+  },
+  closed_at: {
+    type: 'Property',
+    value: @issue.closed_on
+  },
+  start_date: {
+    type: 'Property',
+    value: @issue.start_date
+  },
+  due_date: {
+    type: 'Property',
+    value: @issue.due_date
+  },
+  done_ratio: {
+    type: 'Property',
+    value: @issue.done_ratio
+  },
+  is_private: {
+    type: 'Property',
+    value: @issue.is_private
+  },
+  estimated_hours: {
+    type: 'Property',
+    value: @issue.estimated_hours
+  },
+  total_estimated_hours: {
+    type: 'Property',
+    value: @issue.total_estimated_hours
+  }
+}
+
+if @issue.project
+  json[:project] = {
+    type: 'Property',
+    value: {
+      "id": @issue.project_id,
+      "name": @issue.project.name
+    }
+  }
+end
+
+if @issue.tracker
+  json[:tracker] = {
+    type: 'Property',
+    value: {
+      "id": @issue.tracker_id,
+      "name": @issue.tracker.name
+    }
+  }
+end
+
+if @issue.status
+  json[:status] = {
+    type: 'Property',
+    value: {
+      "id": @issue.status_id,
+      "name": @issue.status.name,
+      "is_closed": @issue.status.is_closed
+    }
+  }
+end
+
+if @issue.priority
+  json[:priority] = {
+    type: 'Property',
+    value: {
+      "id": @issue.priority_id,
+      "name": @issue.priority.name
+    }
+  }
+end
+
+if @issue.author
+  json[:author] = {
+    type: 'Property',
+    value: {
+      "id": @issue.author_id,
+      "name": @issue.author.name
+    }
+  }
+end
+
+if @issue.assigned_to
+  json[:assigned_to] = {
+    type: 'Property',
+    value: {
+      "id": @issue.assigned_to_id,
+      "name": @issue.assigned_to.name
+    }
+  }
+end
+
+if @issue.category
+  json[:category] = {
+    type: 'Property',
+    value: {
+      "id": @issue.category_id,
+      "name": @issue.category.name
+    }
+  }
+end
+
+if @issue.fixed_version
+  json[:fixed_version] = {
+    type: 'Property',
+    value: {
+      "id": @issue.fixed_version_id,
+      "name": @issue.fixed_version.name
+    }
+  }
+end
+
+if User.current.allowed_to?(:view_time_entries, @project)
+  json[:spent_hours] = {
+    type: 'Property',
+    value: @issue.spent_hours
+  }
+  json[:total_spent_hours] = {
+    type: 'Property',
+    value: @issue.total_spent_hours
+  }
+end
+
+if @issue.geom
+  json[:geojson] = @issue.geojson
+else
+  json[:geojson] = nil
+end
+
+json
