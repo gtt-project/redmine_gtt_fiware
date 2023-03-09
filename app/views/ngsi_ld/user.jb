@@ -1,0 +1,50 @@
+json = {
+  "@context": [
+    url_for(
+      controller: 'ngsi_ld', action: 'data_model',
+      id: nil, type: 'user',
+      only_path: false, format: :jsonld
+    ),
+    'https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld'
+  ],
+  id: url_for(only_path: false, format: :jsonld),
+  type: 'RedmineUser',
+  login: {
+    type: 'Property',
+    value: @user.login
+  },
+  firstname: {
+    type: 'Property',
+    value: @user.firstname
+  },
+  lastname: {
+    type: 'Property',
+    value: @user.lastname
+  },
+  last_login_on: {
+    type: 'Property',
+    value: @user.last_login_on
+  },
+  created_at: {
+    type: 'Property',
+    value: @user.created_on
+  },
+  updated_at: {
+    type: 'Property',
+    value: @user.updated_on
+  }
+}
+
+# TODO: custom fields
+# render_api_custom_values @user.visible_custom_field_values, api
+
+if @user.geom
+  json[:geojson] = {
+    type: 'GeoProperty',
+    value: @user.geojson['geometry']
+  }
+else
+  json[:geojson] = nil
+end
+
+json

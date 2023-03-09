@@ -1,0 +1,50 @@
+json = {
+  "@context": [
+    url_for(
+      controller: 'ngsi_ld', action: 'data_model',
+      id: nil, type: 'project',
+      only_path: false, format: :jsonld
+    ),
+    'https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld'
+  ],
+  id: url_for(only_path: false, format: :jsonld),
+  type: 'RedmineProject',
+  name: {
+    type: 'Property',
+    value: @project.name
+  },
+  identifier: {
+    type: 'Property',
+    value: @project.identifier
+  },
+  description: {
+    type: 'Property',
+    value: @project.description
+  },
+  homepage: {
+    type: 'Property',
+    value: @project.homepage
+  },
+  status: {
+    type: 'Property',
+    value: @project.status
+  },
+  is_public: {
+    type: 'Property',
+    value: @project.is_public
+  },
+  created_at: {
+    type: 'Property',
+    value: @project.created_on
+  },
+  updated_at: {
+    type: 'Property',
+    value: @project.updated_on
+  }
+}
+
+# TODO: optional includes
+# TODO: custom fields
+# render_api_custom_values @project.visible_custom_field_values, api
+
+json

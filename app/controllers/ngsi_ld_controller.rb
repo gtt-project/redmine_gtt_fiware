@@ -6,13 +6,15 @@ class NgsiLdController < ApplicationController
 
   def context
     respond_to do |format|
-      format.jsonld { render }
+      format.jsonld { render template: "ngsi_ld/context/core" }
     end
   end
 
   def data_model
-    respond_to do |format|
-      format.jsonld { render template: "ngsi_ld/tracker" }
+    if ['project','tracker','user','version'].include?(params[:type])
+      respond_to do |format|
+        format.jsonld { render template: "ngsi_ld/context/#{params[:type]}" }
+      end
     end
   end
 

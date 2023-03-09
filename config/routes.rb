@@ -6,5 +6,5 @@ scope 'fiware/ngsi/ld' do
 end
 
 scope 'fiware/data-models' do
-  get '/:tracker_id/context', to: 'ngsi_ld#data_model', as: :data_model
+  get '/:type(/:id)/context', to: 'ngsi_ld#data_model', as: :data_model
 end

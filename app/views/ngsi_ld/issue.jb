@@ -1,6 +1,10 @@
 json = {
   "@context": [
-    url_for(controller: 'ngsi_ld', action: 'data_model', tracker_id: @issue.tracker_id, only_path: false, format: :jsonld),
+    url_for(
+      controller: 'ngsi_ld', action: 'data_model',
+      type: 'tracker', id: @issue.tracker_id,
+      only_path: false, format: :jsonld
+    ),
     'https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld'
   ],
   id: url_for(only_path: false, format: :jsonld),
@@ -55,7 +59,7 @@ if @issue.project
   json[:project] = {
     type: 'Relationship',
     value: {
-      id: url_for(controller: 'projects', action: 'show', id: @issue.project_id, only_path: false, format: :json),
+      id: url_for(controller: 'projects', action: 'show', id: @issue.project_id, only_path: false, format: :jsonld),
       name: @issue.project.name
     }
   }
@@ -96,7 +100,7 @@ if @issue.author
   json[:author] = {
     type: 'Relationship',
     value: {
-      id: url_for(controller: 'users', action: 'show', id: @issue.author_id, only_path: false, format: :json),
+      id: url_for(controller: 'users', action: 'show', id: @issue.author_id, only_path: false, format: :jsonld),
       name: @issue.author.name
     }
   }
@@ -106,7 +110,7 @@ if @issue.assigned_to
   json[:assigned_to] = {
     type: 'Relationship',
     value: {
-      id: url_for(controller: 'users', action: 'show', id: @issue.assigned_to_id, only_path: false, format: :json),
+      id: url_for(controller: 'users', action: 'show', id: @issue.assigned_to_id, only_path: false, format: :jsonld),
       name: @issue.assigned_to.name
     }
   }
@@ -126,11 +130,15 @@ if @issue.fixed_version
   json[:fixed_version] = {
     type: 'Relationship',
     value: {
-      id: @issue.fixed_version_id,
+      id: url_for(controller: 'versions', action: 'show', id: @issue.fixed_version_id, only_path: false, format: :jsonld),
       name: @issue.fixed_version.name
     }
   }
 end
+
+# TODO: optional includes
+# TODO: custom fields
+# render_api_custom_values @issue.visible_custom_field_values, api
 
 if User.current.allowed_to?(:view_time_entries, @project)
   json[:spent_hours] = {
