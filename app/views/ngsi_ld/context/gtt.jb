@@ -5,7 +5,7 @@ json = {
       "location": {
         "@id": "redmine:location",
         "@type": "geo:GeoProperty"
-      }
+      },
       "rotation": {
         "@id": "redmine:rotation",
         "@type": "xsd:decimal"
