@@ -1,0 +1,51 @@
+json = {
+  "@context": [
+    url_for(controller: 'ngsi_ld', action: 'context', type: nil, only_path: false, format: :jsonld),
+    url_for(controller: 'ngsi_ld', action: 'context', type: 'gtt', only_path: false, format: :jsonld),
+    {
+      "name": {
+        "@id": "redmine:name",
+        "@type": "xsd:string"
+      },
+      "description": {
+        "@id": "redmine:description",
+        "@type": "xsd:string"
+      },
+      "identifier": {
+        "@id": "redmine:identifier",
+        "@type": "xsd:string"
+      },
+      "homepage": {
+        "@id": "redmine:homepage",
+        "@type": "xsd:string"
+      },
+      "status": {
+        "@id": "redmine:status",
+        "@type": "xsd:integer"
+      },
+      "isPublic": {
+        "@id": "redmine:isPublic",
+        "@type": "xsd:integer"
+      },
+      "createdOn": {
+        "@id": "redmine:createdOn",
+        "@type": "xsd:dateTime"
+      },
+      "updatedOn": {
+        "@id": "redmine:updatedOn",
+        "@type": "xsd:dateTime"
+      },
+      "hasParentProject": {
+        "@id": "redmine:hasParentProject",
+        "@type": "@id"
+      },
+      "hasMembers": {
+        "@id": "redmine:hasMembers",
+        "@type": "@id"
+      }
+      # ...
+    }
+  ]
+}
+
+json

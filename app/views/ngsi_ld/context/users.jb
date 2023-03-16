@@ -1,0 +1,35 @@
+json = {
+  "@context": [
+    url_for(controller: 'ngsi_ld', action: 'context', type: nil, only_path: false, format: :jsonld),
+    url_for(controller: 'ngsi_ld', action: 'context', type: 'gtt', only_path: false, format: :jsonld),
+    {
+      "login": {
+        "@id": "redmine:login",
+        "@type": "xsd:string"
+      },
+      "firstName": {
+        "@id": "redmine:firstName",
+        "@type": "xsd:string"
+      },
+      "lastName": {
+        "@id": "redmine:lastName",
+        "@type": "xsd:string"
+      },
+      "email": {
+        "@id": "redmine:email",
+        "@type": "xsd:string"
+      },
+      "status": {
+        "@id": "redmine:status",
+        "@type": "xsd:integer"
+      },
+      "lastLoginDate": {
+        "@id": "redmine:lastLoginDate",
+        "@type": "xsd:dateTime"
+      },
+      # ...
+    }
+  ]
+}
+
+json

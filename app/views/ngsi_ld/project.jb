@@ -47,4 +47,13 @@ json = {
 # TODO: custom fields
 # render_api_custom_values @project.visible_custom_field_values, api
 
+if @project.geom
+  json[:location] = {
+    type: 'GeoProperty',
+    value: @project.geojson['geometry']
+  }
+else
+  json[:location] = nil
+end
+
 json

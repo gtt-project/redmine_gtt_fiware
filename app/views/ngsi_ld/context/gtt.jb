@@ -1,0 +1,17 @@
+json = {
+  "@context": [
+    url_for(controller: 'ngsi_ld', action: 'context', type: nil, only_path: false, format: :jsonld),
+    {
+      "location": {
+        "@id": "redmine:location",
+        "@type": "geo:GeoProperty"
+      }
+      "rotation": {
+        "@id": "redmine:rotation",
+        "@type": "xsd:decimal"
+      }
+    }
+  ]
+}
+
+json

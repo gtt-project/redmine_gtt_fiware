@@ -2,18 +2,16 @@ class NgsiLdController < ApplicationController
 
   before_action :authorize_global
 
-  accept_api_auth :context, :data_model
+  accept_api_auth :context
 
   def context
-    respond_to do |format|
-      format.jsonld { render template: "ngsi_ld/context/core" }
-    end
-  end
-
-  def data_model
-    if ['project','tracker','user','version'].include?(params[:type])
+    if params[:type].present? && ['issues','projects','users','gtt'].include?(params[:type])
       respond_to do |format|
         format.jsonld { render template: "ngsi_ld/context/#{params[:type]}" }
+      end
+    else
+      respond_to do |format|
+        format.jsonld { render template: "ngsi_ld/context/redmine" }
       end
     end
   end

@@ -1,0 +1,82 @@
+json = {
+  "@context": [
+    url_for(controller: 'ngsi_ld', action: 'context', type: nil, only_path: false, format: :jsonld),
+    url_for(controller: 'ngsi_ld', action: 'context', type: 'gtt', only_path: false, format: :jsonld),
+    {
+      "subject": {
+        "@id": "redmine:subject",
+        "@type": "xsd:string"
+      },
+      "description": {
+        "@id": "redmine:description",
+        "@type": "xsd:string"
+      },
+      "startDate": {
+        "@id": "redmine:startDate",
+        "@type": "xsd:dateTime"
+      },
+      "dueDate": {
+        "@id": "redmine:dueDate",
+        "@type": "xsd:dateTime"
+      },
+      "closedDate": {
+        "@id": "redmine:closedDate",
+        "@type": "xsd:dateTime"
+      },
+      "doneRatio": {
+        "@id": "redmine:doneRatio",
+        "@type": "xsd:decimal"
+      },
+      "isPrivate": {
+        "@id": "redmine:isPrivate",
+        "@type": "xsd:boolean"
+      },
+      "totalEstimatedHours": {
+        "@id": "redmine:totalEstimatedHours",
+        "@type": "xsd:decimal"
+      },
+      "totalSpentHours": {
+        "@id": "redmine:totalSpentHours",
+        "@type": "xsd:decimal"
+      },
+      "estimatedHours": {
+        "@id": "redmine:estimatedHours",
+        "@type": "xsd:decimal"
+      },
+      "spentHours": {
+        "@id": "redmine:spentHours",
+        "@type": "xsd:decimal"
+      },
+      "hasProject": {
+        "@id": "redmine:hasProject",
+        "@type": "@id"
+      },
+      "hasAuthor": {
+        "@id": "redmine:hasAuthor",
+        "@type": "@id"
+      },
+      "hasAssignee": {
+        "@id": "redmine:hasAssignee",
+        "@type": "@id"
+      },
+      "hasStatus": {
+        "@id": "redmine:hasStatus",
+        "@type": "@id"
+      },
+      "hasTracker": {
+        "@id": "redmine:hasTracker",
+        "@type": "@id"
+      },
+      "hasCategory": {
+        "@id": "redmine:hasCategory",
+        "@type": "@id"
+      },
+      "hasVersion": {
+        "@id": "redmine:hasVersion",
+        "@type": "@id"
+      },
+    }
+  ]
+}
+
+json

@@ -25,11 +25,11 @@ json = {
     type: 'Property',
     value: @user.last_login_on
   },
-  created_at: {
+  createdAt: {
     type: 'Property',
     value: @user.created_on
   },
-  updated_at: {
+  modifiedAt: {
     type: 'Property',
     value: @user.updated_on
   }
@@ -39,12 +39,12 @@ json = {
 # render_api_custom_values @user.visible_custom_field_values, api
 
 if @user.geom
-  json[:geojson] = {
+  json[:location] = {
     type: 'GeoProperty',
     value: @user.geojson['geometry']
   }
 else
-  json[:geojson] = nil
+  json[:location] = nil
 end
 
 json

@@ -8,8 +8,9 @@ json = {
     'https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld'
   ],
   id: url_for(only_path: false, format: :jsonld),
+  alt_id: request.original_url,
   type: 'RedmineIssue',
-  subject: {
+  title: {
     type: 'Property',
     value: @issue.subject
   },
@@ -17,25 +18,40 @@ json = {
     type: 'Property',
     value: @issue.description
   },
-  created_at: {
+  createdAt: {
     type: 'Property',
-    value: @issue.created_on
+    value: {
+      "@type": 'DateTime',
+      "@value": @issue.created_on
+    }
   },
-  updated_at: {
+  modifiedAt: {
     type: 'Property',
-    value: @issue.updated_on
+    value: {
+      "@type": 'DateTime',
+      "@value": @issue.updated_on
+    }
   },
-  closed_at: {
+  endTime: {
     type: 'Property',
-    value: @issue.closed_on
+    value: {
+      "@type": 'DateTime',
+      "@value": @issue.closed_on
+    }
   },
-  start_date: {
+  start: {
     type: 'Property',
-    value: @issue.start_date
+    value: {
+      "@type": 'DateTime',
+      "@value": @issue.start_date
+    }
   },
-  due_date: {
+  end: {
     type: 'Property',
-    value: @issue.due_date
+    value: {
+      "@type": 'DateTime',
+      "@value": @issue.due_date
+    }
   },
   done_ratio: {
     type: 'Property',
@@ -58,9 +74,16 @@ json = {
 if @issue.project
   json[:project] = {
     type: 'Relationship',
-    value: {
-      id: url_for(controller: 'projects', action: 'show', id: @issue.project_id, only_path: false, format: :jsonld),
-      name: @issue.project.name
+    object: {
+      id: url_for(
+        controller: 'projects', action: 'show', id: @issue.project_id,
+        only_path: false, format: :jsonld
+      ),
+      type: "RedmineProject"
+      name: {
+        type: 'Property',
+        value: @issue.project.name
+      }
     }
   }
 end
@@ -99,9 +122,16 @@ end
 if @issue.author
   json[:author] = {
     type: 'Relationship',
-    value: {
-      id: url_for(controller: 'users', action: 'show', id: @issue.author_id, only_path: false, format: :jsonld),
-      name: @issue.author.name
+    object: {
+      id: url_for(
+        controller: 'users', action: 'show', id: @issue.author_id,
+        only_path: false, format: :jsonld
+      ),
+      type: "RedmineUser"
+      name: {
+        type: 'Property',
+        value: @issue.author.name
+      }
     }
   }
 end
@@ -109,15 +139,22 @@ end
 if @issue.assigned_to
   json[:assigned_to] = {
     type: 'Relationship',
-    value: {
-      id: url_for(controller: 'users', action: 'show', id: @issue.assigned_to_id, only_path: false, format: :jsonld),
-      name: @issue.assigned_to.name
+    object: {
+      id: url_for(
+        controller: 'users', action: 'show', id: @issue.assigned_to_id,
+        only_path: false, format: :jsonld
+      ),
+      type: "RedmineUser"
+      name: {
+        type: 'Property',
+        value: @issue.assigned_to.name
+      }
     }
   }
 end
 
 if @issue.category
-  json[:category] = {
+  json[:subCategory] = {
     type: 'Property',
     value: {
       id: @issue.category_id,
@@ -129,9 +166,16 @@ end
 if @issue.fixed_version
   json[:fixed_version] = {
     type: 'Relationship',
-    value: {
-      id: url_for(controller: 'versions', action: 'show', id: @issue.fixed_version_id, only_path: false, format: :jsonld),
-      name: @issue.fixed_version.name
+    object: {
+      id: url_for(
+        controller: 'versions', action: 'show', id: @issue.fixed_version_id,
+        only_path: false, format: :jsonld
+      ),
+      type: 'RedmineVersion',
+      name: {
+        type: 'Property',
+        value: @issue.fixed_version.name
+      }
     }
   }
 end
@@ -152,12 +196,12 @@ if User.current.allowed_to?(:view_time_entries, @project)
 end
 
 if @issue.geom
-  json[:geojson] = {
+  json[:location] = {
     type: 'GeoProperty',
     value: @issue.geojson['geometry']
   }
 else
-  json[:geojson] = nil
+  json[:location] = nil
 end
 
 json

@@ -20,7 +20,7 @@ Redmine::Plugin.register :redmine_gtt_fiware do
 
   project_module :gtt_fiware do
     permission :view_gtt_fiware_ngsi_ld, {
-      ngsi_ld: %i( context data_model )
+      ngsi_ld: %i( context )
     }, read: true
   end
 end
