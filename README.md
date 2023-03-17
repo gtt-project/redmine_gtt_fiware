@@ -56,7 +56,8 @@ TBD
 ### NGSI-LD and NGSIv2 API endpoints
 
 - `.json` returns NGSIv2
-- `.jsonld` returns NGSILD
+- `.jsonld` returns NGSI-LD (The Optional query parameter `?normalized=true|false`
+  can be set to switch between normalized and not-normalized format for NGSI-LD.)
 
 | Entity    | NGSI-LD/NGSIv2                                               |
 |-----------|--------------------------------------------------------------|
@@ -68,9 +69,6 @@ TBD
 | Tracker   | TBD                                                          |
 | Status    | TBD                                                          |
 | Priority  | TBD                                                          |
-
-ional query parameter `?normalized=true|false` can be set to switch
-between normalized and not-normalized format for NGSI-LD.
 
 ## Contributing and Support
 
