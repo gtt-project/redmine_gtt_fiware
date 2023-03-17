@@ -43,23 +43,32 @@ More information on installing (and uninstalling) Redmine plugins can be found
 
 TBD
 
-### "Context" API endpoint
+### "Context" API endpoints
 
-```txt
-http://localhost:3000/fiware/ngsi/ld/context.jsonld
-```
-
-### "Data Model" API endpoint
-
-```txt
-http://localhost:3000/fiware/data-models/[tracker_id]/context.jsonld
-```
+| Context          | URL                                                       |
+|------------------|-----------------------------------------------------------|
+| General Redmine  | `http://localhost:3000/fiware/data-models/redmine-context.jsonld` |
+| GTT Redmine      | `http://localhost:3000/fiware/data-models/redmine-gtt-context.jsonld` |
+| Issues           | `http://localhost:3000/fiware/data-models/redmine-issues-context.jsonld` |
+| Projects         | `http://localhost:3000/fiware/data-models/redmine-projects-context.jsonld` |
+| Users            | `http://localhost:3000/fiware/data-models/redmine-users-context.jsonld` |
 
 ### NGSI-LD "Issue" API endpoint
 
-```txt
-http://localhost:3000/issues/[issue_id].jsonld
-```
+| Entity    | URL                                                       |
+|-----------|----------------------------------------------|
+| Issue     | `http://localhost:3000/issues/[id].jsonld`   |
+| Project   | `http://localhost:3000/projects/[id].jsonld` |
+| User      | `http://localhost:3000/users/[id].jsonld`    |
+| Version   | TBD                                          |
+| Category  | TBD                                          |
+| Tracker   | TBD                                          |
+| Status    | TBD                                          |
+| Priority  | TBD                                          |
+
+
+The optional query parameter `?normalized=true|false` can be set to switch
+between normalized and not-normalized format.
 
 ## Contributing and Support
 
