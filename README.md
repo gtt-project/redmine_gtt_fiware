@@ -60,9 +60,9 @@ TBD
 
 | Entity    | NGSI-LD/NGSIv2                                               |
 |-----------|--------------------------------------------------------------|
-| Issue     | GET `http://localhost:3000/ngsi/issues/<id>.<jsonld|json>`   |
-| Project   | GET `http://localhost:3000/ngsi/projects/<id>.<jsonld|json>` |
-| User      | GET `http://localhost:3000/ngsi/users/<id>.<jsonld|json>`    |
+| Issue     | GET `http://localhost:3000/ngsi/issues/{id}.{jsonld|json}`   |
+| Project   | GET `http://localhost:3000/ngsi/projects/{id}.{jsonld|json}` |
+| User      | GET `http://localhost:3000/ngsi/users/{id}.{jsonld|json}`    |
 | Version   | TBD                                                          |
 | Category  | TBD                                                          |
 | Tracker   | TBD                                                          |
