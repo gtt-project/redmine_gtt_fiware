@@ -47,11 +47,11 @@ TBD
 
 | Context          | URL                                                       |
 |------------------|-----------------------------------------------------------|
-| General Redmine  | `http://localhost:3000/fiware/data-models/redmine-context.jsonld` |
-| GTT Redmine      | `http://localhost:3000/fiware/data-models/redmine-gtt-context.jsonld` |
-| Issues           | `http://localhost:3000/fiware/data-models/redmine-issues-context.jsonld` |
-| Projects         | `http://localhost:3000/fiware/data-models/redmine-projects-context.jsonld` |
-| Users            | `http://localhost:3000/fiware/data-models/redmine-users-context.jsonld` |
+| General Redmine  | `http://localhost:3000/ngsi/data-models/redmine-context.jsonld` |
+| GTT Redmine      | `http://localhost:3000/ngsi/data-models/redmine-gtt-context.jsonld` |
+| Issues           | `http://localhost:3000/ngsi/data-models/redmine-issues-context.jsonld` |
+| Projects         | `http://localhost:3000/ngsi/data-models/redmine-projects-context.jsonld` |
+| Users            | `http://localhost:3000/ngsi/data-models/redmine-users-context.jsonld` |
 
 ### NGSI-LD and NGSIv2 API endpoints
 
@@ -60,9 +60,9 @@ TBD
 
 | Entity    | NGSI-LD/NGSIv2                                               |
 |-----------|--------------------------------------------------------------|
-| Issue     | GET `http://localhost:3000/ngsi/issues/[id].[jsonld|json]`   |
-| Project   | GET `http://localhost:3000/ngsi/projects/[id].[jsonld|json]` |
-| User      | GET `http://localhost:3000/ngsi/users/[id].[jsonld|json]`    |
+| Issue     | GET `http://localhost:3000/ngsi/issues/<id>.<jsonld|json>`   |
+| Project   | GET `http://localhost:3000/ngsi/projects/<id>.<jsonld|json>` |
+| User      | GET `http://localhost:3000/ngsi/users/<id>.<jsonld|json>`    |
 | Version   | TBD                                                          |
 | Category  | TBD                                                          |
 | Tracker   | TBD                                                          |

@@ -21,8 +21,8 @@ Redmine::Plugin.register :redmine_gtt_fiware do
   )
 
   project_module :gtt_fiware do
-    permission :view_gtt_fiware_ngsi_ld, {
-      ngsi_ld: %i( context )
+    permission :view_gtt_fiware_ngsi, {
+      context: %i( index )
     }, read: true
   end
 end

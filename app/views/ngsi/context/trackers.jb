@@ -1,7 +1,0 @@
-json = {
-  "@id": url_for(only_path: false, format: :jsonld),
-  title: "Tracker Name",
-  description: "Tracker #{params[:id]} Description"
-}
-
-json

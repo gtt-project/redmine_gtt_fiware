@@ -4,7 +4,7 @@ json = {
     {
       "xsd": "http://www.w3.org/2001/XMLSchema#",
       "geo": "https://uri.etsi.org/ngsi-ld/geo/",
-      "redmine": "#{request.base_url}/fiware/data-models/redmine/",
+      "redmine": "#{request.base_url}/ngsi/data-models/redmine/",
       "Project": "redmine:Project",
       "User": "redmine:User",
       "createdAt": {

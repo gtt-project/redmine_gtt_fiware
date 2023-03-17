@@ -2,8 +2,8 @@
 # See: http://guides.rubyonrails.org/routing.html
 
 namespace :ngsi do
-  scope 'fiware/data-models' do
-    get '/redmine(-:type)-context', to: 'ngsi_ld#context', as: :context
+  scope 'data-models' do
+    get '/redmine(-:type)-context', to: 'context#index', as: :context
   end
 
   resources :issues, only: [:show], defaults: { format: 'json' } do

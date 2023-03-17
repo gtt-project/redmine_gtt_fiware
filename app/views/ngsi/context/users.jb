@@ -1,7 +1,7 @@
 json = {
   "@context": [
-    url_for(controller: 'ngsi_ld', action: 'context', type: nil, only_path: false, format: :jsonld),
-    url_for(controller: 'ngsi_ld', action: 'context', type: 'gtt', only_path: false, format: :jsonld),
+    url_for(controller: 'context', action: 'index', type: nil, only_path: false, format: :jsonld),
+    url_for(controller: 'context', action: 'index', type: 'gtt', only_path: false, format: :jsonld),
     {
       "login": {
         "@id": "redmine:login",

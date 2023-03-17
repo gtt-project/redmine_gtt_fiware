@@ -1,5 +1,5 @@
 json = {
-  "@context": url_for(controller: 'ngsi_ld', action: 'context', type: 'issues', only_path: false, format: :jsonld),
+  "@context": url_for(controller: 'context', action: 'index', type: 'issues', only_path: false, format: :jsonld),
   "id": url_for(only_path: false, format: :jsonld, normalized: @normalized),
   "type": 'Issue',
   "subject": {
