@@ -55,16 +55,16 @@ TBD
 
 ### NGSI-LD "Issue" API endpoint
 
-| Entity    | URL                                                       |
-|-----------|----------------------------------------------|
-| Issue     | `http://localhost:3000/issues/[id].jsonld`   |
-| Project   | `http://localhost:3000/projects/[id].jsonld` |
-| User      | `http://localhost:3000/users/[id].jsonld`    |
-| Version   | TBD                                          |
-| Category  | TBD                                          |
-| Tracker   | TBD                                          |
-| Status    | TBD                                          |
-| Priority  | TBD                                          |
+| Entity    | NGSI-LD/NGSIv2                                    |
+|-----------|---------------------------------------------------|
+| Issue     | `http://localhost:3000/ngsi/issues/[id].jsonld`   |
+| Project   | `http://localhost:3000/ngsi/projects/[id].jsonld` |
+| User      | `http://localhost:3000/ngsi/users/[id].jsonld`    |
+| Version   | TBD                                               |
+| Category  | TBD                                               |
+| Tracker   | TBD                                               |
+| Status    | TBD                                               |
+| Priority  | TBD                                               |
 
 
 The optional query parameter `?normalized=true|false` can be set to switch

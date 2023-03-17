@@ -166,10 +166,17 @@ else
   json[:location] = nil
 end
 
-if @normalized
-  # Output as normalized JSON-LD
-  json
+if ngsiv2
+  # Output as NGSI-v2
+  JsonldTransformer.to_ngsi_v2(
+    JsonldTransformer.to_non_normalized(json)
+  )
 else
-  # Output as non-normalized JSON-LD
-  JsonldTransformer.to_non_normalized_format(json)
+  if @normalized
+    # Output as normalized NGSI-LD
+    json
+  else
+    # Output as non-normalized NGSI-LD
+    JsonldTransformer.to_non_normalized(json)
+  end
 end
