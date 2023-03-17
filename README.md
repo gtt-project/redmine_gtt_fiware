@@ -53,22 +53,24 @@ TBD
 | Projects         | `http://localhost:3000/fiware/data-models/redmine-projects-context.jsonld` |
 | Users            | `http://localhost:3000/fiware/data-models/redmine-users-context.jsonld` |
 
-### NGSI-LD "Issue" API endpoint
+### NGSI-LD and NGSIv2 API endpoints
 
-| Entity    | NGSI-LD/NGSIv2                                    |
-|-----------|---------------------------------------------------|
-| Issue     | `http://localhost:3000/ngsi/issues/[id].jsonld`   |
-| Project   | `http://localhost:3000/ngsi/projects/[id].jsonld` |
-| User      | `http://localhost:3000/ngsi/users/[id].jsonld`    |
-| Version   | TBD                                               |
-| Category  | TBD                                               |
-| Tracker   | TBD                                               |
-| Status    | TBD                                               |
-| Priority  | TBD                                               |
+- `.json` returns NGSIv2
+- `.jsonld` returns NGSILD
 
+| Entity    | NGSI-LD/NGSIv2                                               |
+|-----------|--------------------------------------------------------------|
+| Issue     | GET `http://localhost:3000/ngsi/issues/[id].[jsonld|json]`   |
+| Project   | GET `http://localhost:3000/ngsi/projects/[id].[jsonld|json]` |
+| User      | GET `http://localhost:3000/ngsi/users/[id].[jsonld|json]`    |
+| Version   | TBD                                                          |
+| Category  | TBD                                                          |
+| Tracker   | TBD                                                          |
+| Status    | TBD                                                          |
+| Priority  | TBD                                                          |
 
-The optional query parameter `?normalized=true|false` can be set to switch
-between normalized and not-normalized format.
+ional query parameter `?normalized=true|false` can be set to switch
+between normalized and not-normalized format for NGSI-LD.
 
 ## Contributing and Support
 
