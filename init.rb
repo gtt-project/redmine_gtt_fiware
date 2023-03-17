@@ -14,7 +14,9 @@ Redmine::Plugin.register :redmine_gtt_fiware do
   requires_redmine :version_or_higher => '5.0.0'
 
   settings(
-    default: {},
+    default: {
+      'ngsi_ld_format' => false
+    },
     partial: 'gtt_fiware/settings'
   )
 

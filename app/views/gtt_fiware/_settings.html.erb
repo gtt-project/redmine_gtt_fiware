@@ -1,3 +1,14 @@
 <div class="box tabular settings">
+<h3><%= l(:gtt_fiware_settings_general) %></h3>
+
+<p>
+  <%= content_tag(:label, l(:field_ngsi_ld_format)) %>
+  <%= select_tag "settings[ngsi_ld_format]",
+    options_for_select([
+      [l(:option_ngsi_ld_format_not_normalized), false],
+      [l(:option_ngsi_ld_format_normalized), true]
+    ],
+    @settings['ngsi_ld_format']) %>
+</p>
 
 </div>

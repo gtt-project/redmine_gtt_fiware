@@ -9,7 +9,7 @@ json = {
       "rotation": {
         "@id": "redmine:rotation",
         "@type": "xsd:decimal"
-      }
+      },
     }
   ]
 }

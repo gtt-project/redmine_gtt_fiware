@@ -1,38 +1,39 @@
 json = {
-  "@context": [
-    url_for(
-      controller: 'ngsi_ld', action: 'data_model',
-      id: nil, type: 'user',
-      only_path: false, format: :jsonld
-    ),
-    'https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld'
-  ],
-  id: url_for(only_path: false, format: :jsonld),
-  type: 'RedmineUser',
-  login: {
-    type: 'Property',
-    value: @user.login
+  "@context": url_for(controller: 'ngsi_ld', action: 'context', type: 'users', only_path: false, format: :jsonld),
+  "id": url_for(only_path: false, format: :jsonld, normalized: @normalized),
+  "type": 'User',
+  "login": {
+    "type": 'Property',
+    "value": @user.login
   },
-  firstname: {
-    type: 'Property',
-    value: @user.firstname
+  "firstName": {
+    "type": 'Property',
+    "value": @user.firstname
   },
-  lastname: {
-    type: 'Property',
-    value: @user.lastname
+  "lastName": {
+    "type": 'Property',
+    "value": @user.lastname
   },
-  last_login_on: {
-    type: 'Property',
-    value: @user.last_login_on
+  "email": {
+    "type" => 'Property',
+    "value" => (User.current.admin? || !@user.pref.hide_mail) ? @user.mail : nil
   },
-  createdAt: {
-    type: 'Property',
-    value: @user.created_on
+  "status": {
+    "type" => 'Property',
+    "value" => User.current.admin ? @user.status : nil
   },
-  modifiedAt: {
-    type: 'Property',
-    value: @user.updated_on
-  }
+  "lastLoginDate": {
+    "type": 'Property',
+    "value": @user.last_login_on
+  },
+  "createdAt": {
+    "type": 'Property',
+    "value": @user.created_on
+  },
+  "modifiedAt": {
+    "type": 'Property',
+    "value": @user.updated_on
+  },
 }
 
 # TODO: custom fields
@@ -40,11 +41,18 @@ json = {
 
 if @user.geom
   json[:location] = {
-    type: 'GeoProperty',
-    value: @user.geojson['geometry']
+    "type": 'GeoProperty',
+    "value": @user.geojson['geometry']
   }
 else
   json[:location] = nil
 end
 
-json
+if @normalized
+  # Output as normalized JSON-LD
+  json
+else
+  # Output as non-normalized JSON-LD
+  JsonldTransformer.to_non_normalized_format(json)
+end
+

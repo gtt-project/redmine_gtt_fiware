@@ -1,3 +1,8 @@
 ja:
   project_module_gtt_fiware: "GTT FIWARE"
   permission_view_gtt_fiware_ngsi_ld: "View NGSI-LD Context files"
+
+  gtt_fiware_settings_general: "General Settings"
+  field_ngsi_ld_format: "Default NGSI-LD format"
+  option_ngsi_ld_format_normalized: "Normalized"
+  option_ngsi_ld_format_not_normalized: "Not normalized"

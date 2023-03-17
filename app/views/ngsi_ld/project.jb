@@ -1,46 +1,47 @@
 json = {
-  "@context": [
-    url_for(
-      controller: 'ngsi_ld', action: 'data_model',
-      id: nil, type: 'project',
-      only_path: false, format: :jsonld
-    ),
-    'https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld'
-  ],
-  id: url_for(only_path: false, format: :jsonld),
-  type: 'RedmineProject',
-  name: {
-    type: 'Property',
-    value: @project.name
+  "@context": url_for(controller: 'ngsi_ld', action: 'context', type: 'projects', only_path: false, format: :jsonld),
+  "id": url_for(only_path: false, format: :jsonld, normalized: @normalized),
+  "type": 'Project',
+  "name": {
+    "type": 'Property',
+    "value": @project.name
   },
-  identifier: {
-    type: 'Property',
-    value: @project.identifier
+  "description": {
+    "type": 'Property',
+    "value": @project.description
   },
-  description: {
-    type: 'Property',
-    value: @project.description
+  "identifier": {
+    "type": 'Property',
+    "value": @project.identifier
   },
-  homepage: {
-    type: 'Property',
-    value: @project.homepage
+  "homepage": {
+    "type": 'Property',
+    "value": @project.homepage
   },
-  status: {
-    type: 'Property',
-    value: @project.status
+  "status": {
+    "type": 'Property',
+    "value": @project.status
   },
-  is_public: {
-    type: 'Property',
-    value: @project.is_public
+  "isPublic": {
+    "type": 'Property',
+    "value": @project.is_public
   },
-  created_at: {
-    type: 'Property',
-    value: @project.created_on
+  "createdAt": {
+    "type": 'Property',
+    "value": @project.created_on
   },
-  updated_at: {
-    type: 'Property',
-    value: @project.updated_on
-  }
+  "modifiedAt": {
+    "type": 'Property',
+    "value": @project.updated_on
+  },
+  "hasParentProject": {
+    "type": "Relationship",
+    "object": nil # TODO
+  },
+  "hasMembers": {
+    "type": "Relationship",
+    "object": [] # TODO
+  },
 }
 
 # TODO: optional includes
@@ -49,11 +50,18 @@ json = {
 
 if @project.geom
   json[:location] = {
-    type: 'GeoProperty',
-    value: @project.geojson['geometry']
+    "type": 'GeoProperty',
+    "value": @project.geojson['geometry']
   }
 else
   json[:location] = nil
 end
 
-json
+if @normalized
+  # Output as normalized JSON-LD
+  json
+else
+  # Output as non-normalized JSON-LD
+  JsonldTransformer.to_non_normalized_format(json)
+end
+

@@ -61,19 +61,19 @@ json = {
       },
       "hasStatus": {
         "@id": "redmine:hasStatus",
-        "@type": "@id"
+        "@type": "xsd:integer"
       },
       "hasTracker": {
         "@id": "redmine:hasTracker",
-        "@type": "@id"
+        "@type": "xsd:integer"
       },
       "hasCategory": {
         "@id": "redmine:hasCategory",
-        "@type": "@id"
+        "@type": "xsd:integer"
       },
       "hasVersion": {
         "@id": "redmine:hasVersion",
-        "@type": "@id"
+        "@type": "xsd:integer"
       },
     }
   ]

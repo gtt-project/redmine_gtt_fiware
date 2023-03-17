@@ -27,7 +27,6 @@ json = {
         "@id": "redmine:lastLoginDate",
         "@type": "xsd:dateTime"
       },
-      # ...
     }
   ]
 }
