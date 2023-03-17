@@ -1,6 +1,0 @@
-<% if @project.nil? or @project.module_enabled?(:gtt_fiware) %>
-<%=
-  Redmine::Views::OtherFormatsBuilder.new(self).link_to("NGSI-LD",
-      :url => params.permit(:format).merge({:format => 'jsonld'}))
-%>
-<% end %>
