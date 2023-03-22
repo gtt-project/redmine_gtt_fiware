@@ -10,27 +10,13 @@ namespace :ngsi do
     get '/redmine(-:type)-context', to: 'context#index', as: :context
   end
 
-  # Define routes for the issue resources
-  resources :issues, only: [:show], defaults: { format: 'json' } do
-    # Add a member route with a constraint to handle JSON-LD format
-    member do
-      get :show, constraints: { format: 'jsonld' }
-    end
-  end
-
-  # Define routes for the project resources
-  resources :projects, only: [:show], defaults: { format: 'json' } do
-    # Add a member route with a constraint to handle JSON-LD format
-    member do
-      get :show, constraints: { format: 'jsonld' }
-    end
-  end
-
-  # Define routes for the user resources
-  resources :users, only: [:show], defaults: { format: 'json' } do
-    # Add a member route with a constraint to handle JSON-LD format
-    member do
-      get :show, constraints: { format: 'jsonld' }
+  # Define routes for issue, project, and user resources
+  %i[issues projects users].each do |resource|
+    resources resource, only: [:show], defaults: { format: 'json' } do
+      # Add a member route with a constraint to handle JSON-LD format
+      member do
+        get :show, constraints: { format: 'jsonld' }
+      end
     end
   end
 

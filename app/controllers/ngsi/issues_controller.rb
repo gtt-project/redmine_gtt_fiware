@@ -2,24 +2,29 @@
 # It inherits from Ngsi::BaseController and provides actions
 # for handling issue-related endpoints.
 class Ngsi::IssuesController < Ngsi::BaseController
+  before_action :set_issue, only: [:show]
 
   # Processes the issue request and renders the JSON-LD or NGSIv2 representation.
   def show
-    # Find the issue by its ID
-    @issue = Issue.find(params[:id])
-
-    # Make sure the @issue object is not nil
-    if @issue.nil?
-      # Handle the error, e.g., render a 404 Not Found response
-      render json: { error: "Issue not found" }, status: :not_found
-      return
-    end
-
-    # Render the appropriate template based on the requested format
     respond_to do |format|
-      format.jsonld { render template: 'ngsi/issue', locals: { ngsiv2: false } }
-      format.json   { render template: 'ngsi/issue', locals: { ngsiv2: true  } }
+      format.jsonld { render_issue_template(ngsiv2: false) }
+      format.json   { render_issue_template(ngsiv2: true) }
     end
   end
 
+  private
+
+  # Set the @issue based on the ID parameter and handle errors if the issue is not found
+  def set_issue
+    @issue = Issue.find_by(id: params[:id])
+
+    if @issue.nil?
+      render json: { error: "Issue not found" }, status: :not_found
+    end
+  end
+
+  # Render the ngsi/issue template with the given locals
+  def render_issue_template(locals)
+    render template: 'ngsi/issue', locals: locals
+  end
 end

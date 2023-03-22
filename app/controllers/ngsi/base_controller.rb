@@ -4,6 +4,8 @@
 class Ngsi::BaseController < ApplicationController
   before_action :set_normalized
 
+  private
+
   # Converts a string to a boolean value. Returns true if the string is "true",
   # otherwise returns false.
   #
@@ -13,14 +15,17 @@ class Ngsi::BaseController < ApplicationController
     str.to_s.downcase == "true"
   end
 
-  private
-
   # Set the @normalized value based on the "normalized" query parameter or the plugin setting
   def set_normalized
     @normalized = if params.key?(:normalized)
       to_boolean(params[:normalized])
     else
-      to_boolean(Setting.plugin_redmine_gtt_fiware['ngsi_ld_format'])
+      plugin_setting_normalized
     end
+  end
+
+  # Get the plugin setting for "ngsi_ld_format" as a boolean value
+  def plugin_setting_normalized
+    to_boolean(Setting.plugin_redmine_gtt_fiware['ngsi_ld_format'])
   end
 end

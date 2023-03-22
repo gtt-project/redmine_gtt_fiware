@@ -2,24 +2,29 @@
 # It inherits from Ngsi::BaseController and provides actions
 # for handling user-related endpoints.
 class Ngsi::UsersController < Ngsi::BaseController
+  before_action :set_user, only: [:show]
 
   # Processes the user request and renders the JSON-LD or NGSIv2 representation.
   def show
-    # Find the user by its ID
-    @user = User.find(params[:id])
-
-    # Make sure the @user object is not nil
-    if @user.nil?
-      # Handle the error, e.g., render a 404 Not Found response
-      render json: { error: "User not found" }, status: :not_found
-      return
-    end
-
-    # Render the appropriate template based on the requested format
     respond_to do |format|
-      format.jsonld { render template: 'ngsi/user', locals: { ngsiv2: false } }
-      format.json   { render template: 'ngsi/user', locals: { ngsiv2: true  } }
+      format.jsonld { render_user_template(ngsiv2: false) }
+      format.json   { render_user_template(ngsiv2: true) }
     end
   end
 
+  private
+
+  # Set the @user based on the ID parameter and handle errors if the user is not found
+  def set_user
+    @user = User.find_by(id: params[:id])
+
+    if @user.nil?
+      render json: { error: "User not found" }, status: :not_found
+    end
+  end
+
+  # Render the ngsi/user template with the given locals
+  def render_user_template(locals)
+    render template: 'ngsi/user', locals: locals
+  end
 end

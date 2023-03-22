@@ -1,22 +1,25 @@
-json = {
-  "@context": [
-    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-    {
-      "xsd": "http://www.w3.org/2001/XMLSchema#",
-      "geo": "https://uri.etsi.org/ngsi-ld/geo/",
-      "redmine": "#{request.base_url}/ngsi/data-models/redmine/",
-      "Project": "redmine:Project",
-      "User": "redmine:User",
-      "createdAt": {
-        "@id": "redmine:createdAt",
-        "@type": "xsd:dateTime"
-      },
-      "modifiedAt": {
-        "@id": "redmine:modifiedAt",
-        "@type": "xsd:dateTime"
-      },
-    }
-  ]
-}
+def generate_context(base_url)
+  {
+    "@context": [
+      "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+      {
+        "xsd": "http://www.w3.org/2001/XMLSchema#",
+        "geo": "https://uri.etsi.org/ngsi-ld/geo/",
+        "redmine": "#{base_url}/ngsi/data-models/redmine/",
+        "Project": "redmine:Project",
+        "User": "redmine:User",
+        "createdAt": {
+          "@id": "redmine:createdAt",
+          "@type": "xsd:dateTime"
+        },
+        "modifiedAt": {
+          "@id": "redmine:modifiedAt",
+          "@type": "xsd:dateTime"
+        },
+      }
+    ]
+  }
+end
 
+json = generate_context(request.base_url)
 json

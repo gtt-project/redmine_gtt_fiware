@@ -2,7 +2,6 @@
 # It inherits from ApplicationController and provides actions
 # for handling context-related endpoints.
 class Ngsi::ContextController < ApplicationController
-
   # Require global authorization before processing any action
   before_action :authorize_global
 
@@ -12,18 +11,24 @@ class Ngsi::ContextController < ApplicationController
   # Processes the context request based on the type parameter.
   # Renders the appropriate JSON-LD context template for the requested type.
   def index
-    # Check if the type parameter is present and valid
-    if params[:type].present? && ['issues', 'projects', 'users', 'gtt'].include?(params[:type])
-      respond_to do |format|
-        # Render the corresponding JSON-LD context template for the requested type
-        format.jsonld { render template: "ngsi/context/#{params[:type]}" }
-      end
-    else
-      # Render the default Redmine JSON-LD context template if no valid type is provided
-      respond_to do |format|
-        format.jsonld { render template: "ngsi/context/redmine" }
-      end
+    respond_to do |format|
+      format.jsonld { render template: "ngsi/context/#{context_template}" }
     end
   end
 
+  private
+
+  # Determine the context template to render based on the type parameter
+  def context_template
+    if params[:type].present? && valid_types.include?(params[:type])
+      params[:type]
+    else
+      'redmine'
+    end
+  end
+
+  # Define a list of valid context types
+  def valid_types
+    %w[issues projects users gtt]
+  end
 end
