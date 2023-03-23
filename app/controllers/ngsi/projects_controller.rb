@@ -6,25 +6,24 @@ class Ngsi::ProjectsController < Ngsi::BaseController
 
   # Processes the project request and renders the JSON-LD or NGSIv2 representation.
   def show
-    respond_to do |format|
-      format.jsonld { render_project_template(ngsiv2: false) }
-      format.json   { render_project_template(ngsiv2: true) }
-    end
+    render_project_template
   end
 
   private
 
   # Set the @project based on the ID parameter and handle errors if the project is not found
   def set_project
-    @project = Project.find_by(id: params[:id])
+    @project = Project.visible.find_by(id: params[:id])
+    return if @project.present?
 
-    if @project.nil?
-      render json: { error: "Project not found" }, status: :not_found
-    end
+    render json: { error: "Project not found" }, status: :not_found
   end
 
-  # Render the ngsi/project template with the given locals
-  def render_project_template(locals)
-    render template: 'ngsi/project', locals: locals
+  # Render the ngsi/project template with the appropriate locals
+  def render_project_template
+    respond_to do |format|
+      format.jsonld { render template: 'ngsi/project', locals: { ngsiv2: false } }
+      format.json   { render template: 'ngsi/project', locals: { ngsiv2: true } }
+    end
   end
 end
