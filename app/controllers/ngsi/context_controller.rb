@@ -6,7 +6,7 @@ class Ngsi::ContextController < ApplicationController
   before_action :authorize_global
 
   # Allow API access to the context action
-  accept_api_auth :context
+  accept_api_auth :index
 
   # Processes the context request based on the type parameter.
   # Renders the appropriate JSON-LD context template for the requested type.
