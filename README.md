@@ -41,7 +41,10 @@ More information on installing (and uninstalling) Redmine plugins can be found
 - Make sure REST web services is enabled: http://localhost:3000/settings?tab=api
 - Enable the plugin in project settings
 
-TBD
+To allow **public** access to NGSI-LD context documents, it's necessary to grant *View*
+permissions to the *Anonymous* role.
+
+![Plugin permissions](doc/permissions.png)
 
 ### "Context" API endpoints
 
