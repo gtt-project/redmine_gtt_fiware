@@ -16,7 +16,7 @@ class Ngsi::UsersController < Ngsi::BaseController
     @user = User.visible.find_by(id: params[:id])
     return if @user.present?
 
-    render json: { error: "User not found" }, status: :not_found
+    render json: { error: l(:gtt_fiware_user_not_found) }, status: :not_found
   end
 
   # Render the ngsi/user template with the appropriate locals

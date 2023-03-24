@@ -6,43 +6,13 @@ json = {
     "type": 'Property',
     "value": @issue.subject
   },
-  "description": {
-    "type": 'Property',
-    "value": @issue.description
-  },
-  "startDate": {
-    "type": 'Property',
-    "value": {
-      "@type": 'DateTime',
-      "@value": @issue.start_date
-    }
-  },
-  "dueDate": {
-    "type": 'Property',
-    "value": {
-      "@type": 'DateTime',
-      "@value": @issue.due_date
-    }
-  },
   "closedDate": {
     "type": 'Property',
     "value": nil
   },
-  "doneRatio": {
-    "type": 'Property',
-    "value": @issue.done_ratio
-  },
   "isPrivate": {
     "type": 'Property',
     "value": @issue.is_private
-  },
-  "estimatedHours": {
-    "type": 'Property',
-    "value": @issue.estimated_hours
-  },
-  "totalEstimatedHours": {
-    "type": 'Property',
-    "value": @issue.total_estimated_hours
   },
   "createdAt": {
     "type": 'Property',
@@ -115,14 +85,63 @@ if @issue.author
   }
 end
 
-if @issue.assigned_to
+# unless @issue.disabled_core_fields.include?('parent_issue_id')
+#   json[:] =
+# end
+
+unless @issue.disabled_core_fields.include?('start_date')
+  json[:startDate] = {
+    "type": 'Property',
+    "value": {
+      "@type": 'DateTime',
+      "@value": @issue.start_date
+    }
+  }
+end
+
+unless @issue.disabled_core_fields.include?('due_date')
+  json[:dueDate] = {
+    "type": 'Property',
+    "value": {
+      "@type": 'DateTime',
+      "@value": @issue.due_date
+    }
+  }
+end
+
+unless @issue.disabled_core_fields.include?('estimated_hours')
+  json[:estimatedHours] = {
+    "type": 'Property',
+    "value": @issue.estimated_hours
+  }
+  json[:totalEstimatedHours] = {
+    "type": 'Property',
+    "value": @issue.total_estimated_hours
+  }
+end
+
+unless @issue.disabled_core_fields.include?('done_ratio')
+  json[:doneRatio] = {
+    "type": 'Property',
+    "value": @issue.done_ratio
+  }
+end
+
+unless @issue.disabled_core_fields.include?('description')
+  json[:description] = {
+    "type": 'Property',
+    "value": @issue.description
+  }
+end
+
+unless @issue.disabled_core_fields.include?('assigned_to_id')
   json[:hasAssignee] = {
     "type": 'Relationship',
     "object": url_for(controller: 'users', action: 'show', id: @issue.assigned_to_id, only_path: false, format: :jsonld, normalized: @normalized)
   }
 end
 
-if @issue.category
+unless @issue.disabled_core_fields.include?('category_id') || (@issue.category.nil? && @issue.project.issue_categories.none?)
   json[:hasCategory] = {
     "type": 'Property',
     "value": {
@@ -132,7 +151,7 @@ if @issue.category
   }
 end
 
-if @issue.fixed_version
+unless @issue.disabled_core_fields.include?('fixed_version_id') || (@issue.fixed_version.nil? && @issue.assignable_versions.none?)
   json[:hasVersion] = {
     "type": 'Property',
     "value": {

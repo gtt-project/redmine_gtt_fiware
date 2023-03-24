@@ -3,6 +3,7 @@
 # for handling project-related endpoints.
 class Ngsi::ProjectsController < Ngsi::BaseController
   before_action :set_project, only: [:show]
+  before_action :plugin_enabled?, only: [:show]
 
   # Processes the project request and renders the JSON-LD or NGSIv2 representation.
   def show
@@ -16,7 +17,14 @@ class Ngsi::ProjectsController < Ngsi::BaseController
     @project = Project.visible.find_by(id: params[:id])
     return if @project.present?
 
-    render json: { error: "Project not found" }, status: :not_found
+    render json: { error: l(:gtt_fiware_project_not_found) }, status: :not_found
+  end
+
+  # Ensure the NGSI plugin is enabled for the project.
+  def plugin_enabled?
+    unless @project.module_enabled?('gtt_fiware')
+      render json: { error: l(:gtt_fiware_error_plugin_not_enabled) }, status: :forbidden
+    end
   end
 
   # Render the ngsi/project template with the appropriate locals

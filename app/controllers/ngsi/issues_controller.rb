@@ -3,6 +3,7 @@
 # for handling issue-related endpoints.
 class Ngsi::IssuesController < Ngsi::BaseController
   before_action :find_issue, only: [:show]
+  before_action :plugin_enabled?, only: [:show]
 
   # Processes the issue request and renders the JSON-LD or NGSIv2 representation.
   def show
@@ -16,7 +17,15 @@ class Ngsi::IssuesController < Ngsi::BaseController
     @issue = Issue.visible.find_by(id: params[:id])
     return if @issue.present?
 
-    render json: { error: "Issue not found" }, status: :not_found
+    render json: { error: l(:gtt_fiware_issue_not_found) }, status: :not_found
+  end
+
+  # Ensure the NGSI plugin is enabled for the project.
+  def plugin_enabled?
+    @project = @issue.project
+    unless @project.module_enabled?('gtt_fiware')
+      render json: { error: l(:gtt_fiware_error_plugin_not_enabled) }, status: :forbidden
+    end
   end
 
   # Render the ngsi/issue template with the appropriate locals
