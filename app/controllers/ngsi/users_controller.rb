@@ -12,11 +12,17 @@ class Ngsi::UsersController < Ngsi::BaseController
   private
 
   # Set the @user based on the ID parameter and handle errors if the user is not found
+  # or not visible based on permissions.
   def set_user
-    @user = User.visible.find_by(id: params[:id])
-    return if @user.present?
+    user = User.find_by(id: params[:id])
 
-    render json: { error: l(:gtt_fiware_user_not_found) }, status: :not_found
+    if user.nil?
+      render json: { error: l(:gtt_fiware_user_not_found) }, status: :not_found
+    elsif !user.visible?
+      render json: { error: l(:gtt_fiware_user_forbidden) }, status: :forbidden
+    else
+      @user = user
+    end
   end
 
   # Render the ngsi/user template with the appropriate locals

@@ -13,11 +13,17 @@ class Ngsi::ProjectsController < Ngsi::BaseController
   private
 
   # Set the @project based on the ID parameter and handle errors if the project is not found
+  # or not visible based on permissions.
   def set_project
-    @project = Project.visible.find_by(id: params[:id])
-    return if @project.present?
+    project = Project.find_by(id: params[:id])
 
-    render json: { error: l(:gtt_fiware_project_not_found) }, status: :not_found
+    if project.nil?
+      render json: { error: l(:gtt_fiware_project_not_found) }, status: :not_found
+    elsif !project.visible?
+      render json: { error: l(:gtt_fiware_project_forbidden) }, status: :forbidden
+    else
+      @project = project
+    end
   end
 
   # Ensure the NGSI plugin is enabled for the project.
