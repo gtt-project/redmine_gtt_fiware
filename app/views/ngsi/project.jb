@@ -45,8 +45,6 @@ json = {
 }
 
 # TODO: optional includes
-# TODO: custom fields
-# render_api_custom_values @project.visible_custom_field_values, api
 
 if @project.geom
   json[:location] = {
@@ -57,10 +55,14 @@ else
   json[:location] = nil
 end
 
+# Handle custom fields
+CustomFieldHelper.process_custom_fields(json, @project.visible_custom_field_values, self, @normalized)
+
+# Output NGSI documents
 if ngsiv2
   # Output as NGSI-v2
-  JsonldTransformer.to_ngsi_v2(
-    JsonldTransformer.to_non_normalized(json)
+  JsonldHelper.to_ngsi_v2(
+    JsonldHelper.to_non_normalized(json)
   )
 else
   if @normalized
@@ -68,6 +70,6 @@ else
     json
   else
     # Output as non-normalized NGSI-LD
-    JsonldTransformer.to_non_normalized(json)
+    JsonldHelper.to_non_normalized(json)
   end
 end

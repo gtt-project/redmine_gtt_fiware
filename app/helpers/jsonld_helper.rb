@@ -1,4 +1,4 @@
-class JsonldTransformer
+module JsonldHelper
   # Transforms input_data from normalized to non-normalized JSON-LD format
   def self.to_non_normalized(input_data)
     input_data.each_with_object({}) do |(key, value), output_data|

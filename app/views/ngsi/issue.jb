@@ -85,6 +85,8 @@ if @issue.author
   }
 end
 
+# TODO: optional includes
+
 # unless @issue.disabled_core_fields.include?('parent_issue_id')
 #   json[:] =
 # end
@@ -134,14 +136,14 @@ unless @issue.disabled_core_fields.include?('description')
   }
 end
 
-unless @issue.disabled_core_fields.include?('assigned_to_id')
+unless @issue.disabled_core_fields.include?('assigned_to_id') || @issue.assigned_to_id.nil?
   json[:hasAssignee] = {
     "type": 'Relationship',
     "object": url_for(controller: 'users', action: 'show', id: @issue.assigned_to_id, only_path: false, format: :jsonld, normalized: @normalized)
   }
 end
 
-unless @issue.disabled_core_fields.include?('category_id') || (@issue.category.nil? && @issue.project.issue_categories.none?)
+unless @issue.disabled_core_fields.include?('category_id') || (@issue.category.nil? && @issue.project.issue_categories.none?) || @issue.category.nil?
   json[:hasCategory] = {
     "type": 'Property',
     "value": {
@@ -151,7 +153,7 @@ unless @issue.disabled_core_fields.include?('category_id') || (@issue.category.n
   }
 end
 
-unless @issue.disabled_core_fields.include?('fixed_version_id') || (@issue.fixed_version.nil? && @issue.assignable_versions.none?)
+unless @issue.disabled_core_fields.include?('fixed_version_id') || (@issue.fixed_version.nil? && @issue.assignable_versions.none?) || @issue.fixed_version.nil?
   json[:hasVersion] = {
     "type": 'Property',
     "value": {
@@ -160,10 +162,6 @@ unless @issue.disabled_core_fields.include?('fixed_version_id') || (@issue.fixed
     }
   }
 end
-
-# TODO: optional includes
-# TODO: custom fields
-# render_api_custom_values @issue.visible_custom_field_values, api
 
 if User.current.allowed_to?(:view_time_entries, @project)
   json[:spentHours] = {
@@ -185,10 +183,14 @@ else
   json[:location] = nil
 end
 
+# Handle custom fields
+CustomFieldHelper.process_custom_fields(json, @issue.visible_custom_field_values, self, @normalized)
+
+# Output NGSI documents
 if ngsiv2
   # Output as NGSI-v2
-  JsonldTransformer.to_ngsi_v2(
-    JsonldTransformer.to_non_normalized(json)
+  JsonldHelper.to_ngsi_v2(
+    JsonldHelper.to_non_normalized(json)
   )
 else
   if @normalized
@@ -196,6 +198,6 @@ else
     json
   else
     # Output as non-normalized NGSI-LD
-    JsonldTransformer.to_non_normalized(json)
+    JsonldHelper.to_non_normalized(json)
   end
 end
