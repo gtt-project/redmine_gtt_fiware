@@ -3,11 +3,8 @@ ja:
   permission_view_gtt_fiware_ngsi_ld: "View NGSI-LD Context files"
 
   gtt_fiware_project_not_found: "Project not found"
-  gtt_fiware_project_forbidden: "Access to project denied"
   gtt_fiware_issue_not_found: "Issue not found"
-  gtt_fiware_issue_forbidden: "Access to issue denied"
   gtt_fiware_user_not_found: "User not found"
-  gtt_fiware_user_forbidden: "Access to user denied"
   gtt_fiware_error_plugin_not_enabled: "GTT FIWARE plugin is not enabled for this project"
 
   field_ngsi_ld_format: "Default NGSI-LD format"

@@ -2,7 +2,11 @@
 # It inherits from ApplicationController and provides common functionality
 # for the derived controllers.
 class Ngsi::BaseController < ApplicationController
-  before_action :set_normalized
+  # Require authorization before processing any action
+  before_action :authorize_global
+
+  # Allow API access to the context action
+  accept_api_auth :show
 
   private
 

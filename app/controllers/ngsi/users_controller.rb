@@ -18,8 +18,6 @@ class Ngsi::UsersController < Ngsi::BaseController
 
     if user.nil?
       render json: { error: l(:gtt_fiware_user_not_found) }, status: :not_found
-    elsif !user.visible?
-      render json: { error: l(:gtt_fiware_user_forbidden) }, status: :forbidden
     else
       @user = user
     end

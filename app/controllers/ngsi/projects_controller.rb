@@ -19,8 +19,6 @@ class Ngsi::ProjectsController < Ngsi::BaseController
 
     if project.nil?
       render json: { error: l(:gtt_fiware_project_not_found) }, status: :not_found
-    elsif !project.visible?
-      render json: { error: l(:gtt_fiware_project_forbidden) }, status: :forbidden
     else
       @project = project
     end

@@ -12,15 +12,11 @@ class Ngsi::IssuesController < Ngsi::BaseController
 
   private
 
-  # Set the @issue based on the ID parameter and handle errors if the issue is not found
-  # or not visible based on permissions.
   def find_issue
     issue = Issue.find_by(id: params[:id])
 
     if issue.nil?
       render json: { error: l(:gtt_fiware_issue_not_found) }, status: :not_found
-    elsif !issue.visible?
-      render json: { error: l(:gtt_fiware_issue_forbidden) }, status: :forbidden
     else
       @issue = issue
     end
