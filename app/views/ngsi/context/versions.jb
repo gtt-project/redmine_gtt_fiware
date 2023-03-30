@@ -26,6 +26,15 @@ json = {
         "@id": "redmine:sharing",
         "@type": "xsd:string"
       },
+      # Drops "hasWikiPage"
+      "estimatedHours": {
+        "@id": "redmine:estimatedHours",
+        "@type": "xsd:decimal"
+      },
+      "spentHours": {
+        "@id": "redmine:spentHours",
+        "@type": "xsd:decimal"
+      },
     }
   ]
 }

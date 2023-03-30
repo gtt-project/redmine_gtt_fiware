@@ -36,7 +36,7 @@ json = {
   },
 }
 
-# TODO: custom fields
+# TODO: optional includes
 
 if @user.geom
   json[:location] = {

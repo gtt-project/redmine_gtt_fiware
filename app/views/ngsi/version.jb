@@ -1,0 +1,63 @@
+json = {
+  "@context": url_for(controller: 'context', action: 'index', type: 'versions', only_path: false, format: :jsonld),
+  "id": url_for(only_path: false, format: :jsonld, normalized: @normalized),
+  "type": 'Version',
+  "name": {
+    "type": 'Property',
+    "value": @version.name
+  },
+  "description": {
+    "type": 'Property',
+    "value": @version.description
+  },
+  "status": {
+    "type": 'Property',
+    "value": @version.status
+  },
+  "dueDate": {
+    "type": 'Property',
+    "value": @version.effective_date
+  },
+  "sharing": {
+    "type": 'Property',
+    "value": @version.sharing
+  },
+  "createdAt": {
+    "type": 'Property',
+    "value": @version.created_on
+  },
+  "modifiedAt": {
+    "type": 'Property',
+    "value": @version.updated_on
+  },
+}
+
+if User.current.allowed_to?(:view_time_entries, @project)
+  json[:estimatedHours] = {
+    "type": 'Property',
+    "value": @version.visible_fixed_issues.estimated_hours
+  }
+  json[:spentHours] = {
+    "type": 'Property',
+    "value": @version.spent_hours
+  }
+end
+
+# Handle custom fields
+CustomFieldHelper.process_custom_fields(json, @version.visible_custom_field_values, self, @normalized)
+
+# Output NGSI documents
+if ngsiv2
+  # Output as NGSI-v2
+  JsonldHelper.to_ngsi_v2(
+    JsonldHelper.to_non_normalized(json)
+  )
+else
+  if @normalized
+    # Output as normalized NGSI-LD
+    json
+  else
+    # Output as non-normalized NGSI-LD
+    JsonldHelper.to_non_normalized(json)
+  end
+end
