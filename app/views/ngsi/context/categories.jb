@@ -1,0 +1,21 @@
+json = {
+  "@context": [
+    url_for(controller: 'context', action: 'index', type: nil, only_path: false, format: :jsonld),
+    {
+      "hasProject": {
+        "@id": "redmine:Project",
+        "@type": "@id"
+      },
+      "name": {
+        "@id": "redmine:name",
+        "@type": "xsd:string"
+      },
+      "hasAssignee": {
+        "@id": "redmine:User",
+        "@type": "@id"
+      },
+    }
+  ]
+}
+
+json

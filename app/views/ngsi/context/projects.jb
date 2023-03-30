@@ -36,12 +36,13 @@ json = {
         "@type": "xsd:dateTime"
       },
       "hasParentProject": {
-        "@id": "redmine:hasParentProject",
+        "@id": "redmine:Project",
         "@type": "@id"
       },
       "hasMembers": {
-        "@id": "redmine:hasMembers",
-        "@type": "@id"
+        "@id": "redmine:User",
+        "@type": "@id",
+        "@container": "@set"
       }
     }
   ]

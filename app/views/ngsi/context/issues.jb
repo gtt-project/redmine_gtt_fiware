@@ -48,32 +48,32 @@ json = {
         "@type": "xsd:decimal"
       },
       "hasProject": {
-        "@id": "redmine:hasProject",
+        "@id": "redmine:Project",
         "@type": "@id"
       },
       "hasAuthor": {
-        "@id": "redmine:hasAuthor",
+        "@id": "redmine:User",
         "@type": "@id"
       },
       "hasAssignee": {
-        "@id": "redmine:hasAssignee",
+        "@id": "redmine:User",
         "@type": "@id"
       },
       "hasStatus": {
-        "@id": "redmine:hasStatus",
-        "@type": "xsd:integer"
+        "@id": "redmine:Status",
+        "@type": "@id"
       },
       "hasTracker": {
-        "@id": "redmine:hasTracker",
-        "@type": "xsd:integer"
+        "@id": "redmine:Tracker",
+        "@type": "@id"
       },
       "hasCategory": {
-        "@id": "redmine:hasCategory",
-        "@type": "xsd:integer"
+        "@id": "redmine:Category",
+        "@type": "@id"
       },
       "hasVersion": {
-        "@id": "redmine:hasVersion",
-        "@type": "xsd:integer"
+        "@id": "redmine:Version",
+        "@type": "@id"
       },
     }
   ]

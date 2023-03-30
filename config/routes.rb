@@ -10,8 +10,8 @@ namespace :ngsi do
     get '/redmine(-:type)-context', to: 'context#index', as: :context
   end
 
-  # Define routes for issue, project, and user resources
-  %i[issues projects users].each do |resource|
+  # Define routes for issue, project, user and other resources
+  %i[categories issues priorities projects statuses trackers versions users versions].each do |resource|
     resources resource, only: [:show], defaults: { format: 'json' } do
       # Add a member route with a constraint to handle JSON-LD format
       member do

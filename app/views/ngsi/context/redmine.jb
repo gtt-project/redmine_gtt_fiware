@@ -6,8 +6,13 @@ def generate_context(base_url)
         "xsd": "http://www.w3.org/2001/XMLSchema#",
         "geo": "https://uri.etsi.org/ngsi-ld/geo/",
         "redmine": "#{base_url}/ngsi/data-models/redmine/",
+        "Category": "redmine:Category",
+        "Priority": "redmine:Priority",
         "Project": "redmine:Project",
+        "Status": "redmine:Status",
+        "Tracker": "redmine:Tracker",
         "User": "redmine:User",
+        "Version": "redmine:Version",
         "createdAt": {
           "@id": "redmine:createdAt",
           "@type": "xsd:dateTime"

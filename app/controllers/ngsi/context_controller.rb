@@ -29,6 +29,6 @@ class Ngsi::ContextController < ApplicationController
 
   # Define a list of valid context types
   def valid_types
-    %w[issues projects users gtt]
+    %w[categories gtt issues priorities projects statuses trackers versions users versions]
   end
 end

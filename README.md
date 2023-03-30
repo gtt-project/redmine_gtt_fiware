@@ -55,6 +55,11 @@ permissions to the *Anonymous* role.
 | Issues           | `http://localhost:3000/ngsi/data-models/redmine-issues-context.jsonld` |
 | Projects         | `http://localhost:3000/ngsi/data-models/redmine-projects-context.jsonld` |
 | Users            | `http://localhost:3000/ngsi/data-models/redmine-users-context.jsonld` |
+| Versions         | `http://localhost:3000/ngsi/data-models/redmine-versions-context.jsonld` |
+| Categories       | `http://localhost:3000/ngsi/data-models/redmine-categories-context.jsonld` |
+| Trackers         | `http://localhost:3000/ngsi/data-models/redmine-trackers-context.jsonld` |
+| Statuses         | `http://localhost:3000/ngsi/data-models/redmine-statuses.jsonld` |
+| Priorities       | `http://localhost:3000/ngsi/data-models/redmine-priorities-context.jsonld` |
 
 ### NGSI-LD and NGSIv2 API endpoints
 

@@ -1,0 +1,26 @@
+json = {
+  "@context": [
+    url_for(controller: 'context', action: 'index', type: nil, only_path: false, format: :jsonld),
+    {
+      "name": {
+        "@id": "redmine:name",
+        "@type": "xsd:string"
+      },
+      "defaultStatus": {
+        "@id": "redmine:Status",
+        "@type": "@id"
+      },
+      "description": {
+        "@id": "redmine:description",
+        "@type": "xsd:string"
+      },
+      "standardFields": {
+        "@id": "redmine:standardFields",
+        "@type": "xsd:string",
+        "@container": "@set"
+      },
+    }
+  ]
+}
+
+json

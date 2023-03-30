@@ -1,0 +1,33 @@
+json = {
+  "@context": [
+    url_for(controller: 'context', action: 'index', type: nil, only_path: false, format: :jsonld),
+    {
+      "hasProject": {
+        "@id": "redmine:Project",
+        "@type": "@id"
+      },
+      "name": {
+        "@id": "redmine:name",
+        "@type": "xsd:string"
+      },
+      "description": {
+        "@id": "redmine:description",
+        "@type": "xsd:string"
+      },
+      "status": {
+        "@id": "redmine:status",
+        "@type": "xsd:integer"
+      },
+      "dueDate": {
+        "@id": "redmine:dueDate",
+        "@type": "xsd:dateTime"
+      },
+      "sharing": {
+        "@id": "redmine:sharing",
+        "@type": "xsd:string"
+      },
+    }
+  ]
+}
+
+json
