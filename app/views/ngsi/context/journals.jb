@@ -14,7 +14,7 @@ json = {
         "@id": "redmine:User",
         "@type": "@id"
       },
-      "details": {
+      "hasDetails": {
         "@id": "redmine:details",
         "@type": "@id",
         "@container": "@set"

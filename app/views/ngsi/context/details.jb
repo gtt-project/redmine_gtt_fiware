@@ -1,0 +1,29 @@
+json = {
+  "@context": [
+    url_for(controller: 'context', action: 'index', type: nil, only_path: false, format: :jsonld),
+    {
+      "hasJournal": {
+        "@id": "redmine:Journal",
+        "@type": "@id"
+      },
+      "property": {
+        "@id": "redmine:property",
+        "@type": "xsd:string"
+      },
+      "propKey": {
+        "@id": "redmine:propKey",
+        "@type": "xsd:string"
+      },
+      "oldValue": {
+        "@id": "redmine:oldValue",
+        "@type": "xsd:string"
+      },
+      "value": {
+        "@id": "redmine:value",
+        "@type": "xsd:string"
+      },
+    }
+  ]
+}
+
+json

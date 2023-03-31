@@ -21,9 +21,9 @@ json = {
     "type": 'Relationship',
     "object": url_for(controller: 'users', action: 'show', id: @journal.user_id, only_path: false, format: :jsonld, normalized: @normalized)
   },
-  "details": {
+  "hasDetails": {
     "type": 'Property',
-    "value": @journal.details
+    "value": @journal.details.map { |detail| url_for(controller: 'details', action: 'show', id: detail.id, only_path: false, format: :jsonld, normalized: @normalized) }
   },
 }
 

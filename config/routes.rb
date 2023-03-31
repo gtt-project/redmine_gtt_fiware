@@ -11,7 +11,7 @@ namespace :ngsi do
   end
 
   # Define routes for issue, project, user, and other resources
-  %i[attachments categories issues journals priorities projects relations statuses trackers versions users versions].each do |resource|
+  %i[attachments categories details issues journals priorities projects relations statuses trackers versions users versions].each do |resource|
     resources resource, only: [:show], defaults: { format: 'json' } do
       # Add a member route with constraints to handle JSON-LD and JSON formats
       member do

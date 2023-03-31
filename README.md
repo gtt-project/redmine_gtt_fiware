@@ -61,8 +61,9 @@ permissions to the *Anonymous* role.
 | Statuses         | `http://localhost:3000/ngsi/data-models/redmine-statuses.jsonld` |
 | Priorities       | `http://localhost:3000/ngsi/data-models/redmine-priorities-context.jsonld` |
 | Attachments      | `http://localhost:3000/ngsi/data-models/redmine-attachments-context.jsonld` |
-| Relations        | `http://localhost:3000/ngsi/data-models/redmine-relation-context.jsonld` |
-| Journals         | `http://localhost:3000/ngsi/data-models/redmine-journal-context.jsonld` |
+| Relations        | `http://localhost:3000/ngsi/data-models/redmine-relations-context.jsonld` |
+| Journals         | `http://localhost:3000/ngsi/data-models/redmine-journals-context.jsonld` |
+| Details          | `http://localhost:3000/ngsi/data-models/redmine-details-context.jsonld` |
 
 ### NGSI-LD and NGSIv2 API endpoints
 
@@ -81,8 +82,9 @@ permissions to the *Anonymous* role.
 | Status     | GET `http://localhost:3000/ngsi/statuses/{id}.{jsonld,json}`    |
 | Priority   | GET `http://localhost:3000/ngsi/priorities/{id}.{jsonld,json}`  |
 | Attachment | GET `http://localhost:3000/ngsi/attachments/{id}.{jsonld,json}` |
-| Relation   | GET `http://localhost:3000/ngsi/relation/{id}.{jsonld,json}`    |
-| Journal    | GET `http://localhost:3000/ngsi/journal/{id}.{jsonld,json}`     |
+| Relation   | GET `http://localhost:3000/ngsi/relations/{id}.{jsonld,json}`   |
+| Journal    | GET `http://localhost:3000/ngsi/journals/{id}.{jsonld,json}`    |
+| Detail     | GET `http://localhost:3000/ngsi/details/{id}.{jsonld,json}`     |
 
 ## Contributing and Support
 
