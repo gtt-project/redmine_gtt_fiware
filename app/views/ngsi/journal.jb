@@ -10,6 +10,13 @@ json = {
     "type": 'Property',
     "value": @journal.private_notes
   },
+  "createdAt": {
+    "type": 'Property',
+    "value": {
+      "@type": 'DateTime',
+      "@value": @journal.created_on
+    }
+  },
   "hasAuthor": {
     "type": 'Relationship',
     "object": url_for(controller: 'users', action: 'show', id: @journal.user_id, only_path: false, format: :jsonld, normalized: @normalized)
