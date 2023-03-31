@@ -44,6 +44,31 @@ json = {
         "@type": "@id",
         "@container": "@set"
       }
+      "hasTrackers": {
+        "@id": "redmine:Tracker",
+        "@type": "@id",
+        "@container": "@set"
+      }
+      "hasCategories": {
+        "@id": "redmine:Category",
+        "@type": "@id",
+        "@container": "@set"
+      }
+      # "hasModules": {
+      #   "@id": "redmine:Module",
+      #   "@type": "@id",
+      #   "@container": "@set"
+      # }
+      # "hasActivities": {
+      #   "@id": "redmine:Activity",
+      #   "@type": "@id",
+      #   "@container": "@set"
+      # }
+      # "hasCustomFields": {
+      #   "@id": "redmine:CustomFields",
+      #   "@type": "@id",
+      #   "@container": "@set"
+      # }
     }
   ]
 }

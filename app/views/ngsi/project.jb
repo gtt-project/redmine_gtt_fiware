@@ -34,17 +34,28 @@ json = {
     "type": 'Property',
     "value": @project.updated_on
   },
-  "hasParentProject": {
-    "type": "Relationship",
-    "object": nil # TODO
-  },
-  "hasMembers": {
-    "type": "Relationship",
-    "object": [] # TODO
-  },
+  # "hasMembers": {
+  #   "type": "Relationship",
+  #   "object": @project.members
+  # },
 }
 
-# TODO: optional includes
+if @project.parent_id
+  json[:hasParentProject] = {
+    "type": "Relationship",
+    "object": url_for(controller: 'projects', action: 'show', id: @project.parent_id, only_path: false, format: :jsonld, normalized: @normalized)
+  }
+end
+
+json[:hasTrackers] = {
+  "type": "Relationship",
+  "object": @project.trackers.map { |tracker| url_for(controller: 'trackers', action: 'show', id: tracker.id, only_path: false, format: :jsonld, normalized: @normalized) }
+}
+
+json[:hasCategories] = {
+  "type": "Relationship",
+  "object": @project.issue_categories.map { |category| url_for(controller: 'categories', action: 'show', id: category.id, only_path: false, format: :jsonld, normalized: @normalized) }
+}
 
 if @project.geom
   json[:location] = {
