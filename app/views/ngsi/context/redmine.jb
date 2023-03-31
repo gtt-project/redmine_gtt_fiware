@@ -6,6 +6,7 @@ def generate_context(base_url)
         "xsd": "http://www.w3.org/2001/XMLSchema#",
         "geo": "https://uri.etsi.org/ngsi-ld/geo/",
         "redmine": "#{base_url}/ngsi/data-models/redmine/",
+        "Attachment": "redmine:Attachment",
         "Category": "redmine:Category",
         "Priority": "redmine:Priority",
         "Project": "redmine:Project",

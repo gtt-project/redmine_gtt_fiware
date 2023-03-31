@@ -60,6 +60,7 @@ permissions to the *Anonymous* role.
 | Trackers         | `http://localhost:3000/ngsi/data-models/redmine-trackers-context.jsonld` |
 | Statuses         | `http://localhost:3000/ngsi/data-models/redmine-statuses.jsonld` |
 | Priorities       | `http://localhost:3000/ngsi/data-models/redmine-priorities-context.jsonld` |
+| Attachments      | `http://localhost:3000/ngsi/data-models/redmine-attachments-context.jsonld` |
 
 ### NGSI-LD and NGSIv2 API endpoints
 
@@ -67,16 +68,17 @@ permissions to the *Anonymous* role.
 - `.jsonld` returns NGSI-LD (The Optional query parameter `?normalized=true|false`
   can be set to switch between normalized and not-normalized format for NGSI-LD.)
 
-| Entity    | NGSI-LD/NGSIv2                                                 |
-|-----------|----------------------------------------------------------------|
-| Issue     | GET `http://localhost:3000/ngsi/issues/{id}.{jsonld,json}`     |
-| Project   | GET `http://localhost:3000/ngsi/projects/{id}.{jsonld,json}`   |
-| User      | GET `http://localhost:3000/ngsi/users/{id}.{jsonld,json}`      |
-| Version   | GET `http://localhost:3000/ngsi/versions/{id}.{jsonld,json}`   |
-| Category  | GET `http://localhost:3000/ngsi/categories/{id}.{jsonld,json}` |
-| Tracker   | GET `http://localhost:3000/ngsi/trackers/{id}.{jsonld,json}`   |
-| Status    | GET `http://localhost:3000/ngsi/statuses/{id}.{jsonld,json}`   |
-| Priority  | GET `http://localhost:3000/ngsi/priorities/{id}.{jsonld,json}` |
+| Entity     | NGSI-LD/NGSIv2                                                  |
+|------------|-----------------------------------------------------------------|
+| Issue      | GET `http://localhost:3000/ngsi/issues/{id}.{jsonld,json}`      |
+| Project    | GET `http://localhost:3000/ngsi/projects/{id}.{jsonld,json}`    |
+| User       | GET `http://localhost:3000/ngsi/users/{id}.{jsonld,json}`       |
+| Version    | GET `http://localhost:3000/ngsi/versions/{id}.{jsonld,json}`    |
+| Category   | GET `http://localhost:3000/ngsi/categories/{id}.{jsonld,json}`  |
+| Tracker    | GET `http://localhost:3000/ngsi/trackers/{id}.{jsonld,json}`    |
+| Status     | GET `http://localhost:3000/ngsi/statuses/{id}.{jsonld,json}`    |
+| Priority   | GET `http://localhost:3000/ngsi/priorities/{id}.{jsonld,json}`  |
+| Attachment | GET `http://localhost:3000/ngsi/attachments/{id}.{jsonld,json}` |
 
 ## Contributing and Support
 

@@ -3,6 +3,7 @@ ja:
   permission_view_gtt_fiware_ngsi_ld: "View NGSI-LD Context files"
 
   gtt_fiware_project_not_found: "Project not found"
+  gtt_fiware_attachement_not_found: "Attachment not found"
   gtt_fiware_issue_not_found: "Issue not found"
   gtt_fiware_user_not_found: "User not found"
   gtt_fiware_version_not_found: "Version not found"

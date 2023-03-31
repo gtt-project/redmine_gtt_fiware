@@ -1,0 +1,31 @@
+json = {
+  "@context": [
+    url_for(controller: 'context', action: 'index', type: nil, only_path: false, format: :jsonld),
+    {
+      "filename": {
+        "@id": "redmine:filename",
+        "@type": "xsd:string"
+      },
+      "filesize": {
+        "@id": "redmine:filesize",
+        "@type": "xsd:integer"
+      },
+      "contentType": {
+        "@id": "redmine:contentType",
+        "@type": "xsd:string"
+      },
+      "description": {
+        "@id": "redmine:description",
+        "@type": "xsd:string"
+      },
+      "contentUrl": "redmine:contentUrl",
+      "thumbnailUrl": "redmine:thumbnailUrl",
+      "hasAuthor": {
+        "@id": "redmine:User",
+        "@type": "@id"
+      },
+    }
+  ]
+}
+
+json
