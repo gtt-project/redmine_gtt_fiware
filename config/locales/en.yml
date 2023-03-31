@@ -8,6 +8,8 @@ en:
   gtt_fiware_user_not_found: "User not found"
   gtt_fiware_version_not_found: "Version not found"
   gtt_fiware_tracker_not_found: "Tracker not found"
+  gtt_fiware_relation_not_found: "Relation not found"
+  gtt_fiware_journal_not_found: "Journal not found"
   gtt_fiware_priority_not_found: "Priority not found"
   gtt_fiware_category_not_found: "Category not found"
   gtt_fiware_status_not_found: "Status not found"

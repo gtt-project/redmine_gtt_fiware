@@ -183,6 +183,16 @@ json[:hasChildren] = {
   "object": @issue.children.map { |child| url_for(controller: 'issues', action: 'show', id: child.id, only_path: false, format: :jsonld, normalized: @normalized) }
 }
 
+json[:hasRelations] = {
+  "type": 'Relationship',
+  "object": @issue.relations.map { |relation| url_for(controller: 'relations', action: 'show', id: relation.id, only_path: false, format: :jsonld, normalized: @normalized) }
+}
+
+json[:hasJournals] = {
+  "type": 'Relationship',
+  "object": @issue.journals.map { |journal| url_for(controller: 'journals', action: 'show', id: journal.id, only_path: false, format: :jsonld, normalized: @normalized) }
+}
+
 json[:hasWatchers] = {
   "type": 'Relationship',
   "object": @issue.watcher_users.map { |user| url_for(controller: 'users', action: 'show', id: user.id, only_path: false, format: :jsonld, normalized: @normalized) }

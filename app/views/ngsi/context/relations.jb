@@ -1,0 +1,25 @@
+json = {
+  "@context": [
+    url_for(controller: 'context', action: 'index', type: nil, only_path: false, format: :jsonld),
+    {
+      "relationType": {
+        "@id": "redmine:relationType",
+        "@type": "xsd:string"
+      },
+      "fromIssue": {
+        "@id": "redmine:Issue",
+        "@type": "@id"
+      },
+      "toIssue": {
+        "@id": "redmine:Issue",
+        "@type": "@id"
+      },
+      "delay": {
+        "@id": "redmine:delay",
+        "@type": "xsd:decimal"
+      },
+    }
+  ]
+}
+
+json

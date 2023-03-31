@@ -1,0 +1,37 @@
+json = {
+  "@context": url_for(controller: 'context', action: 'index', type: 'relations', only_path: false, format: :jsonld),
+  "id": url_for(only_path: false, format: :jsonld, normalized: @normalized),
+  "type": 'Relation',
+  "relationType": {
+    "type": 'Property',
+    "value": @relation.relation_type
+  },
+  "fromIssue": {
+    "type": 'Relationship',
+    "object": url_for(controller: 'issues', action: 'show', id: @relation.issue_from_id, only_path: false, format: :jsonld, normalized: @normalized)
+  },
+  "toIssue": {
+    "type": 'Relationship',
+    "object": url_for(controller: 'issues', action: 'show', id: @relation.issue_to_id, only_path: false, format: :jsonld, normalized: @normalized)
+  },
+  "delay": {
+    "type": 'Property',
+    "value": @relation.delay
+  },
+}
+
+# Output NGSI documents
+if ngsiv2
+  # Output as NGSI-v2
+  JsonldHelper.to_ngsi_v2(
+    JsonldHelper.to_non_normalized(json)
+  )
+else
+  if @normalized
+    # Output as normalized NGSI-LD
+    json
+  else
+    # Output as non-normalized NGSI-LD
+    JsonldHelper.to_non_normalized(json)
+  end
+end
