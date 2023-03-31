@@ -1,0 +1,39 @@
+json = {
+  "@context": url_for(controller: 'context', action: 'index', type: 'categories', only_path: false, format: :jsonld),
+  "id": url_for(only_path: false, format: :jsonld, normalized: @normalized),
+  "type": 'Category',
+  "name": {
+    "type": 'Property',
+    "value": @category.name
+  },
+}
+
+if @category.project
+  json[:hasProject] = {
+    "type": 'Relationship',
+    "object": url_for(controller: 'projects', action: 'show', id: @category.project_id, only_path: false, format: :jsonld, normalized: @normalized)
+  }
+end
+
+if @category.assigned_to
+  json[:hasAssignee] = {
+    "type": 'Relationship',
+    "object": url_for(controller: 'users', action: 'show', id: @category.assigned_to_id, only_path: false, format: :jsonld, normalized: @normalized)
+  }
+end
+
+# Output NGSI documents
+if ngsiv2
+  # Output as NGSI-v2
+  JsonldHelper.to_ngsi_v2(
+    JsonldHelper.to_non_normalized(json)
+  )
+else
+  if @normalized
+    # Output as normalized NGSI-LD
+    json
+  else
+    # Output as non-normalized NGSI-LD
+    JsonldHelper.to_non_normalized(json)
+  end
+end
