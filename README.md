@@ -67,16 +67,16 @@ permissions to the *Anonymous* role.
 - `.jsonld` returns NGSI-LD (The Optional query parameter `?normalized=true|false`
   can be set to switch between normalized and not-normalized format for NGSI-LD.)
 
-| Entity    | NGSI-LD/NGSIv2                                               |
-|-----------|--------------------------------------------------------------|
-| Issue     | GET `http://localhost:3000/ngsi/issues/{id}.{jsonld,json}`   |
-| Project   | GET `http://localhost:3000/ngsi/projects/{id}.{jsonld,json}` |
-| User      | GET `http://localhost:3000/ngsi/users/{id}.{jsonld,json}`    |
-| Version   | TBD                                                          |
-| Category  | TBD                                                          |
-| Tracker   | TBD                                                          |
-| Status    | TBD                                                          |
-| Priority  | TBD                                                          |
+| Entity    | NGSI-LD/NGSIv2                                                 |
+|-----------|----------------------------------------------------------------|
+| Issue     | GET `http://localhost:3000/ngsi/issues/{id}.{jsonld,json}`     |
+| Project   | GET `http://localhost:3000/ngsi/projects/{id}.{jsonld,json}`   |
+| User      | GET `http://localhost:3000/ngsi/users/{id}.{jsonld,json}`      |
+| Version   | GET `http://localhost:3000/ngsi/versions/{id}.{jsonld,json}`   |
+| Category  | TBD                                                            |
+| Tracker   | TBD                                                            |
+| Status    | GET `http://localhost:3000/ngsi/statuses/{id}.{jsonld,json}`   |
+| Priority  | GET `http://localhost:3000/ngsi/priorities/{id}.{jsonld,json}` |
 
 ## Contributing and Support
 
