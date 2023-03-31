@@ -4,6 +4,7 @@
 class Ngsi::BaseController < ApplicationController
   # Require authorization before processing any action
   before_action :authorize_global
+  before_action :set_normalized
 
   # Allow API access to the context action
   accept_api_auth :show
