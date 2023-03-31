@@ -74,7 +74,7 @@ permissions to the *Anonymous* role.
 | User      | GET `http://localhost:3000/ngsi/users/{id}.{jsonld,json}`      |
 | Version   | GET `http://localhost:3000/ngsi/versions/{id}.{jsonld,json}`   |
 | Category  | GET `http://localhost:3000/ngsi/categories/{id}.{jsonld,json}` |
-| Tracker   | TBD                                                            |
+| Tracker   | GET `http://localhost:3000/ngsi/trackers/{id}.{jsonld,json}`   |
 | Status    | GET `http://localhost:3000/ngsi/statuses/{id}.{jsonld,json}`   |
 | Priority  | GET `http://localhost:3000/ngsi/priorities/{id}.{jsonld,json}` |
 
