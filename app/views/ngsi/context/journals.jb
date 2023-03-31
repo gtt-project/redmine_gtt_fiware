@@ -10,6 +10,10 @@ json = {
         "@id": "redmine:Issue",
         "@type": "xsd:boolean"
       },
+      "hasIssue": {
+        "@id": "redmine:Issue",
+        "@type": "@id"
+      },
       "hasAuthor": {
         "@id": "redmine:User",
         "@type": "@id"

@@ -27,6 +27,13 @@ json = {
   },
 }
 
+if @journal.journalized_type == "Issue"
+  json[:hasIssue] = {
+    "type": 'Relationship',
+    "value": url_for(controller: 'issues', action: 'show', id: @journal.journalized_id, only_path: false, format: :jsonld, normalized: @normalized)
+  }
+end
+
 # Output NGSI documents
 if ngsiv2
   # Output as NGSI-v2
