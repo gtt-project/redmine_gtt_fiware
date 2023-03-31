@@ -49,32 +49,22 @@ end
 
 if @issue.tracker
   json[:hasTracker] = {
-    "type": 'Property',
-    "value": {
-      "id": @issue.tracker_id,
-      "name": @issue.tracker.name
-    }
+    "type": 'Relationship',
+    "object": url_for(controller: 'trackers', action: 'show', id: @issue.tracker_id, only_path: false, format: :jsonld, normalized: @normalized)
   }
 end
 
 if @issue.status
   json[:hasStatus] = {
-    "type": 'Property',
-    "value": {
-      "id": @issue.status_id,
-      "name": @issue.status.name,
-      "is_closed": @issue.status.is_closed
-    }
+    "type": 'Relationship',
+    "object": url_for(controller: 'statuses', action: 'show', id: @issue.status_id, only_path: false, format: :jsonld, normalized: @normalized)
   }
 end
 
 if @issue.priority
   json[:hasPriority] = {
-    "type": 'Property',
-    "value": {
-      "id": @issue.priority_id,
-      "name": @issue.priority.name
-    }
+    "type": 'Relationship',
+    "object": url_for(controller: 'priorities', action: 'show', id: @issue.priority_id, only_path: false, format: :jsonld, normalized: @normalized)
   }
 end
 
@@ -145,21 +135,15 @@ end
 
 unless @issue.disabled_core_fields.include?('category_id') || (@issue.category.nil? && @issue.project.issue_categories.none?) || @issue.category.nil?
   json[:hasCategory] = {
-    "type": 'Property',
-    "value": {
-      "id": @issue.category_id,
-      "name": @issue.category.name
-    }
+    "type": 'Relationship',
+    "object": url_for(controller: 'categories', action: 'show', id: @issue.category_id, only_path: false, format: :jsonld, normalized: @normalized)
   }
 end
 
 unless @issue.disabled_core_fields.include?('fixed_version_id') || (@issue.fixed_version.nil? && @issue.assignable_versions.none?) || @issue.fixed_version.nil?
   json[:hasVersion] = {
-    "type": 'Property',
-    "value": {
-      "id": @issue.fixed_version_id,
-      "name": @issue.fixed_version.name
-    }
+    "type": 'Relationship',
+    "object": url_for(controller: 'versions', action: 'show', id: @issue.fixed_version_id, only_path: false, format: :jsonld, normalized: @normalized)
   }
 end
 
