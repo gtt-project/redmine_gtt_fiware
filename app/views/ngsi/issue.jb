@@ -75,11 +75,12 @@ if @issue.author
   }
 end
 
-# TODO: optional includes
-
-# unless @issue.disabled_core_fields.include?('parent_issue_id')
-#   json[:] =
-# end
+unless @issue.disabled_core_fields.include?('parent_issue_id') || @issue.parent_id.nil?
+  json[:hasParent] = {
+    "type": 'Relationship',
+    "object": url_for(controller: 'issues', action: 'show', id: @issue.parent_id, only_path: false, format: :jsonld, normalized: @normalized)
+  }
+end
 
 unless @issue.disabled_core_fields.include?('start_date')
   json[:startDate] = {
@@ -166,6 +167,26 @@ if @issue.geom
 else
   json[:location] = nil
 end
+
+json[:allowedStatuses] = {
+  "type": 'Relationship',
+  "object": @issue.new_statuses_allowed_to(User.current).map { |status| url_for(controller: 'statuses', action: 'show', id: status.id, only_path: false, format: :jsonld, normalized: @normalized) }
+}
+
+json[:hasAttachments] = {
+  "type": 'Relationship',
+  "object": @issue.attachments.map { |attachment| url_for(controller: 'attachments', action: 'show', id: attachment.id, only_path: false, format: :jsonld, normalized: @normalized) }
+}
+
+json[:hasChildren] = {
+  "type": 'Relationship',
+  "object": @issue.children.map { |child| url_for(controller: 'issues', action: 'show', id: child.id, only_path: false, format: :jsonld, normalized: @normalized) }
+}
+
+json[:hasWatchers] = {
+  "type": 'Relationship',
+  "object": @issue.watcher_users.map { |user| url_for(controller: 'users', action: 'show', id: user.id, only_path: false, format: :jsonld, normalized: @normalized) }
+}
 
 # Handle custom fields
 CustomFieldHelper.process_custom_fields(json, @issue.visible_custom_field_values, self, @normalized)

@@ -75,6 +75,45 @@ json = {
         "@id": "redmine:Version",
         "@type": "@id"
       },
+      "hasAttachments": {
+        "@id": "redmine:Attachment",
+        "@type": "@id"
+        "@container": "@set"
+      },
+      "hasParent": {
+        "@id": "redmine:Issue",
+        "@type": "@id"
+      },
+      "hasChildren": {
+        "@id": "redmine:Issue",
+        "@type": "@id"
+        "@container": "@set"
+      },
+      "hasJournals": {
+        "@id": "redmine:Journal",
+        "@type": "@id"
+        "@container": "@set"
+      },
+      "hasRelations": {
+        "@id": "redmine:Relation",
+        "@type": "@id"
+        "@container": "@set"
+      },
+      # "hasChangesets": {
+      #   "@id": "redmine:Changeset",
+      #   "@type": "@id"
+      #   "@container": "@set"
+      # },
+      "allowedStatuses": {
+        "@id": "redmine:Status",
+        "@type": "@id"
+        "@container": "@set"
+      },
+      "hasWatchers": {
+        "@id": "redmine:User",
+        "@type": "@id"
+        "@container": "@set"
+      },
     }
   ]
 }

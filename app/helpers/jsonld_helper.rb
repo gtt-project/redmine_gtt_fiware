@@ -38,18 +38,25 @@ module JsonldHelper
 
   # method that processes the given value if the key is not 'id' or 'type'
   def self.process_non_id_value(value)
-    return value.gsub('.jsonld', '.json').gsub('?normalized=false', '') if value.is_a?(String) && value.include?('.jsonld')
+    if value.is_a?(String) && value.include?('.jsonld')
+      return value.gsub('.jsonld', '.json').gsub(/\?normalized=(?:true|false)/, '')
+    end
+
+    if value.is_a?(Array)
+      return value.map { |item| process_non_id_value(item) }
+    end
+
     return value unless value.is_a?(Hash) && value.has_key?('type')
 
     case value['type']
     when 'Property'
-      value['value'] # return the value of 'value' key if the value's 'type' key has a value 'Property'
+      value['value']
     when 'Relationship'
-      { 'type' => 'Relationship', 'value' => value['object'].gsub('.jsonld', '.json').gsub('?normalized=false', '') } # return hash with type=Relationship and value with modified string if the value's 'type' has a value 'Relationship'
+      { 'type' => 'Relationship', 'value' => process_non_id_value(value['object']) }
     when 'GeoProperty'
-      { 'type' => 'geo:json', 'value' => value['value'] } # return hash with type=geo:json and value as it is if the value's 'type' key has a value 'GeoProperty'
+      { 'type' => 'geo:json', 'value' => value['value'] }
     else
-      value # return the value itself if it doesn't match any of the above conditions
+      value
     end
   end
 end

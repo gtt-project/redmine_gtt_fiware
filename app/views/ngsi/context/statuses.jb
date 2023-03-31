@@ -10,6 +10,8 @@ json = {
         "@id": "redmine:isClosed",
         "@type": "xsd:boolean"
       },
+      # TODO: position
+      # TODO: default_done_ratio
     }
   ]
 }
