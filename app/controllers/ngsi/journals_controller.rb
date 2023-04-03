@@ -2,25 +2,14 @@ class Ngsi::JournalsController < Ngsi::BaseController
   before_action :set_journal, only: [:show]
 
   def show
-    render_journal_template
+    presenter = JournalPresenter.new(@journal, @normalized, request.format.symbol == :json, view_context)
+    render json: presenter
   end
 
   private
 
   def set_journal
-    journal = Journal.find_by(id: params[:id])
-
-    if journal.nil?
-      render json: { error: l(:gtt_fiware_journal_not_found) }, journal: :not_found
-    else
-      @journal = journal
-    end
-  end
-
-  def render_journal_template
-    respond_to do |format|
-      format.jsonld { render template: 'ngsi/journal', locals: { ngsiv2: false } }
-      format.json   { render template: 'ngsi/journal', locals: { ngsiv2: true } }
-    end
+    @journal = Journal.find_by(id: params[:id])
+    render json: { error: t('gtt_fiware.journal_not_found') }, status: :not_found unless @journal
   end
 end

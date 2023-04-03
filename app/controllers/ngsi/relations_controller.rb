@@ -2,25 +2,14 @@ class Ngsi::RelationsController < Ngsi::BaseController
   before_action :set_relation, only: [:show]
 
   def show
-    render_relation_template
+    presenter = RelationPresenter.new(@relation, @normalized, request.format.symbol == :json, view_context)
+    render json: presenter
   end
 
   private
 
   def set_relation
-    relation = IssueRelation.find_by(id: params[:id])
-
-    if relation.nil?
-      render json: { error: l(:gtt_fiware_relation_not_found) }, relation: :not_found
-    else
-      @relation = relation
-    end
-  end
-
-  def render_relation_template
-    respond_to do |format|
-      format.jsonld { render template: 'ngsi/relation', locals: { ngsiv2: false } }
-      format.json   { render template: 'ngsi/relation', locals: { ngsiv2: true } }
-    end
+    @relation = IssueRelation.find_by(id: params[:id])
+    render json: { error: t('gtt_fiware.relation_not_found') }, status: :not_found unless @relation
   end
 end

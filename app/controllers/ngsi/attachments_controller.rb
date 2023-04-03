@@ -2,25 +2,14 @@ class Ngsi::AttachmentsController < Ngsi::BaseController
   before_action :set_attachment, only: [:show]
 
   def show
-    render_attachment_template
+    presenter = AttachmentPresenter.new(@attachment, @normalized, request.format.symbol == :json, view_context)
+    render json: presenter
   end
 
   private
 
   def set_attachment
-    attachment = Attachment.find_by(id: params[:id])
-
-    if attachment.nil?
-      render json: { error: l(:gtt_fiware_attachment_not_found) }, status: :not_found
-    else
-      @attachment = attachment
-    end
-  end
-
-  def render_attachment_template
-    respond_to do |format|
-      format.jsonld { render template: 'ngsi/attachment', locals: { ngsiv2: false } }
-      format.json   { render template: 'ngsi/attachment', locals: { ngsiv2: true } }
-    end
+    @attachment = Attachment.find_by(id: params[:id])
+    render json: { error: t('gtt_fiware.attachment_not_found') }, status: :not_found unless @attachment
   end
 end
