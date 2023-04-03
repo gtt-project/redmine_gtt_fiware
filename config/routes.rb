@@ -20,4 +20,12 @@ namespace :ngsi do
     end
   end
 
+  # Define routes for creating, updating, and deleting an "Issue"
+  resources :issues, only: [:create, :update, :destroy], defaults: { format: 'json' } do
+    member do
+      # Add a member route with constraints to handle JSON-LD and JSON formats
+      get :show, constraints: { format: /json|jsonld/ }
+    end
+  end
+
 end

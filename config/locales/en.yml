@@ -21,4 +21,6 @@ en:
     user_not_found: "User not found"
     version_not_found: "Version not found"
 
+    issue_deletion_error: "There was an error when trying to delete the issue."
+
     error_plugin_not_enabled: "GTT FIWARE plugin is not enabled for this project"
