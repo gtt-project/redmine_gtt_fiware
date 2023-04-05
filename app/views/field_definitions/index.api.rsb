@@ -1,0 +1,27 @@
+api.object do
+  api.array :meta do
+    @fields.select{ |field| field[:type] == 'meta' }.each do |field|
+      api.field do
+        api.name field[:name]
+        api.required field[:required]
+      end
+    end
+  end
+  api.array :standard do
+    @fields.select{ |field| field[:type] == 'standard' }.each do |field|
+      api.field do
+        api.name field[:name]
+        api.required field[:required]
+      end
+    end
+  end
+  api.array :custom do
+    @fields.select{ |field| field[:type] == 'custom' }.each do |field|
+      api.field do
+        api.id field[:id]
+        api.name field[:name]
+        api.required field[:required]
+      end
+    end
+  end
+end

@@ -30,6 +30,10 @@ Redmine::Plugin.register :redmine_gtt_fiware do
     permission :view_gtt_fiware_ngsi, {
       context: %i( index )
     }, read: true
+
+    permission :view_tracker_field_definitions, {
+      field_definitions: [:index]
+    }, read: true
   end
 end
 

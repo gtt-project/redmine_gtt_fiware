@@ -29,3 +29,8 @@ namespace :ngsi do
   end
 
 end
+
+# Extends the Tracker API
+namespace :projects do
+  get ':project_id/trackers/:tracker_id(.:format)', to: 'tracker#index', constraints: { project_id: /[a-z0-9\-_]+/i, tracker_id: /\d+/, format: /(json|xml)/ }
+end
