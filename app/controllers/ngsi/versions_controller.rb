@@ -1,5 +1,5 @@
 module Ngsi
-  class ersionsController < BaseController
+  class VersionsController < BaseController
     before_action :set_version, only: [:show]
 
     def show
