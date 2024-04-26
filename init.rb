@@ -1,5 +1,5 @@
 # Require the issues overrides file
-# require File.expand_path('../app/overrides/issues', __FILE__)
+require File.expand_path('../lib/redmine_gtt_fiware/view_hooks', __FILE__)
 
 # Register MIME Types for JSON-LD format
 Mime::Type.register 'application/ld+json', :jsonld
@@ -12,7 +12,7 @@ Redmine::Plugin.register :redmine_gtt_fiware do
   author_url 'https://github.com/georepublic'
   url 'https://github.com/gtt-project/redmine_gtt_fiware'
   description 'Adds FIWARE integration capabilities for GTT projects'
-  version '0.1.0'
+  version '0.2.0'
 
   # Specify the minimum required Redmine version
   requires_redmine :version_or_higher => '5.0.0'
@@ -20,7 +20,8 @@ Redmine::Plugin.register :redmine_gtt_fiware do
   # Plugin settings with default values and partial view for settings
   settings(
     default: {
-      'ngsi_ld_format' => false
+      'ngsi_ld_format' => false,
+      'fiware_broker_subscription_throttling' => '60',
     },
     partial: 'gtt_fiware/settings'
   )
@@ -30,7 +31,15 @@ Redmine::Plugin.register :redmine_gtt_fiware do
     permission :view_gtt_fiware_ngsi, {
       context: %i( index )
     }, read: true
+    permission :manage_subscription_templates, {
+      subscription_templates: %i( new edit update create destroy ),
+      projects: %i( manage_subscription_templates )
+    }, require: :member
   end
+end
+
+Rails.application.config.after_initialize do
+  RedmineGttFiware.setup
 end
 
 # Disable the Jbuilder generator for this plugin

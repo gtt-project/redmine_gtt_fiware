@@ -1,11 +1,38 @@
 en:
   project_module_gtt_fiware: "GTT FIWARE"
   permission_view_gtt_fiware_ngsi: "View NGSI-LD Context files"
+  permission_manage_subscription_templates: "Manage Subscription Templates"
+
+  label_gtt_fiware: "FIWARE"
+  label_gtt_fiware_plural: "FIWARE"
+  label_subscription_template: "Subscription Template"
+  label_subscription_template_plural: "Subscription Templates"
+  label_subscription_template_new: "New Subscription Template"
 
   gtt_fiware_settings_general: "General Settings"
   field_ngsi_ld_format: "Default NGSI-LD format"
   option_ngsi_ld_format_normalized: "Normalized"
   option_ngsi_ld_format_not_normalized: "Not normalized"
+
+  gtt_fiware_settings_broker: "FIWARE Broker Settings"
+  field_fiware_broker_subscription_throttling: "Subscription Throttling"
+
+  gtt_fiware_subscription_template_general: "General"
+  field_subscription_template_name: "Name"
+  field_subscription_template_broker_url: "Broker URL"
+  field_subscription_template_broker_url_placeholder: "Only required for remote deployment"
+  field_subscription_template_expiration: "Expiration date"
+  field_subscription_template_status: "Subscription status"
+
+  gtt_fiware_subscription_template_subject: "Subscription Settings"
+  field_entities_string: "Entities array"
+  field_condition_string: "Condition object"
+
+  gtt_fiware_subscription_template_notification: "Issue Template"
+  field_subscription_template_subject: "Subject"
+  field_subscription_template_description: "Description"
+  field_subscription_template_notification_user: "Sent from user"
+  gtt_fiware_subscription_template_variable_hint: "Attribute readings can be embedded as <code>${variable}</code>."
 
   gtt_fiware:
     attachement_not_found: "Attachment not found"
@@ -20,5 +47,7 @@ en:
     tracker_not_found: "Status not found"
     user_not_found: "User not found"
     version_not_found: "Version not found"
+
+    issue_deletion_error: "There was an error when trying to delete the issue."
 
     error_plugin_not_enabled: "GTT FIWARE plugin is not enabled for this project"

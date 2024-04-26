@@ -1,0 +1,8 @@
+<%= title [l(:label_subscription_template_plural), index_path], @subscription_template.name %>
+
+<%= labelled_form_for @subscription_template, url: project_subscription_template_path(@project, @subscription_template), method: :patch do |f| %>
+  <%= render partial: 'form', locals: { f: f } %>
+  <p>
+    <%= submit_tag l :button_save %>
+  </p>
+<% end %>

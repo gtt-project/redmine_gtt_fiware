@@ -11,4 +11,12 @@
     @settings['ngsi_ld_format']) %>
 </p>
 
+<h3><%= l(:gtt_fiware_settings_broker) %></h3>
+
+<p>
+  <%= content_tag(:label, l(:field_fiware_broker_subscription_throttling)) %>
+  <%= number_field_tag 'settings[request_timeout]',
+    @settings['fiware_broker_subscription_throttling'], :min => 0, :step => 1 %>
+</p>
+
 </div>

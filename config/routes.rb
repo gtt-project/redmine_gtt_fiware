@@ -29,3 +29,11 @@ namespace :ngsi do
   end
 
 end
+
+# Define a route for FIWARE broker subscription templates
+# resources :subscription_templates, only: %i(index new create edit update destroy)
+
+scope 'projects/:project_id' do
+  resources :subscription_templates, only: %i(new create edit update destroy),
+                            as: :project_subscription_templates
+end

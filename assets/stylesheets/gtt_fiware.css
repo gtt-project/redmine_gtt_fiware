@@ -1,0 +1,6 @@
+/**************************************************************/
+/*                  Subscription Templates table
+/**************************************************************/
+
+table.list.subscription_templates tbody td { vertical-align: top; }
+table.list.subscription_templates tbody td.text { text-align: left; }

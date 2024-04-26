@@ -1,0 +1,9 @@
+<%= title [l(:label_subscription_template_plural), index_path], l(:label_subscription_template_new) %>
+
+<%= labelled_form_for @subscription_template, url: project_subscription_templates_path(@project) do |f| %>
+  <%= render partial: 'form', locals: { f: f } %>
+  <p>
+    <%= submit_tag l :button_create %>
+    <%= submit_tag l(:button_create_and_continue), name: 'continue' %>
+  </p>
+<% end %>
