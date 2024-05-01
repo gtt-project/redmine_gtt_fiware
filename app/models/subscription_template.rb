@@ -8,6 +8,7 @@ class SubscriptionTemplate < ActiveRecord::Base
 
   validates :entities_string, presence: true
   validates :subject, presence: true
+  validates :broker_url, presence: true
   validates :description, presence: true
 
   validate :take_json_entities

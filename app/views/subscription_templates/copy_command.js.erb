@@ -1,0 +1,31 @@
+// Function to decode HTML entities
+function decodeHtml(html) {
+    var txt = document.createElement("textarea");
+    txt.innerHTML = html;
+    return txt.value;
+}
+
+// Parse the JSON string from Rails to a JavaScript object
+var jsonData = JSON.parse(decodeHtml("<%= @json_payload %>"));
+
+// Build the cURL command with line breaks and formatted JSON
+var curlCommand = "curl -X POST '<%= @broker_url %>' \\\n" +
+                  "-H 'Content-Type: application/json' \\\n" +
+                  "--data-binary '" + JSON.stringify(jsonData, null, 2) + "'";
+
+// Copy the cURL command to the clipboard
+navigator.clipboard.writeText(curlCommand).then(function() {
+  // Get the notification box
+  var notification = document.getElementById('curlCommandCopiedNotification');
+
+  // Show the notification box
+  notification.classList.add('visible');
+  console.log(curlCommand);
+
+  // Hide the notification box after 3 seconds
+  setTimeout(function() {
+    notification.classList.remove('visible');
+  }, 3000);
+}, function(err) {
+  console.error('Could not copy cURL command to clipboard: ', err);
+});

@@ -32,7 +32,7 @@ Redmine::Plugin.register :redmine_gtt_fiware do
       context: %i( index )
     }, read: true
     permission :manage_subscription_templates, {
-      subscription_templates: %i( new edit update create destroy ),
+      subscription_templates: %i( new edit update create destroy copy_command ),
       projects: %i( manage_subscription_templates )
     }, require: :member
   end

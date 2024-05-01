@@ -1,6 +1,10 @@
 <tr>
-  <td class="text"><%= link_to subscription_template.name, (subscription_template.project ? edit_project_subscription_template_path(subscription_template.project, subscription_template) : edit_subscription_template_path(subscription_template)) %></td>
-  <td class="text"><div><%= textilizable subscription_template.subject %></div></td>
-  <td class="text"><div><%= textilizable subscription_template.issue_status.name %></div></td>
+  <td class="text"><%= link_to subscription_template.name, edit_project_subscription_template_path(subscription_template.project, subscription_template) %></td>
+  <td class="text"><%= textilizable subscription_template.subject %></td>
+  <td class="text"><code><%= subscription_template.broker_url %></code></td>
+  <td><%= textilizable subscription_template.issue_status.name %></td>
+  <td><%= textilizable subscription_template.tracker.name %></td>
+  <td><%= subscription_template.status ? l(:field_subscription_template_status_active) : l(:field_subscription_template_status_inactive) %></td>
+  <td><%= link_to l(:link_to_command_copy), copy_command_project_subscription_template_path(@project, subscription_template), remote: true, method: :get, class: 'copy-command-link icon icon-copy', title: l(:link_to_command_copy_hint) %></td>
   <td><%= delete_link(subscription_template.project ? project_subscription_template_path(subscription_template.project, subscription_template) : subscription_template_path(subscription_template)) %>
 </tr>

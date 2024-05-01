@@ -4,7 +4,11 @@
       <tr>
         <th><%= l :field_subscription_template_name %></th>
         <th><%= l :field_subscription_template_subject %></th>
-        <th><%= l :label_issue_status_plural %></th>
+        <th><%= l :field_subscription_template_broker_url %></th>
+        <th><%= l :label_issue_status %></th>
+        <th><%= l :label_tracker %></th>
+        <th><%= l :field_status %></th>
+        <th></th>
         <th></th>
       </tr>
     </thead>
@@ -12,25 +16,11 @@
       <%= render collection: subscription_templates, partial: 'subscription_templates/subscription_template' %>
     </tbody>
   </table>
+
+  <div id="curlCommandCopiedNotification" class="curlCommandNotification">
+    <%= l(:command_copied) %>
+  </div>
+
 <% else %>
   <p class="nodata"><%= l :label_no_data %></p>
-<% end %>
-
-<%= content_for :header_tags do %>
-  <%= javascript_include_tag 'jquery.dotdotdot', plugin: 'redmine_subscription_templates' %>
-  <%= javascript_tag do %>
-    $(document).ready(function() {
-      $("table.list.subscriptiontemplates tbody td.text div").dotdotdot({
-        watch: 'window',
-      });
-
-      // make sure text is shortened when it was initially hidden and just
-      // becomes visible due to Redmine's tabbing in project settings:
-      var origShowTab = window.showTab;
-      window.showTab = function(name, url){
-        origShowTab(name, url);
-        $("table.list.subscriptiontemplates tbody td.text div").trigger('update.dot');
-      }
-    });
-  <% end %>
 <% end %>

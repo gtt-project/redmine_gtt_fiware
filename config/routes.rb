@@ -31,9 +31,16 @@ namespace :ngsi do
 end
 
 # Define a route for FIWARE broker subscription templates
-# resources :subscription_templates, only: %i(index new create edit update destroy)
-
 scope 'projects/:project_id' do
   resources :subscription_templates, only: %i(new create edit update destroy),
-                            as: :project_subscription_templates
+                            as: :project_subscription_templates do
+    member do
+      get :copy_command
+    end
+  end
+
+  # Ceating issues with a notification template
+  scope 'fiware' do
+    post 'notification', to: 'subscription_templates#create_issue', as: :create_issue_with_notification
+  end
 end

@@ -55,6 +55,68 @@ class SubscriptionTemplatesController < ApplicationController
     redirect_to index_path
   end
 
+  def create_issue
+    # Get the project
+    @project = Project.find(params[:project_id])
+
+    # Check if the user has the necessary permissions to create an issue in the project
+    unless User.current.allowed_to?(:add_issues, @project)
+      render json: { error: 'You do not have permission to create issues in this project' }, status: :forbidden
+      return
+    end
+
+    # Get the notification template
+    @notification_template = @project.subscription_templates.find(params[:id])
+
+    # Create a new issue with the notification template
+    @issue = @project.issues.create(issue_params)
+
+    # Respond with the new issue
+    respond_to do |format|
+      if @issue.save
+        format.json { render json: @issue, status: :created }
+      else
+        format.json { render json: @issue.errors, status: :unprocessable_entity }
+      end
+    end
+  end
+
+  def copy_command
+    @subscription_template = SubscriptionTemplate.find(params[:id])
+    @broker_url = URI::join(@subscription_template.broker_url, "/v2/notifications").to_s
+    @member = Member.find(@subscription_template.member_id)
+
+    # Construct JSON payload
+    @json_payload = {
+      description: @subscription_template.name,
+      subject: {
+        entities: @subscription_template.entities,
+        condition: @subscription_template.condition
+      },
+      notification: {
+        httpCustom: {
+          url: URI::join(request.base_url, "/projects/#{@subscription_template.project_id}/fiware/notification").to_s,
+          headers: {
+            "Content-Type": "text/plain",
+            "X-Redmine-API-Key": User.find(@member.user_id).api_key
+          },
+          method: "POST",
+          qs: {
+            subscription_template_id: @subscription_template.id,
+            subject: @subscription_template.subject.to_s
+          },
+          payload: CGI::escape(@subscription_template.description.to_s)
+        }
+      },
+      "expires": @subscription_template.expires.present? ? @subscription_template.expires : "",
+      "throttling": Setting.plugin_redmine_gtt_fiware['fiware_broker_subscription_throttling'].to_i || 1
+    }.to_json
+
+    respond_to do |format|
+      format.js # This will render `copy_command.js.erb`
+    end
+  end
+
   private
 
   def new_path
@@ -67,6 +129,11 @@ class SubscriptionTemplatesController < ApplicationController
 
   def subscription_template_params
     params.require(:subscription_template).permit(:name, :broker_url, :expires, :status, :entities_string, :condition_string, :subject, :description, :issue_status_id, :tracker_id, :member_id, :is_private)
+  end
+
+  def issue_params
+    # Defines the allowed parameters for an issue
+    params.require(:issue).permit(:subject, :description)
   end
 
   def find_subscription_template
