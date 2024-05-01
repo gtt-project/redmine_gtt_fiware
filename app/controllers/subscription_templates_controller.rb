@@ -103,7 +103,8 @@ class SubscriptionTemplatesController < ApplicationController
           method: "POST",
           qs: {
             subscription_template_id: @subscription_template.id,
-            subject: @subscription_template.subject.to_s
+            subject: @subscription_template.subject.to_s,
+            private: @subscription_template.is_private
           },
           payload: CGI::escape(@subscription_template.description.to_s)
         }
@@ -134,7 +135,7 @@ class SubscriptionTemplatesController < ApplicationController
 
   def issue_params
     # Defines the allowed parameters for an issue
-    params.require(:issue).permit(:subject, :description)
+    params.require(:issue).permit(:subscription_template_id, :subject, :description, :is_private)
   end
 
   def find_subscription_template
