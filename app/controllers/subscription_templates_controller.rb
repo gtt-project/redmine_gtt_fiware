@@ -109,7 +109,8 @@ class SubscriptionTemplatesController < ApplicationController
         }
       },
       "expires": @subscription_template.expires.present? ? @subscription_template.expires : "",
-      "throttling": Setting.plugin_redmine_gtt_fiware['fiware_broker_subscription_throttling'].to_i || 1
+      "throttling": Setting.plugin_redmine_gtt_fiware['fiware_broker_subscription_throttling'].to_i || 1,
+      "status": @subscription_template.status ? "active" : "inactive"
     }.to_json
 
     respond_to do |format|
