@@ -55,71 +55,72 @@ class SubscriptionTemplatesController < ApplicationController
     redirect_to index_path
   end
 
-  def create_issue
-    # Get the project
-    @project = Project.find(params[:project_id])
+  def copy
+    prepare_payload
 
-    # Check if the user has the necessary permissions to create an issue in the project
-    unless User.current.allowed_to?(:add_issues, @project)
-      render json: { error: 'You do not have permission to create issues in this project' }, status: :forbidden
-      return
-    end
-
-    # Get the notification template
-    @notification_template = @project.subscription_templates.find(params[:id])
-
-    # Create a new issue with the notification template
-    @issue = @project.issues.create(issue_params)
-
-    # Respond with the new issue
     respond_to do |format|
-      if @issue.save
-        format.json { render json: @issue, status: :created }
-      else
-        format.json { render json: @issue.errors, status: :unprocessable_entity }
-      end
+      format.js # This will render `copy.js.erb`
     end
   end
 
-  def copy_command
+  def publish
+    prepare_payload
+
+    respond_to do |format|
+      format.js # This will render `publish.js.erb`
+    end
+  end
+
+  def unpublish
+    prepare_payload
+
+    respond_to do |format|
+      format.js # This will render `publish.js.erb`
+    end
+  end
+
+  private
+
+  def prepare_payload
     @subscription_template = SubscriptionTemplate.find(params[:id])
-    @broker_url = URI::join(@subscription_template.broker_url, "/v2/notifications").to_s
+    @broker_url = URI.join(@subscription_template.broker_url, "/v2/subscriptions").to_s
     @member = Member.find(@subscription_template.member_id)
 
-    # Construct JSON payload
     @json_payload = {
-      description: @subscription_template.name,
+      id: @subscription_template.subscription_id.presence || "",
+      description: CGI::escape(@subscription_template.name),
       subject: {
         entities: @subscription_template.entities,
         condition: @subscription_template.condition
       },
       notification: {
         httpCustom: {
-          url: URI::join(request.base_url, "/projects/#{@subscription_template.project_id}/fiware/notification").to_s,
+          url: URI.join(request.base_url, "/fiware/subscription_template/#{@subscription_template.id}/notification").to_s,
           headers: {
-            "Content-Type": "text/plain",
+            "Content-Type": "application/json",
             "X-Redmine-API-Key": User.find(@member.user_id).api_key
           },
           method: "POST",
-          qs: {
-            subscription_template_id: @subscription_template.id,
-            subject: @subscription_template.subject.to_s,
-            private: @subscription_template.is_private
-          },
-          payload: CGI::escape(@subscription_template.description.to_s)
+          json: {
+            subject: @subscription_template.subject,
+            description: @subscription_template.description
+          }
         }
       },
-      "expires": @subscription_template.expires.present? ? @subscription_template.expires : "",
-      "throttling": Setting.plugin_redmine_gtt_fiware['fiware_broker_subscription_throttling'].to_i || 1,
-      "status": @subscription_template.status ? "active" : "inactive"
-    }.to_json
+      expires: @subscription_template.expires.presence || "",
+      throttling: Setting.plugin_redmine_gtt_fiware['fiware_broker_subscription_throttling'].to_i || 1,
+      status: @subscription_template.status ? "active" : "inactive"
+    }
 
-    respond_to do |format|
-      format.js # This will render `copy_command.js.erb`
-    end
+    @json_payload = JSON.pretty_generate(@json_payload)
+      .gsub("\\", "\\\\\\\\") # escape backslashes
+      .gsub("\r", "\\r") # escape carriage return
+      .gsub("\n", "\\n") # escape newline
+      .gsub("\t", "\\t") # escape tab
+      .gsub("\f", "\\f") # escape form feed
+      .gsub("\b", "\\b") # escape backspace
+      .gsub("\"", "\\\"") # escape double quotes
   end
-
-  private
 
   def new_path
     new_project_subscription_template_path(@project)
@@ -130,7 +131,7 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def subscription_template_params
-    params.require(:subscription_template).permit(:name, :broker_url, :expires, :status, :entities_string, :condition_string, :subject, :description, :issue_status_id, :tracker_id, :member_id, :is_private)
+    params.require(:subscription_template).permit(:name, :broker_url, :expires, :status, :entities_string, :condition_string, :subject, :description, :issue_status_id, :tracker_id, :member_id, :is_private, :subscription_id)
   end
 
   def issue_params

@@ -2,6 +2,7 @@ class CreateSubscriptionTemplates < ActiveRecord::Migration[5.2]
   def change
     create_table :subscription_templates do |t|
       t.string :name
+      t.string :subscription_id
       t.string :subject
       t.string :broker_url
       t.text :description

@@ -5,7 +5,7 @@
 table.list.subscription_templates tbody td { vertical-align: top; }
 table.list.subscription_templates tbody td.text { text-align: left; }
 
-.curlCommandNotification {
+.temporaryNotification {
   visibility: hidden;
   min-width: 250px;
   margin-left: -125px;
@@ -28,7 +28,7 @@ table.list.subscription_templates tbody td.text { text-align: left; }
   to { opacity: 0; }
 }
 
-.curlCommandNotification.visible {
+.temporaryNotification.visible {
   visibility: visible;
   opacity: 1;
   animation: fadeOut 1s 2s forwards; /* start fading out after 2s, fade out over 1s */

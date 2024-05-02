@@ -1,0 +1,34 @@
+// Build the cURL command with line breaks and formatted JSON
+var command = "curl -X POST '<%= @broker_url %>' \\\n" +
+                "-H 'Content-Type: application/json' \\\n" +
+                "--data-binary '" + '<%= @json_payload.html_safe %>' + "'";
+console.log(command);
+
+// Function to copy command to clipboard
+function copyToClipboard(command) {
+  if (navigator.clipboard) {
+    // If Clipboard API is available
+    navigator.clipboard.writeText(command).then(function() {
+      showNotification('Command copied!'); // Show success message
+    }).catch(function(err) {
+      console.error('Could not copy cURL command to clipboard: ', err);
+      showNotification('Failed to copy command'); // Show error message
+    });
+  } else {
+    // If Clipboard API is not available
+    showNotification('Clipboard API not available, see console for cURL command');
+  }
+}
+
+// Function to display notification
+function showNotification(message) {
+  var notification = document.getElementById('temporaryNotification');
+  notification.textContent = message;
+  notification.classList.add('visible');
+  setTimeout(function() {
+    notification.classList.remove('visible');
+  }, 3000);
+}
+
+// Copy the cURL command to the clipboard
+copyToClipboard(command);
