@@ -14,7 +14,7 @@ class CreateSubscriptionTemplates < ActiveRecord::Migration[5.2]
       t.references :issue_status, index: true, foreign_key: true, type: :integer
       t.references :member, index: true, foreign_key: true, type: :integer
       t.datetime :expires
-      t.boolean :status, default: true
+      t.string :status
 
       t.timestamps null: false
     end

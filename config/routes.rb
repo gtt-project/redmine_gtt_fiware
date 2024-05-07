@@ -43,6 +43,7 @@ scope 'projects/:project_id' do
       get :copy
       get :publish
       get :unpublish
+      patch :update_subscription_id
     end
   end
 end

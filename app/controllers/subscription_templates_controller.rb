@@ -2,7 +2,7 @@ class SubscriptionTemplatesController < ApplicationController
   layout 'base'
 
   before_action :find_project_by_project_id
-  before_action :get_issue_statuses, except: [:index, :destroy]
+  before_action :get_issue_statuses, except: [:index, :destroy, :update_subscription_id]
   before_action :authorize
 
   menu_item :settings, only: [:new, :create, :edit, :update, :destroy]
@@ -49,6 +49,16 @@ class SubscriptionTemplatesController < ApplicationController
     end
   end
 
+  def update_subscription_id
+    @subscription_template = SubscriptionTemplate.find(params[:id])
+    @subscription_template.update(subscription_id: params[:subscription_id])
+
+    @subscription_templates = subscription_template_scope
+    respond_to do |format|
+      format.js { render partial: 'subscription_templates/subscription_template', collection: @subscription_templates, as: :subscription_template }
+    end
+  end
+
   def destroy
     @subscription_template = find_subscription_template
     @subscription_template.destroy
@@ -72,10 +82,11 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def unpublish
-    prepare_payload
+    @subscription_template = SubscriptionTemplate.find(params[:id])
+    @broker_url = URI.join(@subscription_template.broker_url, "/v2/subscriptions/", @subscription_template.subscription_id).to_s
 
     respond_to do |format|
-      format.js # This will render `publish.js.erb`
+      format.js # This will render `unpublish.js.erb`
     end
   end
 
@@ -85,6 +96,15 @@ class SubscriptionTemplatesController < ApplicationController
     @subscription_template = SubscriptionTemplate.find(params[:id])
     @broker_url = URI.join(@subscription_template.broker_url, "/v2/subscriptions").to_s
     @member = Member.find(@subscription_template.member_id)
+
+    status = case @subscription_template.status
+              when true
+                "active"
+              when false
+                "inactive"
+              else
+                @subscription_template.status
+              end
 
     @json_payload = {
       id: @subscription_template.subscription_id.presence || "",
@@ -109,7 +129,7 @@ class SubscriptionTemplatesController < ApplicationController
       },
       expires: @subscription_template.expires.presence || "",
       throttling: Setting.plugin_redmine_gtt_fiware['fiware_broker_subscription_throttling'].to_i || 1,
-      status: @subscription_template.status ? "active" : "inactive"
+      status: status
     }
 
     @json_payload = JSON.pretty_generate(@json_payload)

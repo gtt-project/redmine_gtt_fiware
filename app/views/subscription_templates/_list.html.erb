@@ -3,16 +3,16 @@
     <thead>
       <tr>
         <th><%= l :field_subscription_template_name %></th>
-        <th><%= l :field_subscription_template_subject %></th>
         <th><%= l :field_subscription_template_broker_url %></th>
         <th><%= l :label_issue_status %></th>
         <th><%= l :label_tracker %></th>
         <th><%= l :field_status %></th>
         <th></th>
         <th></th>
+        <th></th>
       </tr>
     </thead>
-    <tbody>
+    <tbody id="subscriptionTemplateList">
       <%= render collection: subscription_templates, partial: 'subscription_templates/subscription_template' %>
     </tbody>
   </table>

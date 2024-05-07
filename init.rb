@@ -12,7 +12,7 @@ Redmine::Plugin.register :redmine_gtt_fiware do
   author_url 'https://github.com/georepublic'
   url 'https://github.com/gtt-project/redmine_gtt_fiware'
   description 'Adds FIWARE integration capabilities for GTT projects'
-  version '0.2.0'
+  version '0.9.0'
 
   # Specify the minimum required Redmine version
   requires_redmine :version_or_higher => '5.0.0'
@@ -32,7 +32,7 @@ Redmine::Plugin.register :redmine_gtt_fiware do
       context: %i( index )
     }, read: true
     permission :manage_subscription_templates, {
-      subscription_templates: %i( new edit update create destroy copy publish unpublish),
+      subscription_templates: %i( new edit update create destroy copy publish unpublish update_subscription_id),
       projects: %i( manage_subscription_templates )
     }, require: :member
   end

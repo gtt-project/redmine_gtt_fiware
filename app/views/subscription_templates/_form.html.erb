@@ -15,7 +15,7 @@
   </p>
 
   <p>
-    <%= f.select :status, [[l(:field_subscription_template_status_active), true], [l(:field_subscription_template_status_inactive), false]] %>
+    <%= f.select :status, [[l(:field_subscription_template_status_active), 'active'], [l(:field_subscription_template_status_oneshot), 'oneshot'], [l(:field_subscription_template_status_inactive), 'inactive']] %>
   </p>
 
 </div>
@@ -24,7 +24,7 @@
   <h3><%= l(:gtt_fiware_subscription_template_subject) %></h3>
 
   <p>
-    <%= f.text_field :subscription_id, size: 50, placeholder: l(:field_subscription_template_id_placeholder), readonly: true %>
+    <%= f.text_field :subscription_id, size: 50, placeholder: l(:field_subscription_template_id_placeholder) %>
   </p>
 
   <p><%= f.text_area :entities_string, required: true, rows: 6, placeholder: '[
