@@ -1,18 +1,10 @@
 <tr>
   <td class="text"><%= link_to subscription_template.name, edit_project_subscription_template_path(subscription_template.project, subscription_template) %></td>
+  <td><%= textilizable subscription_template.standard %></td>
   <td class="text"><code><%= subscription_template.broker_url %></code></td>
   <td><%= textilizable subscription_template.issue_status.name %></td>
   <td><%= textilizable subscription_template.tracker.name %></td>
-  <td>
-    <% case subscription_template.status %>
-    <% when 'active' %>
-      <%= l(:field_subscription_template_status_active) %>
-    <% when 'inactive' %>
-      <%= l(:field_subscription_template_status_inactive) %>
-    <% when 'oneshot' %>
-      <%= l(:field_subscription_template_status_oneshot) %>
-    <% end %>
-  </td>
+  <td><%= textilizable subscription_template.status %></td>
   <td><%= link_to l(:link_to_copy), copy_project_subscription_template_path(@project, subscription_template), remote: true, method: :get, class: 'copy-command-link icon icon-copy', title: l(:link_to_copy_hint) %></td>
   <td>
     <% if subscription_template.subscription_id.present? %>

@@ -2,6 +2,14 @@
 var headers = new Headers();
 headers.append('Content-Type', 'application/json');
 
+<% if @subscription_template.fiware_service.present? %>
+  headers.append('Fiware-Service', '<%= @subscription_template.fiware_service %>');
+<% end %>
+
+<% if @subscription_template.fiware_servicepath.present? %>
+  headers.append('Fiware-ServicePath', '<%= @subscription_template.fiware_servicepath %>');
+<% end %>
+
 // Build the request options
 var requestOptions = {
   method: 'POST',

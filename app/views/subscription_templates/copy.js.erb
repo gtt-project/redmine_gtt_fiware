@@ -1,6 +1,12 @@
 // Build the cURL command with line breaks and formatted JSON
 var command = "curl -i -X POST '<%= @broker_url %>' \\\n" +
                 "-H 'Content-Type: application/json' \\\n" +
+                <% if @subscription_template&.fiware_service&.present? %>
+                "-H 'Fiware-Service: <%= @subscription_template.fiware_service %>' \\\n" +
+                <% end %>
+                <% if @subscription_template&.fiware_servicepath&.present? %>
+                "-H 'Fiware-ServicePath: <%= @subscription_template.fiware_servicepath %>' \\\n" +
+                <% end %>
                 "--data-binary '" + '<%= @json_payload.html_safe %>' + "'";
 console.log(command);
 

@@ -1,9 +1,0 @@
-<div class="contextual">
-<%= link_to l(:label_subscription_template_new), new_subscription_template_path, class: 'icon icon-add' %>
-</div>
-
-<h2>SHOW HEADER <%= l :label_subscription_template_plural %></h2>
-
-<%= render partial: 'list', locals: { subscription_templates: @subscription_templates } %>
-
-<% html_title l :label_subscription_template_plural -%>

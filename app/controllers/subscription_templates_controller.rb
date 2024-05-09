@@ -1,27 +1,24 @@
 class SubscriptionTemplatesController < ApplicationController
   layout 'base'
 
-  before_action :find_project_by_project_id
-  before_action :get_issue_statuses, except: [:index, :destroy, :update_subscription_id]
+  before_action :find_project_by_project_id, except: [:index]
+  before_action :get_issue_statuses, only: [:new, :create, :edit, :update]
+  before_action :get_issue_priorities, only: [:new, :create, :edit, :update]
+  before_action :get_issue_categories, only: [:new, :create, :edit, :update]
   before_action :authorize
 
-  menu_item :settings, only: [:new, :create, :edit, :update, :destroy]
   helper_method :index_path
 
   def index
     @subscription_templates = subscription_template_scope
   end
 
-  def edit
-    @subscription_template = find_subscription_template
-    @trackers = @project.trackers
-    @members = @project.members
-  end
-
   def new
     @subscription_template = SubscriptionTemplate.new
-    @trackers = @project.trackers
-    @members = @project.members
+  end
+
+  def edit
+    @subscription_template = find_subscription_template
   end
 
   def create
@@ -30,16 +27,12 @@ class SubscriptionTemplatesController < ApplicationController
       redirect_to params[:continue] ? new_path : index_path
     else
       @subscription_template = r.subscription_template
-      @trackers = @project.trackers
-      @members = @project.members
       render 'new'
     end
   end
 
   def update
     @subscription_template = find_subscription_template
-    @trackers = @project.trackers
-    @members = @project.members
 
     r = RedmineGttFiware::SaveSubscriptionTemplate.(subscription_template_params, subscription_template: @subscription_template)
     if r.subscription_template_saved?
@@ -50,7 +43,7 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def update_subscription_id
-    @subscription_template = SubscriptionTemplate.find(params[:id])
+    @subscription_template = find_subscription_template
     @subscription_template.update(subscription_id: params[:subscription_id])
 
     @subscription_templates = subscription_template_scope
@@ -97,40 +90,56 @@ class SubscriptionTemplatesController < ApplicationController
     @broker_url = URI.join(@subscription_template.broker_url, "/v2/subscriptions").to_s
     @member = Member.find(@subscription_template.member_id)
 
-    status = case @subscription_template.status
-              when true
-                "active"
-              when false
-                "inactive"
-              else
-                @subscription_template.status
-              end
+    httpCustom = {
+      url: URI.join(request.base_url, "/fiware/subscription_template/#{@subscription_template.id}/notification").to_s,
+      headers: {
+        "Content-Type": "application/json",
+        "X-Redmine-API-Key": User.find(@member.user_id).api_key
+      },
+      method: "POST",
+      json: {
+        subject: @subscription_template.subject,
+        description: @subscription_template.description
+      }
+    }
+
+    httpCustom[:json][:attachments] = @subscription_template.attachments if @subscription_template.attachments
 
     @json_payload = {
-      id: @subscription_template.subscription_id.presence || "",
       description: CGI::escape(@subscription_template.name),
       subject: {
         entities: @subscription_template.entities,
-        condition: @subscription_template.condition
-      },
-      notification: {
-        httpCustom: {
-          url: URI.join(request.base_url, "/fiware/subscription_template/#{@subscription_template.id}/notification").to_s,
-          headers: {
-            "Content-Type": "application/json",
-            "X-Redmine-API-Key": User.find(@member.user_id).api_key
-          },
-          method: "POST",
-          json: {
-            subject: @subscription_template.subject,
-            description: @subscription_template.description
-          }
+        condition: {
+          notifyOnMetadataChange: @subscription_template.notify_on_metadata_change
         }
       },
-      expires: @subscription_template.expires.presence || "",
+      notification: {
+        httpCustom: httpCustom,
+        attrsFormat: "normalized",
+        metadata: ["dateCreated", "*"],
+        onlyChangedAttrs: false,
+        covered: false
+      },
       throttling: Setting.plugin_redmine_gtt_fiware['fiware_broker_subscription_throttling'].to_i || 1,
-      status: status
+      status: @subscription_template.status
     }
+
+    @json_payload[:id] = @subscription_template.subscription_id if @subscription_template.subscription_id.present?
+    @json_payload[:expires] = @subscription_template.expires if @subscription_template.expires.present?
+
+    expression = {}
+
+    if @subscription_template.expression_georel.present? && @subscription_template.expression_geometry.present? && @subscription_template.expression_coords.present?
+      expression[:georel] = @subscription_template.expression_georel
+      expression[:geometry] = @subscription_template.expression_geometry
+      expression[:coords] = @subscription_template.expression_coords
+    end
+
+    expression[:q] = @subscription_template.expression_query if @subscription_template.expression_query.present?
+
+    @json_payload[:subject][:condition][:expression] = expression if expression.present?
+    @json_payload[:subject][:condition][:attrs] = JSON.parse(@subscription_template.attrs) if @subscription_template.attrs.present?
+    @json_payload[:subject][:condition][:alterationTypes] = @subscription_template.alteration_types if @subscription_template.alteration_types.present?
 
     @json_payload = JSON.pretty_generate(@json_payload)
       .gsub("\\", "\\\\\\\\") # escape backslashes
@@ -151,12 +160,8 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def subscription_template_params
-    params.require(:subscription_template).permit(:name, :broker_url, :expires, :status, :entities_string, :condition_string, :subject, :description, :issue_status_id, :tracker_id, :member_id, :is_private, :subscription_id)
-  end
-
-  def issue_params
-    # Defines the allowed parameters for an issue
-    params.require(:issue).permit(:subscription_template_id, :subject, :description, :is_private)
+    params[:subscription_template][:alteration_types] ||= []
+    params.require(:subscription_template).permit(:standard, :broker_url, :fiware_service, :fiware_servicepath, :subscription_id, :name, :expires, :status, :context, :entities_string, :attrs, :expression_query, :expression_georel, :expression_geometry, :expression_coords, :notify_on_metadata_change, :subject, :description, :attachments_string, :is_private, :project_id, :tracker_id, :version_id, :issue_status_id, :issue_category_id, :issue_priority_id, :member_id, :comment, alteration_types: [])
   end
 
   def find_subscription_template
@@ -173,6 +178,14 @@ class SubscriptionTemplatesController < ApplicationController
 
   def get_issue_statuses
     @issue_statuses = IssueStatus.all.sorted
+  end
+
+  def get_issue_categories
+    @issue_categories = IssueCategory.all
+  end
+
+  def get_issue_priorities
+    @issue_priorities = IssuePriority.all.sorted
   end
 
 end
