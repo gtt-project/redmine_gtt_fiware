@@ -114,11 +114,11 @@ class SubscriptionTemplatesController < ApplicationController
         }
       },
       notification: {
-        httpCustom: httpCustom,
         attrsFormat: "normalized",
         metadata: ["dateCreated", "*"],
         onlyChangedAttrs: false,
-        covered: false
+        covered: false,
+        httpCustom: httpCustom
       },
       throttling: Setting.plugin_redmine_gtt_fiware['fiware_broker_subscription_throttling'].to_i || 1,
       status: @subscription_template.status

@@ -14,6 +14,9 @@ class SubscriptionIssuesController < ApplicationController
     @issue.is_private = @subscription_template.is_private
     @issue.status = @subscription_template.issue_status
     @issue.author = User.current
+    @issue.category = @subscription_template.issue_category
+    @issue.priority = @subscription_template.issue_priority
+    @issue.fixed_version = @subscription_template.version
 
     if @issue.save
       # Respond with the newly created issue and a 201 status code
@@ -43,7 +46,7 @@ class SubscriptionIssuesController < ApplicationController
 
   def issue_params
     # Defines the allowed parameters for an issue
-    params.require(:issue).permit(:project, :tracker, :subject, :description, :is_private, :status, :author)
+    params.require(:issue).permit(:project, :tracker, :subject, :description, :is_private, :status, :author, :fixed_version, :category, :priority)
   end
 
 end
