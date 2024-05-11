@@ -33,9 +33,42 @@
 
   <p><%= f.text_field :attrs, size: 75, placeholder: l(:field_subscription_template_attrs_placeholder) %>
   <p><%= f.text_field :expression_query, size: 75, placeholder: l(:field_subscription_template_expression_query_placeholder) %>
+
+  <h4><%= l(:gtt_fiware_subscription_template_geoquery) %></h4>
   <p><%= f.text_field :expression_georel, size: 75, placeholder: l(:field_subscription_template_expression_georel_placeholder) %>
   <p class="min-width"><%= f.select :expression_geometry, SubscriptionTemplate::GEOMETRIES, include_blank: true %></p>
   <p><%= f.text_field :expression_coords, size: 75, placeholder: l(:field_subscription_template_expression_coords_placeholder) %>
+
+  <% if @project.module_enabled?('gtt') %>
+    <p>
+      <% if @project.geom.present? && @project.geojson.present? %>
+        <% if JSON.parse(@project.geojson.to_json)['geometry']['type'] == 'Polygon' %>
+          <%= link_to l(:link_to_insert_project_geometry), '#', class: 'insert-project-geometry-link icon icon-gtt-map', title: l(:link_to_insert_project_geometry_hint), data: { geom: @project.geojson.to_json } %>
+        <% elsif JSON.parse(@project.geojson.to_json)['geometry']['type'] == 'MultiPolygon' %>
+          <%= l(:project_geometry_not_supported_multipolygon) %>
+        <% else %>
+          <%= l(:project_geometry_not_defined) %>
+        <% end %>
+      <% else %>
+        <%= l(:project_geometry_not_defined) %>
+      <% end %>
+    </p>
+  <% end %>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var link = document.querySelector('.insert-project-geometry-link');
+      if (link) {
+        link.addEventListener('click', function(e) {
+          e.preventDefault();
+          var geom = JSON.parse(e.target.dataset.geom).geometry.coordinates[0].map(coord => [Number(coord[0].toFixed(5)), Number(coord[1].toFixed(5))]).join(';');
+          document.querySelector('input[name="subscription_template[expression_coords]"]').value = geom;
+          document.querySelector('select[name="subscription_template[expression_geometry]"]').value = 'polygon';
+          document.querySelector('input[name="subscription_template[expression_georel]"]').value = 'coveredBy';
+        });
+      }
+    });
+</script>
 
   <p>
     <%= content_tag :label, l(:field_subscription_template_alteration_types) %>

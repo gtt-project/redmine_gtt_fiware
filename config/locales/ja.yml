@@ -43,6 +43,8 @@ en:
   field_subscription_template_attrs_placeholder: "[\"temperature\"]"
   field_subscription_template_expression_query: "Query"
   field_subscription_template_expression_query_placeholder: "temperature > 30"
+
+  gtt_fiware_subscription_template_geoquery: "Geospatial Query"
   field_subscription_template_expression_georel: "Georel"
   field_subscription_template_expression_georel_placeholder: "near;maxDistance:1000"
   field_subscription_template_expression_geometry: "Geometry"
@@ -61,6 +63,11 @@ en:
   field_subscription_template_attachments_string: "Attachments (array of)"
   field_subscription_template_attachments_placeholder: "[{\"filename\": \"image.jpg\", \"url\": \"https://example.com/image.jpg\"}]"
   field_subscription_template_notification_user: "Sent from user"
+
+  link_to_insert_project_geometry: "Insert project boundary"
+  link_to_insert_project_geometry_hint: "This will use the project boundary as the geospatial query for the subscription"
+  project_geometry_not_defined: "Project boundary is not defined"
+  project_geometry_not_supported_multipolygon: "Project boundary is a multipolygon, which is not supported for geospatial queries"
 
   link_to_copy: "Clipboard"
   link_to_copy_hint: "Copy command to clipboard"
