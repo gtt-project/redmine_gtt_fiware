@@ -73,6 +73,7 @@ en:
   link_to_unpublish: "Unpublish"
   link_to_unpublish_hint: "Unpublish subscription to broker"
   subscription_unpublished: "Subscription unpublished from broker"
+  subscription_unpublished_warning: "There was a problem unpublishing the subscription from the broker"
 
   gtt_fiware:
     attachement_not_found: "Attachment not found"

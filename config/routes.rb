@@ -33,6 +33,7 @@ end
 # Define route for creating issues with a notification template
 scope 'fiware/subscription_template/:subscription_template_id' do
   post 'notification', to: 'subscription_issues#create'
+  get 'registration/:subscription_id', to: 'subscription_templates#set_subscription_id'
 end
 
 # Define a route for FIWARE broker subscription templates

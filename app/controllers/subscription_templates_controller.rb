@@ -1,11 +1,13 @@
 class SubscriptionTemplatesController < ApplicationController
   layout 'base'
 
-  before_action :find_project_by_project_id, except: [:index]
+  before_action :find_project_by_project_id, except: [:index, :set_subscription_id]
   before_action :get_issue_statuses, only: [:new, :create, :edit, :update]
   before_action :get_issue_priorities, only: [:new, :create, :edit, :update]
   before_action :get_issue_categories, only: [:new, :create, :edit, :update]
-  before_action :authorize
+
+  accept_api_auth :set_subscription_id
+  before_action :authorize, except: [:set_subscription_id]
 
   helper_method :index_path
 
@@ -52,6 +54,26 @@ class SubscriptionTemplatesController < ApplicationController
     end
   end
 
+  def set_subscription_id
+    # Check if a valid API key is provided
+    unless User.current.logged?
+      render json: { error: 'API key is missing or invalid' }, status: :unauthorized
+      return
+    end
+
+    @subscription_template = SubscriptionTemplate.find(params[:subscription_template_id])
+
+    # Check if the user has permissions to manage subscription templates
+    unless User.current.allowed_to?(:manage_subscription_templates, @subscription_template.project)
+      render json: { error: 'You do not have permission to manage subscription templates' }, status: :forbidden
+      return
+    end
+
+    @subscription_template.update(subscription_id: params[:subscription_id])
+
+    render json: { message: 'Subscription ID updated successfully' }, status: :ok
+  end
+
   def destroy
     @subscription_template = find_subscription_template
     @subscription_template.destroy
@@ -94,7 +116,8 @@ class SubscriptionTemplatesController < ApplicationController
       url: URI.join(request.base_url, "/fiware/subscription_template/#{@subscription_template.id}/notification").to_s,
       headers: {
         "Content-Type": "application/json",
-        "X-Redmine-API-Key": User.find(@member.user_id).api_key
+        "X-Redmine-API-Key": User.find(@member.user_id).api_key,
+        "X-Redmine-GTT-Subscription-Template-URL": URI.join(request.base_url, "/fiware/subscription_template/#{@subscription_template.id}/registration/").to_s
       },
       method: "POST",
       json: {
@@ -159,11 +182,6 @@ class SubscriptionTemplatesController < ApplicationController
     settings_project_path(@project, tab: 'subscription_templates')
   end
 
-  def subscription_template_params
-    params[:subscription_template][:alteration_types] ||= []
-    params.require(:subscription_template).permit(:standard, :broker_url, :fiware_service, :fiware_servicepath, :subscription_id, :name, :expires, :status, :context, :entities_string, :attrs, :expression_query, :expression_georel, :expression_geometry, :expression_coords, :notify_on_metadata_change, :subject, :description, :attachments_string, :is_private, :project_id, :tracker_id, :version_id, :issue_status_id, :issue_category_id, :issue_priority_id, :member_id, :comment, alteration_types: [])
-  end
-
   def find_subscription_template
     subscription_template_scope.find params[:id]
   end
@@ -173,7 +191,7 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def subscription_template_scope
-    SubscriptionTemplate.order(name: :asc).where(project_id: @project.id)
+    SubscriptionTemplate.where(project_id: @project.id).order(name: :asc)
   end
 
   def get_issue_statuses
@@ -186,6 +204,11 @@ class SubscriptionTemplatesController < ApplicationController
 
   def get_issue_priorities
     @issue_priorities = IssuePriority.all.sorted
+  end
+
+  def subscription_template_params
+    params[:subscription_template][:alteration_types] ||= []
+    params.require(:subscription_template).permit(:standard, :broker_url, :fiware_service, :fiware_servicepath, :subscription_id, :name, :expires, :status, :context, :entities_string, :attrs, :expression_query, :expression_georel, :expression_geometry, :expression_coords, :notify_on_metadata_change, :subject, :description, :attachments_string, :is_private, :project_id, :tracker_id, :version_id, :issue_status_id, :issue_category_id, :issue_priority_id, :member_id, :comment, alteration_types: [])
   end
 
 end
