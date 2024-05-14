@@ -82,6 +82,7 @@ en:
   link_to_publish: "Publish"
   link_to_publish_hint: "Publish subscription to broker"
   subscription_published: "Subscription published to broker"
+  subscription_published_error: "There was a problem publishing the subscription from the broker"
 
   link_to_unpublish: "Unpublish"
   link_to_unpublish_hint: "Unpublish subscription to broker"

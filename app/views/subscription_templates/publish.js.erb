@@ -18,10 +18,29 @@ var requestOptions = {
   redirect: 'follow'
 };
 
+function showNotification(message) {
+  // Get the notification box
+  var notification = document.getElementById('temporaryNotification');
+
+  // Change the text of the notification box
+  notification.textContent = message;
+
+  // Show the notification box
+  notification.classList.add('visible');
+
+  // Hide the notification box after 3 seconds
+  setTimeout(function() {
+    notification.classList.remove('visible');
+  }, 3000);
+}
+
 // Send the POST request
 fetch('<%= @broker_url %>', requestOptions)
   .then(response => {
     var location = response.headers.get('Location');
+    if (!location) {
+      throw new Error('Location header is missing in the response');
+    }
     var parts = location.split('/');
     var subscriptionId = parts[parts.length - 1];
 
@@ -41,18 +60,12 @@ fetch('<%= @broker_url %>', requestOptions)
     var subscriptionTemplateList = document.getElementById('subscriptionTemplateList');
     subscriptionTemplateList.innerHTML = result;
 
-    // Get the notification box
-    var notification = document.getElementById('temporaryNotification');
-
-    // Change the text of the notification box
-    notification.textContent = "<%= l(:subscription_published) %>";
-
-    // Show the notification box
-    notification.classList.add('visible');
-
-    // Hide the notification box after 3 seconds
-    setTimeout(function() {
-      notification.classList.remove('visible');
-    }, 3000);
+    // Show success notification
+    showNotification("<%= l(:subscription_published) %>");
   })
-  .catch(error => console.log('error', error));
+  .catch(error => {
+    console.log('error', error);
+
+    // Show error notification
+    showNotification("<%= l(:subscription_published_error) %>");
+  });
