@@ -7,8 +7,8 @@ FIWARE plugin and its API endpoints.
 
 - Make sure REST web services is enabled: <http://localhost:3000/settings?tab=api>
 - Enable the plugin in project settings
-- Don't select a user with admin rights for the FIWARE subscriptions. Instead,
-  create a new user with the necessary permissions.
+- For security reasons don't select a user with admin rights for the FIWARE
+  subscriptions. Instead, create a new user with the necessary permissions.
 
 ### Redmine Permissions
 

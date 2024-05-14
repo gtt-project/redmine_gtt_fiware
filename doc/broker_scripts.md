@@ -1,7 +1,10 @@
-# Broker Scripts
+# FIWARE Broker Scripts
 
 This document describes the scripts available in the `scripts` directory that
-help manage the context broker.
+help manage the FIWARE context broker.
+
+- [Register All Subscriptions](#register-all-subscriptions)
+- [Delete All Subscriptions](#delete-all-subscriptions)
 
 ## Register All Subscriptions
 
@@ -27,22 +30,22 @@ URL specified in the header for each subscription.
 
 - `REDMINE_API_KEY`: The API key for your Redmine instance. This is used if the
   `api_key` argument is not provided.
-- `ORION_URL`: The base URL for your Orion Context Broker. Defaults to
+- `BROKER_URL`: The base URL for your Orion Context Broker. Defaults to
   `http://app.local:1026` if not set.
 
-**Note:** Make sure to set the `REDMINE_API_KEY` and `ORION_URL` environment
-variables before running this script if you're not providing them as arguments.
+**Note:** Make sure to set the `BROKER_URL` environment variable to your context
+broker URL before running this script.
 
 To prepend an environment variable to a command in the terminal, you can do so
 like this:
 
 ```bash
-REDMINE_API_KEY=your_api_key ORION_URL=your_orion_url ./scripts/register_all_subscriptions.sh
+BROKER_URL=your_broker_url ./scripts/register_all_subscriptions.sh <your_api_key>
 ```
 
-Replace `your_api_key` with your actual Redmine API key and `your_orion_url`
-with the correct URL. This will set the `REDMINE_API_KEY` and `ORION_URL`
-environment variables for the duration of the `register_all_subscriptions.sh` script.
+Replace `your_api_key` with your actual Redmine API key and `your_broker_url`
+with the correct URL. This will set the `BROKER_URL` environment variables for
+the duration of the `register_all_subscriptions.sh` script.
 
 ## Delete All Subscriptions
 
@@ -61,19 +64,19 @@ subscriptions, and then makes DELETE requests to the
 
 **Environment Variables:**
 
-- `ORION_URL`: The base URL for your Orion Context Broker. Defaults to
+- `BROKER_URL`: The base URL for your Orion Context Broker. Defaults to
   `http://app.local:1026` if not set.
 
 **Note:** This script does not require any arguments. Make sure to set the
-`ORION_URL` environment variable to your context broker URL before running this script.
+`BROKER_URL` environment variable to your context broker URL before running this script.
 
 To prepend an environment variable to a command in the terminal, you can do so
 like this:
 
 ```bash
-ORION_URL=your_orion_url ./scripts/delete_all_subscriptions.sh
+BROKER_URL=your_broker_url ./scripts/delete_all_subscriptions.sh
 ```
 
-Replace `your_orion_url` with your actual Redmine API key. This will set the
-`ORION_URL` environment variable for the duration of the
+Replace `your_broker_url` with your actual Redmine API key. This will set the
+`BROKER_URL` environment variable for the duration of the
 `delete_all_subscriptions.sh` script.

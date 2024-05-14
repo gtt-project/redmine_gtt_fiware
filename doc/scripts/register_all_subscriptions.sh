@@ -11,10 +11,10 @@ then
 fi
 
 # The base URL for your Orion Context Broker
-ORION_URL=${ORION_URL:-"http://app.local:1026"}
+BROKER_URL=${BROKER_URL:-"http://app.local:1026"}
 
 # Fetch all subscriptions using a GET request
-subscriptions=$(curl -s -X GET "${ORION_URL}/v2/subscriptions" -H "Accept: application/json")
+subscriptions=$(curl -s -X GET "${BROKER_URL}/v2/subscriptions" -H "Accept: application/json")
 
 # Use jq to parse the JSON response and filter subscriptions with the "X-Redmine-GTT-Subscription-Template-URL" header
 filtered_subscriptions=$(echo "$subscriptions" | jq -c '.[] | select(.notification.httpCustom.headers."X-Redmine-GTT-Subscription-Template-URL" != null)')

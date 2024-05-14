@@ -5,9 +5,9 @@ FIWARE plugin. The plugin is designed to manage subscriptions for a FIWARE
 context broker, allowing the creation of Redmine issues through FIWARE
 notifications.
 
-## General Settings
-
 ![Plugin Settings Screenshot](plugin_settings.png)
+
+## General Settings
 
 ### Default NGSI-LD Format
 
