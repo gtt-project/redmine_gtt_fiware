@@ -1,9 +1,10 @@
 # Redmine GTT FIWARE Plugin
 
-The Geo-Task-Tracker (GTT) FIWARE plugin adds support for [FIWARE](https://www.fiware.org/)
-open standards:
+The Geo-Task-Tracker (GTT) FIWARE plugin adds support for interacting with [FIWARE](https://www.fiware.org/):
 
-- TBD
+- Create and publish FIWARE Context Broker subscriptions
+- Create and update issues based on FIWARE context data
+- Provide an NGSI API to interact with Redmine entities (read-only)
 
 ## Requirements
 
