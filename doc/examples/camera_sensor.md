@@ -27,7 +27,7 @@ curl -iX POST "${BROKER_URL}/v2/entities" \
       "type": "geo:json"
     },
     "timestamp": {
-      "value": "2021-09-01T12:00:00Z",
+      "value": "2024-05-14T12:00:00Z",
       "type": "DateTime"
     }
   }'
@@ -52,12 +52,3 @@ curl -iX PATCH \
 ```bash
 curl -iX DELETE "${BROKER_URL}/v2/entities/urn:ngsi-ld:SpeedCameraSensor:001"
 ```
-
-## Notes
-
-- Ensure that the FIWARE context broker is running and accessible.
-- The coordinates in the location examples are in [longitude, latitude] format.
-
-These cURL commands should help you interact with the FIWARE broker and test the
-Redmine GTT FIWARE plugin effectively. If you encounter any issues or need
-further assistance, please let us know!

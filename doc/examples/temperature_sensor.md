@@ -16,6 +16,17 @@ curl -iX POST "${BROKER_URL}/v2/entities" \
       "type": "Number"
     }
   }'
+
+curl -iX POST "${BROKER_URL}/v2/entities" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "urn:ngsi-ld:TemperatureSensor:002",
+    "type": "TemperatureSensor",
+    "temperature": {
+      "value": 25.0,
+      "type": "Number"
+    }
+  }'
 ```
 
 ## Update Temperature
@@ -36,16 +47,5 @@ curl -iX PATCH \
 
 ```bash
 curl -iX DELETE "${BROKER_URL}/v2/entities/urn:ngsi-ld:TemperatureSensor:001"
-```
-
-### Get Entities
-
-```bash
-curl -sX GET "${BROKER_URL}/v2/entities" -H "Accept: application/json" | jq
-```
-
-### Get Subscriptions
-
-```bash
-curl -sX GET "${BROKER_URL}/v2/subscriptions" -H "Accept: application/json" | jq
+curl -iX DELETE "${BROKER_URL}/v2/entities/urn:ngsi-ld:TemperatureSensor:002"
 ```
