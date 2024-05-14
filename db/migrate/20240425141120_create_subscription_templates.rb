@@ -22,7 +22,9 @@ class CreateSubscriptionTemplates < ActiveRecord::Migration[5.2]
 
       t.string :subject, null: false
       t.text :description
+      t.text :notes
       t.jsonb :attachments
+      t.jsonb :geometry
       t.boolean :is_private, default: false
 
       t.references :project, index: true, foreign_key: true, null: false
@@ -34,6 +36,7 @@ class CreateSubscriptionTemplates < ActiveRecord::Migration[5.2]
       t.references :member, index: true, foreign_key: true, null: false
 
       t.text :comment
+      t.integer :threshold_create, default: 0
       t.timestamps null: false
     end
   end

@@ -15,7 +15,7 @@
 
 <p>
   <%= content_tag(:label, l(:field_fiware_broker_subscription_throttling)) %>
-  <%= number_field_tag 'settings[request_timeout]',
+  <%= number_field_tag 'settings[fiware_broker_subscription_throttling]',
     @settings['fiware_broker_subscription_throttling'], :min => 0, :step => 1 %>
 </p>
 

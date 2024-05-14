@@ -110,6 +110,7 @@ class SubscriptionTemplatesController < ApplicationController
   def prepare_payload
     @subscription_template = SubscriptionTemplate.find(params[:id])
     @broker_url = URI.join(@subscription_template.broker_url, "/v2/subscriptions").to_s
+    @entity_url = URI.join(@subscription_template.broker_url, "/v2/entities").to_s
     @member = Member.find(@subscription_template.member_id)
 
     httpCustom = {
@@ -121,8 +122,12 @@ class SubscriptionTemplatesController < ApplicationController
       },
       method: "POST",
       json: {
+        entity: "#{@entity_url}/${id}?type=${type}",
         subject: @subscription_template.subject,
-        description: @subscription_template.description
+        description: @subscription_template.description,
+        attachments: @subscription_template.attachments,
+        notes: @subscription_template.notes,
+        geometry: @subscription_template.geometry
       }
     }
 
@@ -208,7 +213,7 @@ class SubscriptionTemplatesController < ApplicationController
 
   def subscription_template_params
     params[:subscription_template][:alteration_types] ||= []
-    params.require(:subscription_template).permit(:standard, :broker_url, :fiware_service, :fiware_servicepath, :subscription_id, :name, :expires, :status, :context, :entities_string, :attrs, :expression_query, :expression_georel, :expression_geometry, :expression_coords, :notify_on_metadata_change, :subject, :description, :attachments_string, :is_private, :project_id, :tracker_id, :version_id, :issue_status_id, :issue_category_id, :issue_priority_id, :member_id, :comment, alteration_types: [])
+    params.require(:subscription_template).permit(:standard, :broker_url, :fiware_service, :fiware_servicepath, :subscription_id, :name, :expires, :status, :context, :entities_string, :attrs, :expression_query, :expression_georel, :expression_geometry, :expression_coords, :notify_on_metadata_change, :subject, :description, :attachments_string, :is_private, :project_id, :tracker_id, :version_id, :issue_status_id, :issue_category_id, :issue_priority_id, :member_id, :comment, :threshold_create, :threshold_create_hours, :notes, :geometry, :geometry_string, alteration_types: [])
   end
 
 end

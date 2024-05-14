@@ -30,6 +30,7 @@ class SubscriptionTemplate < ActiveRecord::Base
 
   validate :name_uniqueness
   validate :take_json_entities
+  validate :take_json_geometry
   validate :take_json_attachments
   validate :attrs_must_be_array_of_strings
   validate :geo_query_fields_must_be_all_or_none
@@ -37,9 +38,25 @@ class SubscriptionTemplate < ActiveRecord::Base
   before_save :serialize_alteration_types
   after_find :deserialize_alteration_types
 
+  attr_accessor :threshold_create_hours
+  # Override the getter for threshold_create_hours
+  def threshold_create_hours
+    threshold_create / 3600 if threshold_create
+  end
+
+  # Override the setter for threshold_create_hours
+  def threshold_create_hours=(hours)
+    self.threshold_create = hours.to_i * 3600
+  end
+
   attr_writer :entities_string
   def entities_string
     @entities_string ||= entities.present? ? JSON.pretty_generate(entities) : ''
+  end
+
+  attr_writer :geometry_string
+  def geometry_string
+    @geometry_string ||= geometry.present? ? JSON.pretty_generate(geometry) : ''
   end
 
   attr_writer :attachments_string
@@ -61,6 +78,12 @@ class SubscriptionTemplate < ActiveRecord::Base
     self.entities = JSON.parse(entities_string)
   rescue JSON::ParserError
     errors.add :entities_string, I18n.t(:error_invalid_json)
+  end
+
+  def take_json_geometry
+    self.geometry = JSON.parse(geometry_string)
+  rescue JSON::ParserError
+    errors.add :geometry_string, I18n.t(:error_invalid_json)
   end
 
   def take_json_attachments

@@ -63,6 +63,12 @@ en:
   field_subscription_template_attachments_string: "Attachments (array of)"
   field_subscription_template_attachments_placeholder: "[{\"filename\": \"image.jpg\", \"url\": \"https://example.com/image.jpg\"}]"
   field_subscription_template_notification_user: "Sent from user"
+  field_subscription_template_threshold_create_hours: "Threshold (h)"
+  field_subscription_template_threshold_create_hours_hint: "Threshold to create new issue in hours."
+  field_subscription_template_notes: "Issue notes"
+  field_subscription_template_notes_placeholder: "Post an issue note instead of creating a new issue if an issue has been created within the threshold."
+  field_subscription_template_geometry_string: "Issue geometry (GeoJSON)"
+  field_subscription_template_geometry_placeholder: "{\"type\": \"Feature\", \"geometry\": \"${location}\"}"
 
   link_to_insert_project_geometry: "Insert project boundary"
   link_to_insert_project_geometry_hint: "This will use the project boundary as the geospatial query for the subscription"
