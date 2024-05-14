@@ -1,12 +1,15 @@
 require 'net/http'
 require 'rack'
 
+# This controller handles the creation of issues from subscription templates.
 class SubscriptionIssuesController < ApplicationController
 
+  # Before actions
   before_action :find_template_and_authorize
   skip_before_action :verify_authenticity_token, only: [:create]
   accept_api_auth :create
 
+  # Creates a new issue or updates an existing one based on the provided parameters.
   def create
     @issue = find_or_initialize_issue
 
@@ -23,6 +26,7 @@ class SubscriptionIssuesController < ApplicationController
 
   private
 
+  # Finds the subscription template and checks if the current user is authorized to create issues.
   def find_template_and_authorize
     @subscription_template = SubscriptionTemplate.find_by(id: params[:subscription_template_id])
     unless @subscription_template
@@ -36,6 +40,7 @@ class SubscriptionIssuesController < ApplicationController
     end
   end
 
+  # Finds an existing issue or initializes a new one.
   def find_or_initialize_issue
     existing_issue = Issue.where(fiware_entity: params["entity"], subscription_template_id: @subscription_template.id)
                       .where("created_on >= ?", Time.now - @subscription_template.threshold_create.seconds)
@@ -51,6 +56,7 @@ class SubscriptionIssuesController < ApplicationController
     end
   end
 
+  # Handles an existing issue by initializing a journal and updating the geometry if necessary.
   def handle_existing_issue(existing_issue)
     note = existing_issue.init_journal(User.current, params["notes"])
 
@@ -67,6 +73,8 @@ class SubscriptionIssuesController < ApplicationController
       end
     end
   end
+
+  # Handles a new issue by initializing it with the provided parameters and the subscription template.
   def handle_new_issue
     @issue = Issue.new()
     @issue.project = @subscription_template.project
@@ -91,6 +99,7 @@ class SubscriptionIssuesController < ApplicationController
     end
   end
 
+  # Handles attachments by downloading them and attaching them to the issue.
   def handle_attachments
     existing_filenames = @issue.attachments.map { |a| a.filename }
 
@@ -123,9 +132,4 @@ class SubscriptionIssuesController < ApplicationController
       end
     end
   end
-
-  def issue_params
-    params.require(:issue).permit(:project, :tracker, :subject, :description, :is_private, :status, :author, :fixed_version, :category, :priority)
-  end
-
 end
