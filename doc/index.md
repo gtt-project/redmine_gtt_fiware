@@ -30,9 +30,9 @@ To allow **public** access to NGSI-LD context documents, it's necessary to grant
 
 ## Examples and Tutorials
 
-- [Temperature Sensor Example](temperature_sensor.md)
-- [Location Sensor Example](location_sensor.md)
-- [Street Camera Sensor Example](camera_sensor.md)
+- [Temperature Sensor Example](examples/temperature_sensor.md)
+- [Location Sensor Example](examples/location_sensor.md)
+- [Street Camera Sensor Example](examples/camera_sensor.md)
 
 For all examples, the following environment variables are used:
 
