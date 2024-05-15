@@ -81,6 +81,8 @@ class SubscriptionTemplate < ActiveRecord::Base
   end
 
   def take_json_geometry
+    return if geometry_string.blank?
+
     self.geometry = JSON.parse(geometry_string)
   rescue JSON::ParserError
     errors.add :geometry_string, I18n.t(:error_invalid_json)
