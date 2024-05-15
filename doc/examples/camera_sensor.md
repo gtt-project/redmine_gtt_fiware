@@ -3,6 +3,37 @@
 This example demonstrates how to create a street camera sensor entity and
 subscribe to its updates.
 
+## Subscription Template for Speed Camera Sensor
+
+Create a new subscription template for the speed camera sensor entity with the
+following minimal settings:
+
+### General Settings
+
+| Field             | Value                                                     |
+|-------------------|-----------------------------------------------------------|
+| **Name**          | `Speed Alert > 80 km/h`                                   |
+| **Broker URL**    | `your_broker_url` (e.g., `http://127.0.0.1:1026`)         |
+
+### Subscription Settings
+
+| Field               | Value                                                   |
+|---------------------|---------------------------------------------------------|
+| **Entities**        | `[{ "idPattern": ".*", "type": "SpeedCameraSensor" }]`  |
+| **Query**           | `speed > 80`                                            |
+
+### Issue Settings
+
+| Field             | Value                                                     |
+|-------------------|-----------------------------------------------------------|
+| **Subject**       | `Speed Alert from ${id}`                                  |
+| **Description**   | `The speed camera sensor ${id} detected a speed of ${speed} km/h.`|
+| **Issue geometry**| `{ "type": "Feature", "geometry": "${location}" }`        |
+| **Attachments**   | `[{"filename": "SC_${timestamp}.jpg", "url": "${image}"}]`|
+| **Sent from user**| `api_user` (select the user who will send the issue)      |
+
+Create the subscription template and publish it.
+
 ## Creating an Entity with Speed Camera
 
 ```bash
@@ -16,7 +47,7 @@ curl -iX POST "${BROKER_URL}/v2/entities" \
       "type": "URL"
     },
     "speed": {
-      "value": 87,
+      "value": 50,
       "type": "Number"
     },
     "location": {
