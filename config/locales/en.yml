@@ -75,6 +75,10 @@ en:
   project_geometry_not_defined: "Project boundary is not defined"
   project_geometry_not_supported_multipolygon: "Project boundary is a multipolygon, which is not supported for geospatial queries"
 
+  field_subscription_auth_token: "Authorization token"
+  field_subscription_auth_token_placeholder: "Bearer token"
+  field_subscription_auth_token_hint: "Authorization token to be included in the request headers. Leave empty for no authorization. The token is not stored in the database."
+
   link_to_copy: "Clipboard"
   link_to_copy_hint: "Copy command to clipboard"
   command_copied: "Command copied to clipboard"
@@ -88,6 +92,8 @@ en:
   link_to_unpublish_hint: "Unpublish subscription to broker"
   subscription_unpublished: "Subscription unpublished from broker"
   subscription_unpublished_warning: "There was a problem unpublishing the subscription from the broker"
+
+  subscription_unauthorized_error: "Unauthorized to perform this action"
 
   gtt_fiware:
     attachement_not_found: "Attachment not found"

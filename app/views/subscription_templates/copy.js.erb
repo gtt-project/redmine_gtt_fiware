@@ -8,6 +8,12 @@ var command = "curl -i -X POST '<%= @broker_url %>' \\\n" +
                 "-H 'Fiware-ServicePath: <%= @subscription_template.fiware_servicepath %>' \\\n" +
                 <% end %>
                 "--data-binary '" + '<%= @json_payload.html_safe %>' + "'";
+
+var authToken = document.getElementById('subscription_auth_token').value;
+if (authToken) {
+  command += " \\\n-H 'Authorization: Bearer " + authToken + "'";
+}
+
 console.log(command);
 
 // Function to copy command to clipboard

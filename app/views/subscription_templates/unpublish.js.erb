@@ -1,6 +1,11 @@
 // Build the request headers
 var headers = new Headers();
 
+var authToken = document.getElementById('subscription_auth_token').value;
+if (authToken) {
+  headers.append('Authorization', 'Bearer ' + authToken);
+}
+
 // Build the request options for the DELETE request
 var deleteRequestOptions = {
   method: 'DELETE',

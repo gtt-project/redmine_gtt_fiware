@@ -10,6 +10,11 @@ headers.append('Content-Type', 'application/json');
   headers.append('Fiware-ServicePath', '<%= @subscription_template.fiware_servicepath %>');
 <% end %>
 
+var authToken = document.getElementById('subscription_auth_token').value;
+if (authToken) {
+  headers.append('Authorization', 'Bearer ' + authToken);
+}
+
 // Build the request options
 var requestOptions = {
   method: 'POST',
@@ -37,11 +42,27 @@ function showNotification(message) {
 // Send the POST request
 fetch('<%= @broker_url %>', requestOptions)
   .then(response => {
-    var location = response.headers.get('Location');
-    if (!location) {
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error("<%= l(:subscription_unauthorized_error) %>");
+      } else {
+        throw new Error("<%= l(:subscription_published_error) %>");
+      }
+    }
+
+    // Case-insensitive retrieval of the "Location" header
+    var locationHeader = null;
+    response.headers.forEach((value, name) => {
+      if (name.toLowerCase() === 'location') {
+        locationHeader = value;
+      }
+    });
+
+    if (!locationHeader) {
       throw new Error('Location header is missing in the response');
     }
-    var parts = location.split('/');
+
+    var parts = locationHeader.split('/');
     var subscriptionId = parts[parts.length - 1];
 
     // Send the PATCH request to update the subscription_id
@@ -67,5 +88,5 @@ fetch('<%= @broker_url %>', requestOptions)
     console.log('error', error);
 
     // Show error notification
-    showNotification("<%= l(:subscription_published_error) %>");
+    showNotification(error.message);
   });

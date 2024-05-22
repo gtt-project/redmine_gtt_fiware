@@ -1,4 +1,12 @@
 <% if subscription_templates.any? %>
+  <div class="box tabular">
+    <p class="min-width">
+      <%= content_tag :label, l(:field_subscription_auth_token) %>
+      <%= text_field_tag :subscription_auth_token, "", :size => 70, :placeholder => l(:field_subscription_auth_token_placeholder) %><br>
+      <em><%= l(:field_subscription_auth_token_hint) %></em>
+    </p>
+  </div>
+
   <table class="list subscription_templates">
     <thead>
       <tr>
@@ -14,7 +22,7 @@
       </tr>
     </thead>
     <tbody id="subscriptionTemplateList">
-      <%= render collection: subscription_templates, partial: 'subscription_templates/subscription_template' %>
+      <%= render collection: subscription_templates.sort_by(&:name), partial: 'subscription_templates/subscription_template' %>
     </tbody>
   </table>
 
