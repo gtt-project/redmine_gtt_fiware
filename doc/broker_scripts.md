@@ -32,18 +32,21 @@ URL specified in the header for each subscription.
   `api_key` argument is not provided.
 - `BROKER_URL`: The base URL for your Orion Context Broker. Defaults to
   `http://app.local:1026` if not set.
+- `BROKER_TOKEN`: The bearer token for authentication. If provided, it will be
+  used in the `Authorization` header for the requests.
 
-**Note:** Make sure to set the `BROKER_URL` environment variable to your context
-broker URL before running this script.
+**Note:** Make sure to set the `BROKER_URL` and `BROKER_TOKEN` (optional) environment
+variables to your context broker URL and authentication token respectively
+before running this script.
 
 To prepend an environment variable to a command in the terminal, you can do so
 like this:
 
 ```bash
-BROKER_URL=your_broker_url ./scripts/register_all_subscriptions.sh <your_api_key>
+BROKER_URL=your_broker_url ./scripts/register_all_subscriptions.sh <redmine_api_key>
 ```
 
-Replace `your_api_key` with your actual Redmine API key and `your_broker_url`
+Replace `redmine_api_key` with your actual Redmine API key and `your_broker_url`
 with the correct URL. This will set the `BROKER_URL` environment variables for
 the duration of the `register_all_subscriptions.sh` script.
 
@@ -66,9 +69,12 @@ subscriptions, and then makes DELETE requests to the
 
 - `BROKER_URL`: The base URL for your Orion Context Broker. Defaults to
   `http://app.local:1026` if not set.
+- `BROKER_TOKEN`: The bearer token for authentication. If provided, it will be
+  used in the `Authorization` header for the requests.
 
 **Note:** This script does not require any arguments. Make sure to set the
-`BROKER_URL` environment variable to your context broker URL before running this script.
+`BROKER_URL` and `BROKER_TOKEN` (optional) environment variables to your context
+broker URL and authentication token respectively before running this script.
 
 To prepend an environment variable to a command in the terminal, you can do so
 like this:
