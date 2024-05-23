@@ -34,6 +34,12 @@ following minimal settings:
 
 Create the subscription template and publish it.
 
+**Note:** When authentication is required, provide the `Authorization` header with
+
+```bash
+  -H "Authorization: Bearer ${BROKER_TOKEN}" \
+```
+
 ## Creating an Entity with Speed Camera
 
 ```bash
