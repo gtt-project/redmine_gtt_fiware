@@ -45,6 +45,7 @@ Create the subscription template and publish it.
 ```bash
 curl -iX POST "${BROKER_URL}/v2/entities" \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${BROKER_TOKEN}" \
   -d '{
     "id": "urn:ngsi-ld:SpeedCameraSensor:001",
     "type": "SpeedCameraSensor",
@@ -76,6 +77,7 @@ curl -iX POST "${BROKER_URL}/v2/entities" \
 curl -iX PATCH \
   "${BROKER_URL}/v2/entities/urn:ngsi-ld:SpeedCameraSensor:001/attrs" \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${BROKER_TOKEN}" \
   -d '{
     "speed": {
       "value": 90.0,
@@ -87,5 +89,7 @@ curl -iX PATCH \
 ## Delete Entities
 
 ```bash
-curl -iX DELETE "${BROKER_URL}/v2/entities/urn:ngsi-ld:SpeedCameraSensor:001"
+curl -iX DELETE \
+  "${BROKER_URL}/v2/entities/urn:ngsi-ld:SpeedCameraSensor:001" \
+  -H "Authorization: Bearer ${BROKER_TOKEN}"
 ```

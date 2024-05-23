@@ -45,6 +45,7 @@ Create the subscription template and publish it.
 ```bash
 curl -iX POST "${BROKER_URL}/v2/entities" \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${BROKER_TOKEN}" \
   -d '{
     "id": "urn:ngsi-ld:TemperatureSensor:001",
     "type": "TemperatureSensor",
@@ -56,6 +57,7 @@ curl -iX POST "${BROKER_URL}/v2/entities" \
 
 curl -iX POST "${BROKER_URL}/v2/entities" \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${BROKER_TOKEN}" \
   -d '{
     "id": "urn:ngsi-ld:TemperatureSensor:002",
     "type": "TemperatureSensor",
@@ -72,6 +74,7 @@ curl -iX POST "${BROKER_URL}/v2/entities" \
 curl -iX PATCH \
   "${BROKER_URL}/v2/entities/urn:ngsi-ld:TemperatureSensor:001/attrs" \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${BROKER_TOKEN}" \
   -d '{
     "temperature": {
       "value": 28.0,
@@ -83,6 +86,10 @@ curl -iX PATCH \
 ## Delete Entities
 
 ```bash
-curl -iX DELETE "${BROKER_URL}/v2/entities/urn:ngsi-ld:TemperatureSensor:001"
-curl -iX DELETE "${BROKER_URL}/v2/entities/urn:ngsi-ld:TemperatureSensor:002"
+curl -iX DELETE \
+  "${BROKER_URL}/v2/entities/urn:ngsi-ld:TemperatureSensor:001" \
+  -H "Authorization: Bearer ${BROKER_TOKEN}"
+curl -iX DELETE \
+  "${BROKER_URL}/v2/entities/urn:ngsi-ld:TemperatureSensor:002" \
+  -H "Authorization: Bearer ${BROKER_TOKEN}"
 ```

@@ -44,6 +44,7 @@ Create the subscription template and publish it.
 ```bash
 curl -iX POST "${BROKER_URL}/v2/entities" \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${BROKER_TOKEN}" \
   -d '{
     "id": "urn:ngsi-ld:LocationSensor:001",
     "type": "LocationSensor",
@@ -62,6 +63,7 @@ curl -iX POST "${BROKER_URL}/v2/entities" \
 ```bash
 curl -iX PATCH \
   "${BROKER_URL}/v2/entities/urn:ngsi-ld:LocationSensor:001/attrs" \
+  -H "Authorization: Bearer ${BROKER_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
     "location": {
@@ -81,5 +83,7 @@ within the project boundary.
 ## Delete Entities
 
 ```bash
-curl -iX DELETE "${BROKER_URL}/v2/entities/urn:ngsi-ld:LocationSensor:001"
+curl -iX DELETE \
+  "${BROKER_URL}/v2/entities/urn:ngsi-ld:LocationSensor:001" \
+  -H "Authorization: Bearer ${BROKER_TOKEN}"
 ```
