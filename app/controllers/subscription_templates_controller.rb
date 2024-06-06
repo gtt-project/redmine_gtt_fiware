@@ -86,60 +86,41 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def publish
-    prepare_payload
-    if Setting.plugin_redmine_gtt_fiware['connect_via_proxy']
-       if handle_fiware_action('publish')
-        @subscription_templates = subscription_template_scope
-        respond_to do |format|
-          format.html {
-            response.headers['X-Redmine-Message'] = l(:subscription_published)
-            render partial: 'subscription_templates/subscription_template', collection: @subscription_templates, as: :subscription_template
-          }
-        end
-      else
-        @subscription_templates = subscription_template_scope
-        respond_to do |format|
-          format.html {
-            response.headers['X-Redmine-Message'] = @error_message
-            render partial: 'subscription_templates/subscription_template', collection: @subscription_templates, as: :subscription_template
-          }
-        end
-      end
-    else
-      respond_to do |format|
-        format.js # This will render `publish.js.erb`
-      end
-    end
+    handle_publish_unpublish('publish', l(:subscription_published), 'publish.js.erb')
   end
 
   def unpublish
     @broker_url = URI.join(@subscription_template.broker_url, "/v2/subscriptions/", @subscription_template.subscription_id).to_s
+    handle_publish_unpublish('unpublish', l(:subscription_unpublished), 'unpublish.js.erb')
+  end
+
+  private
+
+  def handle_publish_unpublish(action, success_message, js_template)
+    prepare_payload if action == 'publish'
+
     if Setting.plugin_redmine_gtt_fiware['connect_via_proxy']
-      if handle_fiware_action('unpublish')
-        @subscription_templates = subscription_template_scope
-        respond_to do |format|
-          format.html {
-            response.headers['X-Redmine-Message'] = l(:subscription_unpublished)
-            render partial: 'subscription_templates/subscription_template', collection: @subscription_templates, as: :subscription_template
-          }
-        end
+      if handle_fiware_action(action)
+        render_subscription_templates(success_message)
       else
-        @subscription_templates = subscription_template_scope
-        respond_to do |format|
-          format.html {
-            response.headers['X-Redmine-Message'] = @error_message
-            render partial: 'subscription_templates/subscription_template', collection: @subscription_templates, as: :subscription_template
-          }
-        end
+        render_subscription_templates(@error_message)
       end
     else
       respond_to do |format|
-        format.js # This will render `unpublish.js.erb`
+        format.js { render js_template }
       end
     end
   end
 
-  private
+  def render_subscription_templates(message)
+    @subscription_templates = subscription_template_scope
+    respond_to do |format|
+      format.html {
+        response.headers['X-Redmine-Message'] = message
+        render partial: 'subscription_templates/subscription_template', collection: @subscription_templates, as: :subscription_template
+      }
+    end
+  end
 
   def prepare_payload
     @broker_url = URI.join(@subscription_template.broker_url, "/v2/subscriptions").to_s
