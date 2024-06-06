@@ -1,17 +1,36 @@
 <tr>
-  <td class="text"><%= link_to subscription_template.name, edit_project_subscription_template_path(subscription_template.project, subscription_template) %></td>
-  <td><%= textilizable subscription_template.standard %></td>
-  <td class="text"><code><%= subscription_template.broker_url %></code></td>
-  <td><%= textilizable subscription_template.issue_status.name %></td>
-  <td><%= textilizable subscription_template.tracker.name %></td>
-  <td><%= textilizable subscription_template.status %></td>
-  <td><%= link_to l(:link_to_copy), copy_project_subscription_template_path(@project, subscription_template), remote: true, method: :get, class: 'copy-command-link icon icon-copy', title: l(:link_to_copy_hint) %></td>
+  <td class="text">
+    <%= link_to subscription_template.name, edit_project_subscription_template_path(subscription_template.project, subscription_template) %>
+  </td>
+  <td>
+    <%= textilizable subscription_template.standard %>
+  </td>
+  <td class="text">
+    <code><%= subscription_template.broker_url %></code>
+  </td>
+  <td>
+    <%= textilizable subscription_template.issue_status.name %>
+  </td>
+  <td>
+    <%= textilizable subscription_template.tracker.name %>
+  </td>
+  <td>
+    <%= textilizable subscription_template.status %>
+  </td>
+  <td>
+    <%= link_to l(:link_to_copy), copy_project_subscription_template_path(@project, subscription_template),
+        method: :get, remote: true,class: 'copy-command-link icon icon-copy', title: l(:link_to_copy_hint) %>
+  </td>
   <td>
     <% if subscription_template.subscription_id.present? %>
-      <%= link_to l(:link_to_unpublish), unpublish_project_subscription_template_path(@project, subscription_template), method: :get, remote: true, class: 'icon icon-shared' %>
+      <%= link_to l(:link_to_unpublish), unpublish_project_subscription_template_path(@project, subscription_template),
+          method: :get, remote: true, class: 'icon icon-shared' %>
     <% else %>
-      <%= link_to l(:link_to_publish), publish_project_subscription_template_path(@project, subscription_template), method: :get, remote: true, class: 'icon icon-shared' %>
+      <%= link_to l(:link_to_publish), publish_project_subscription_template_path(@project, subscription_template),
+          method: :get, remote: true, class: 'icon icon-shared' %>
     <% end %>
   </td>
-  <td><%= delete_link(subscription_template.project ? project_subscription_template_path(subscription_template.project, subscription_template) : subscription_template_path(subscription_template)) %>
+  <td>
+    <%= delete_link(subscription_template.project ? project_subscription_template_path(subscription_template.project, subscription_template) : subscription_template_path(subscription_template)) %>
+  </td>
 </tr>

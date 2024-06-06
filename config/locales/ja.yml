@@ -15,6 +15,8 @@ en:
   option_ngsi_ld_format_not_normalized: "Not normalized"
 
   gtt_fiware_settings_broker: "FIWARE Broker Settings"
+  field_connect_via_proxy: "Connect via internal proxy"
+  button_connect_via_proxy_text: "PROXY"
   field_fiware_broker_subscription_throttling: "Subscription Throttling"
 
   gtt_fiware_subscription_template_general: "General"
@@ -77,7 +79,7 @@ en:
 
   field_subscription_auth_token: "Authorization token"
   field_subscription_auth_token_placeholder: "Bearer token"
-  field_subscription_auth_token_hint: "Authorization token to be included in the request headers. Leave empty for no authorization. The token is not stored in the database."
+  field_subscription_auth_token_hint: "Authorization token to be included in the request headers. Leave empty for no authorization. The token is not stored in the database. When the <code>PROXY</code> button is enabled (green), the request will be proxied through the server."
 
   link_to_copy: "Clipboard"
   link_to_copy_hint: "Copy command to clipboard"

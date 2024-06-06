@@ -18,6 +18,11 @@ project settings. This tab allows you to create and manage subscription template
 
 ![Project Settings - FIWARE Tab](project_settings.png)
 
+- **Authorization token**: Bearer token to be included in the request headers.
+  Leave empty for no authorization. The token is not stored in the database.
+  When the PROXY button is enabled (green), the request will be proxied through
+  the server.
+
 ### Creating a New Subscription Template
 
 In the **FIWARE** tab, you can create a new subscription template by clicking on
