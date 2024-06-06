@@ -21,6 +21,8 @@ notifications.
 ### Subscription Throttling
 
 - **Description**: Limits the number of subscription notifications per second.
+- **Connect via internal proxy**: If enabled, the plugin will connect to the
+  FIWARE broker through an internal proxy.
 - **Default**: 10
 
 ## Applying Settings

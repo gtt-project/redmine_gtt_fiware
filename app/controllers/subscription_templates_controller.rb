@@ -1,3 +1,5 @@
+require 'net/http'
+
 class SubscriptionTemplatesController < ApplicationController
   layout 'base'
 
@@ -5,6 +7,8 @@ class SubscriptionTemplatesController < ApplicationController
   before_action :get_issue_statuses, only: [:new, :create, :edit, :update]
   before_action :get_issue_priorities, only: [:new, :create, :edit, :update]
   before_action :get_issue_categories, only: [:new, :create, :edit, :update]
+  before_action :find_subscription_template, only: [:edit, :update, :destroy, :copy, :publish, :unpublish, :update_subscription_id]
+  before_action :check_fiware_broker_auth_token, only: [:publish, :unpublish]
 
   accept_api_auth :set_subscription_id
   before_action :authorize, except: [:set_subscription_id]
@@ -19,9 +23,7 @@ class SubscriptionTemplatesController < ApplicationController
     @subscription_template = SubscriptionTemplate.new
   end
 
-  def edit
-    @subscription_template = find_subscription_template
-  end
+  def edit; end
 
   def create
     r = RedmineGttFiware::SaveSubscriptionTemplate.(subscription_template_params, project: @project)
@@ -34,8 +36,6 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def update
-    @subscription_template = find_subscription_template
-
     r = RedmineGttFiware::SaveSubscriptionTemplate.(subscription_template_params, subscription_template: @subscription_template)
     if r.subscription_template_saved?
       redirect_to index_path
@@ -55,7 +55,6 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def set_subscription_id
-    # Check if a valid API key is provided
     unless User.current.logged?
       render json: { error: 'API key is missing or invalid' }, status: :unauthorized
       return
@@ -63,7 +62,6 @@ class SubscriptionTemplatesController < ApplicationController
 
     @subscription_template = SubscriptionTemplate.find(params[:subscription_template_id])
 
-    # Check if the user has permissions to manage subscription templates
     unless User.current.allowed_to?(:manage_subscription_templates, @subscription_template.project)
       render json: { error: 'You do not have permission to manage subscription templates' }, status: :forbidden
       return
@@ -75,7 +73,6 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def destroy
-    @subscription_template = find_subscription_template
     @subscription_template.destroy
     redirect_to index_path
   end
@@ -89,36 +86,53 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def publish
-    prepare_payload
-
-    respond_to do |format|
-      format.js # This will render `publish.js.erb`
-    end
+    handle_publish_unpublish('publish', l(:subscription_published), 'publish.js.erb')
   end
 
   def unpublish
-    @subscription_template = SubscriptionTemplate.find(params[:id])
     @broker_url = URI.join(@subscription_template.broker_url, "/v2/subscriptions/", @subscription_template.subscription_id).to_s
-
-    respond_to do |format|
-      format.js # This will render `unpublish.js.erb`
-    end
+    handle_publish_unpublish('unpublish', l(:subscription_unpublished), 'unpublish.js.erb')
   end
 
   private
 
+  def handle_publish_unpublish(action, success_message, js_template)
+    prepare_payload if action == 'publish'
+
+    if Setting.plugin_redmine_gtt_fiware['connect_via_proxy']
+      if handle_fiware_action(action)
+        render_subscription_templates(success_message)
+      else
+        render_subscription_templates(@error_message)
+      end
+    else
+      respond_to do |format|
+        format.js { render js_template }
+      end
+    end
+  end
+
+  def render_subscription_templates(message)
+    @subscription_templates = subscription_template_scope
+    respond_to do |format|
+      format.html {
+        response.headers['X-Redmine-Message'] = message
+        render partial: 'subscription_templates/subscription_template', collection: @subscription_templates, as: :subscription_template
+      }
+    end
+  end
+
   def prepare_payload
-    @subscription_template = SubscriptionTemplate.find(params[:id])
     @broker_url = URI.join(@subscription_template.broker_url, "/v2/subscriptions").to_s
     @entity_url = URI.join(@subscription_template.broker_url, "/v2/entities").to_s
     @member = Member.find(@subscription_template.member_id)
 
-    httpCustom = {
+    http_custom = {
       url: URI.join(request.base_url, "/fiware/subscription_template/#{@subscription_template.id}/notification").to_s,
       headers: {
-        "Content-Type": "application/json",
-        "X-Redmine-API-Key": User.find(@member.user_id).api_key,
-        "X-Redmine-GTT-Subscription-Template-URL": URI.join(request.base_url, "/fiware/subscription_template/#{@subscription_template.id}/registration/").to_s
+        "Content-Type" => "application/json",
+        "X-Redmine-API-Key" => User.find(@member.user_id).api_key,
+        "X-Redmine-GTT-Subscription-Template-URL" => URI.join(request.base_url, "/fiware/subscription_template/#{@subscription_template.id}/registration/").to_s
       },
       method: "POST",
       json: {
@@ -131,10 +145,8 @@ class SubscriptionTemplatesController < ApplicationController
       }
     }
 
-    httpCustom[:json][:attachments] = @subscription_template.attachments if @subscription_template.attachments
-
     @json_payload = {
-      description: CGI::escape(@subscription_template.name),
+      description: CGI.escape(@subscription_template.name),
       subject: {
         entities: @subscription_template.entities,
         condition: {
@@ -146,7 +158,7 @@ class SubscriptionTemplatesController < ApplicationController
         metadata: ["dateCreated", "*"],
         onlyChangedAttrs: false,
         covered: false,
-        httpCustom: httpCustom
+        httpCustom: http_custom
       },
       throttling: Setting.plugin_redmine_gtt_fiware['fiware_broker_subscription_throttling'].to_i || 1,
       status: @subscription_template.status
@@ -169,14 +181,7 @@ class SubscriptionTemplatesController < ApplicationController
     @json_payload[:subject][:condition][:attrs] = JSON.parse(@subscription_template.attrs) if @subscription_template.attrs.present?
     @json_payload[:subject][:condition][:alterationTypes] = @subscription_template.alteration_types if @subscription_template.alteration_types.present?
 
-    @json_payload = JSON.pretty_generate(@json_payload)
-      .gsub("\\", "\\\\\\\\") # escape backslashes
-      .gsub("\r", "\\r") # escape carriage return
-      .gsub("\n", "\\n") # escape newline
-      .gsub("\t", "\\t") # escape tab
-      .gsub("\f", "\\f") # escape form feed
-      .gsub("\b", "\\b") # escape backspace
-      .gsub("\"", "\\\"") # escape double quotes
+    @json_payload = JSON.generate(@json_payload)
   end
 
   def new_path
@@ -188,11 +193,11 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def find_subscription_template
-    subscription_template_scope.find params[:id]
+    @subscription_template = subscription_template_scope.find(params[:id])
   end
 
   def find_project_by_project_id
-    @project = Project.find params[:project_id]
+    @project = Project.find(params[:project_id])
   end
 
   def subscription_template_scope
@@ -214,6 +219,73 @@ class SubscriptionTemplatesController < ApplicationController
   def subscription_template_params
     params[:subscription_template][:alteration_types] ||= []
     params.require(:subscription_template).permit(:standard, :broker_url, :fiware_service, :fiware_servicepath, :subscription_id, :name, :expires, :status, :context, :entities_string, :attrs, :expression_query, :expression_georel, :expression_geometry, :expression_coords, :notify_on_metadata_change, :subject, :description, :attachments_string, :is_private, :project_id, :tracker_id, :version_id, :issue_status_id, :issue_category_id, :issue_priority_id, :member_id, :comment, :threshold_create, :threshold_create_hours, :notes, :geometry, :geometry_string, alteration_types: [])
+  end
+
+  def check_fiware_broker_auth_token
+    @fiware_broker_auth_token = request.headers['HTTP_FIWARE_BROKER_AUTH_TOKEN']
+  end
+
+  def handle_fiware_action(action)
+
+    if @fiware_broker_auth_token.blank?
+      Rails.logger.error "FIWARE Broker Auth Token is missing"
+      @error_message = l(:subscription_unauthorized_error)
+      return false
+    end
+
+    uri = URI(@broker_url)
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = (uri.scheme == 'https')
+
+    request = case action
+              when 'publish'
+                Net::HTTP::Post.new(uri.path, initheader = {
+                  'Content-Type' => 'application/json',
+                  'Authorization' => "Bearer #{@fiware_broker_auth_token}"
+                }).tap { |req| req.body = @json_payload }
+              when 'unpublish'
+                Net::HTTP::Delete.new(uri.path, initheader = {
+                  'Authorization' => "Bearer #{@fiware_broker_auth_token}"
+                })
+              else
+                Rails.logger.error "Unknown action: #{action}"
+                @error_message = l(:general_action_error)
+                return false
+              end
+
+    response = http.request(request)
+
+    Rails.logger.info "FIWARE Broker Response Code: #{response.code}"
+    Rails.logger.info "FIWARE Broker Response Message: #{response.message}"
+
+    if response.code.to_i == 201 && action == 'publish'
+      location_header = response['location'] || response['Location']
+      if location_header
+        subscription_id = location_header.split('/').last
+        @subscription_template.update(subscription_id: subscription_id)
+        return true
+      else
+        Rails.logger.error "Location header is missing in the response"
+        @error_message = l(:general_action_error)
+        return false
+      end
+    elsif response.code.to_i == 204 && action == 'unpublish'
+      @subscription_template.update(subscription_id: nil)
+      return true
+    end
+
+    if response.code.to_i >= 400
+      Rails.logger.error "FIWARE Broker error: #{response.body}"
+      @error_message = l(:general_action_error)
+      false
+    else
+      true
+    end
+  rescue StandardError => e
+    Rails.logger.error "Error handling FIWARE action: #{e.message}"
+    Rails.logger.error e.backtrace.join("\n")
+    @error_message = l(:general_action_error)
+    false
   end
 
 end
