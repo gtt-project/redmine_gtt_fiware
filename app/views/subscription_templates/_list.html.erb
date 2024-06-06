@@ -2,8 +2,9 @@
   <div class="box tabular">
     <p class="min-width">
       <%= content_tag :label, l(:field_subscription_auth_token) %>
-      <%= text_field_tag :subscription_auth_token, "", :size => 70, :placeholder => l(:field_subscription_auth_token_placeholder) %><br>
-      <em><%= l(:field_subscription_auth_token_hint) %></em>
+      <%= text_field_tag :subscription_auth_token, "", :size => 60, :placeholder => l(:field_subscription_auth_token_placeholder) %>
+      <%= button_tag l(:button_connect_via_proxy_text), type: 'button', id: 'connect_via_proxy_status' %>
+      <br><small><i><%= l(:field_subscription_auth_token_hint).html_safe %></i></small>
     </p>
   </div>
 
@@ -26,9 +27,39 @@
     </tbody>
   </table>
 
-  <div id="temporaryNotification" class="temporaryNotification">
-  </div>
+  <% if Setting.plugin_redmine_gtt_fiware['connect_via_proxy'] %>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      if (Rails) {
+        document.addEventListener('ajax:beforeSend', function(event) {
+          var xhr = event.detail[0];
+          xhr.setRequestHeader('FIWARE-Broker-Auth-Token', document.getElementById('subscription_auth_token').value);
+        });
 
+        document.addEventListener('ajax:success', function(event) {
+          var detail = event.detail;
+          var data = detail[0], status = detail[1], xhr = detail[2];
+
+          // Update the subscription templates list with the response data
+          document.getElementById('subscriptionTemplateList').innerHTML = xhr.responseText;
+          showNotification(xhr.getResponseHeader('X-Redmine-Message'));
+        });
+
+        document.addEventListener('ajax:error', function(event) {
+          var detail = event.detail;
+          var data = detail[0], status = detail[1], xhr = detail[2];
+
+          console.error("Error during publish:", data);
+          showNotification(xhr.getResponseHeader('X-Redmine-Message'));
+        });
+      }
+
+      document.getElementById('connect_via_proxy_status').style.backgroundColor = '#d3ffc6';
+    });
+  </script>
+  <% end %>
+
+  <div id="temporaryNotification" class="temporaryNotification"></div>
 <% else %>
   <p class="nodata"><%= l :label_no_data %></p>
 <% end %>

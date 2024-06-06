@@ -21,6 +21,7 @@ Redmine::Plugin.register :redmine_gtt_fiware do
   settings(
     default: {
       'ngsi_ld_format' => false,
+      'connect_via_proxy' => false,
       'fiware_broker_subscription_throttling' => '10',
     },
     partial: 'gtt_fiware/settings'
