@@ -137,10 +137,10 @@ class SubscriptionTemplatesController < ApplicationController
       method: "POST",
       json: {
         entity: "#{@entity_url}/${id}?type=${type}",
-        subject: @subscription_template.subject,
-        description: @subscription_template.description,
+        subject: @subscription_template.subject.chomp,
+        description: @subscription_template.description.chomp,
         attachments: @subscription_template.attachments,
-        notes: @subscription_template.notes,
+        notes: @subscription_template.notes.chomp,
         geometry: @subscription_template.geometry
       }
     }
