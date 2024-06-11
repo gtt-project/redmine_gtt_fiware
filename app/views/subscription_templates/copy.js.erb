@@ -1,4 +1,7 @@
 // Build the cURL command with line breaks and formatted JSON
+var jsonPayload = JSON.parse('<%= @json_payload.html_safe %>');
+var prettifiedJson = JSON.stringify(jsonPayload, null, 2);
+
 var command = "curl -i -X POST '<%= @broker_url %>' \\\n" +
                 "-H 'Content-Type: application/json' \\\n" +
                 <% if @subscription_template&.fiware_service&.present? %>
@@ -7,7 +10,7 @@ var command = "curl -i -X POST '<%= @broker_url %>' \\\n" +
                 <% if @subscription_template&.fiware_servicepath&.present? %>
                 "-H 'Fiware-ServicePath: <%= @subscription_template.fiware_servicepath %>' \\\n" +
                 <% end %>
-                "--data-binary '" + '<%= @json_payload.html_safe %>' + "'";
+                "--data-binary '" + prettifiedJson + "'";
 
 var authToken = document.getElementById('subscription_auth_token').value;
 if (authToken) {
