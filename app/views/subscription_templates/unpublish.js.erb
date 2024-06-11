@@ -1,6 +1,14 @@
 // Build the request headers
 var headers = new Headers();
 
+<% if @subscription_template.fiware_service.present? %>
+  headers.append('Fiware-Service', '<%= @subscription_template.fiware_service %>');
+<% end %>
+
+<% if @subscription_template.fiware_servicepath.present? %>
+  headers.append('Fiware-ServicePath', '<%= @subscription_template.fiware_servicepath %>');
+<% end %>
+
 var authToken = document.getElementById('subscription_auth_token').value;
 if (authToken) {
   headers.append('Authorization', 'Bearer ' + authToken);
