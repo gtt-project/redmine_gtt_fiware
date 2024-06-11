@@ -40,8 +40,12 @@
           var detail = event.detail;
           var data = detail[0], status = detail[1], xhr = detail[2];
 
-          // Update the subscription templates list with the response data
-          document.getElementById('subscriptionTemplateList').innerHTML = xhr.responseText;
+          // Check if event.target has the class 'copy-command-link'
+          if (!event.target.classList.contains('copy-command-link')) {
+            // Update the subscription templates list with the response data
+            document.getElementById('subscriptionTemplateList').innerHTML = xhr.responseText;
+          }
+
           showNotification(xhr.getResponseHeader('X-Redmine-Message'));
         });
 
