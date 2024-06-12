@@ -10,6 +10,11 @@ FIWARE plugin and its API endpoints.
 - For security reasons don't select a user with admin rights for the FIWARE
   subscriptions. Instead, create a new user with the necessary permissions.
 
+If you need a test installation of FIWARE, you can use
+[FIWARE-Small-Bang](https://github.com/lets-fiware/FIWARE-Small-Bang) (for local
+development) or [FIWARE-Big-Bang](https://github.com/lets-fiware/FIWARE-Big-Bang)
+(for server deployment).
+
 ### Redmine Permissions
 
 ![Plugin permissions](permissions.png)
