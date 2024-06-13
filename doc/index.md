@@ -72,3 +72,42 @@ curl -sX GET "${BROKER_URL}/v2/subscriptions" -H "Accept: application/json" | jq
 These cURL commands should help you interact with the FIWARE broker and test the
 Redmine GTT FIWARE plugin effectively. If you encounter any issues or need
 further assistance, please let us know!
+
+#### CORS Issues
+
+If you encounter CORS issues, for example when you use FIWARE-Big-Bang, you can extend
+the Ngix configuration as follows:
+
+```nginx
+[snip]
+
+server {
+  [snip]
+
+  # Add CORS Headers
+  add_header 'Access-Control-Allow-Origin' '*' always;
+  add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, DELETE, PUT, PATCH' always;
+  add_header 'Access-Control-Allow-Headers' 'Origin, Content-Type, Accept, Authorization, X-Requested-With, fiware-service, fiware-servicepath' always;
+  add_header 'Access-Control-Expose-Headers' 'location, fiware-correlator' always;
+
+  location / {
+    if ($request_method = 'OPTIONS') {
+      add_header 'Access-Control-Allow-Origin' '*' always;
+      add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, DELETE, PUT, PATCH' always;
+      add_header 'Access-Control-Allow-Headers' 'Origin, Content-Type, Accept, Authorization, X-Requested-With, fiware-service, fiware-servicepath' always;
+      add_header 'Access-Control-Expose-Headers' 'location, fiware-correlator' always;
+      add_header 'Access-Control-Max-Age' 1728000;
+      add_header 'Content-Type' 'text/plain charset=UTF-8';
+      add_header 'Content-Length' 0;
+      return 204;
+    }
+
+    [snip]
+  }
+
+  [snip]
+}
+```
+
+In particular `location` and `fiware-service, fiware-servicepath` are important
+for the FIWARE broker to work correctly.

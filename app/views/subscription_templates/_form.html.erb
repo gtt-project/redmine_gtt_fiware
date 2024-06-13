@@ -61,14 +61,16 @@
       if (link) {
         link.addEventListener('click', function(e) {
           e.preventDefault();
-          var geom = JSON.parse(e.target.dataset.geom).geometry.coordinates[0].map(coord => [Number(coord[0].toFixed(5)), Number(coord[1].toFixed(5))]).join(';');
+          var geom = JSON.parse(e.target.dataset.geom).geometry.coordinates[0]
+            .map(coord => [Number(coord[1].toFixed(5)), Number(coord[0].toFixed(5))]) // Flip the coordinates
+            .join(';');
           document.querySelector('input[name="subscription_template[expression_coords]"]').value = geom;
           document.querySelector('select[name="subscription_template[expression_geometry]"]').value = 'polygon';
           document.querySelector('input[name="subscription_template[expression_georel]"]').value = 'coveredBy';
         });
       }
     });
-</script>
+  </script>
 
   <p>
     <%= content_tag :label, l(:field_subscription_template_alteration_types) %>
