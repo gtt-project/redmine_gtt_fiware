@@ -21,6 +21,15 @@ if [ -n "$BROKER_TOKEN" ]; then
   HEADERS+=(-H "Authorization: Bearer $BROKER_TOKEN")
 fi
 
+# Check if FIWARE_SERVICE and FIWARE_SERVICEPATH are provided
+if [ -z "$FIWARE_SERVICE" ]; then
+  HEADERS+=(-H "Fiware-Service: $FIWARE_SERVICE")
+fi
+
+if [ -z "$FIWARE_SERVICEPATH" ]; then
+  HEADERS+=(-H "Fiware-ServicePath: $FIWARE_SERVICEPATH")
+fi
+
 # Fetch all subscriptions using a GET request
 response=$(curl -s -o /dev/null -w "%{http_code}" -X GET "${BROKER_URL}/v2/subscriptions" "${HEADERS[@]}")
 http_code="$response"
