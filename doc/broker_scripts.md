@@ -34,6 +34,8 @@ URL specified in the header for each subscription.
   `http://app.local:1026` if not set.
 - `BROKER_TOKEN`: The bearer token for authentication. If provided, it will be
   used in the `Authorization` header for the requests.
+- `FIWARE_SERVICE`: The FIWARE service for the subscriptions (optional).
+- `FIWARE_SERVICEPATH`: The FIWARE service path for the subscriptions (optional).
 
 **Note:** Make sure to set the `BROKER_URL` and `BROKER_TOKEN` (optional) environment
 variables to your context broker URL and authentication token respectively
@@ -71,6 +73,8 @@ subscriptions, and then makes DELETE requests to the
   `http://app.local:1026` if not set.
 - `BROKER_TOKEN`: The bearer token for authentication. If provided, it will be
   used in the `Authorization` header for the requests.
+- `FIWARE_SERVICE`: The FIWARE service for the subscriptions (optional).
+- `FIWARE_SERVICEPATH`: The FIWARE service path for the subscriptions (optional).
 
 **Note:** This script does not require any arguments. Make sure to set the
 `BROKER_URL` and `BROKER_TOKEN` (optional) environment variables to your context

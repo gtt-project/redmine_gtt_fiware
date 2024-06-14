@@ -57,7 +57,8 @@ subscription, including entities, attributes, and (geospatial) queries.
   all or none of the following fields:
   - **Georel**: Set the geospatial relationship (e.g., `near;maxDistance:1000`).
   - **Geometry**: Choose the geometry type (e.g., `Point`).
-  - **Coordinates**: Enter the coordinates for the geospatial query.
+  - **Coordinates**: Enter the coordinates (`latitude`,
+    `longitude`) for the geospatial query (e.g. `34.751,135.22;34.67,135.221;34.671,135.345;34.752,135.344;34.751,135.22`).
   - **Insert project boundary**: Automatically insert the project boundary as
     valid geospatial query.
 

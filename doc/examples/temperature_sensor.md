@@ -46,6 +46,8 @@ Create the subscription template and publish it.
 curl -iX POST "${BROKER_URL}/v2/entities" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${BROKER_TOKEN}" \
+  -H "Fiware-Service: ${FIWARE_SERVICE}" \
+  -H "Fiware-ServicePath: ${FIWARE_SERVICEPATH}" \
   -d '{
     "id": "urn:ngsi-ld:TemperatureSensor:001",
     "type": "TemperatureSensor",
@@ -58,6 +60,8 @@ curl -iX POST "${BROKER_URL}/v2/entities" \
 curl -iX POST "${BROKER_URL}/v2/entities" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${BROKER_TOKEN}" \
+  -H "Fiware-Service: ${FIWARE_SERVICE}" \
+  -H "Fiware-ServicePath: ${FIWARE_SERVICEPATH}" \
   -d '{
     "id": "urn:ngsi-ld:TemperatureSensor:002",
     "type": "TemperatureSensor",
@@ -75,9 +79,11 @@ curl -iX PATCH \
   "${BROKER_URL}/v2/entities/urn:ngsi-ld:TemperatureSensor:001/attrs" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${BROKER_TOKEN}" \
+  -H "Fiware-Service: ${FIWARE_SERVICE}" \
+  -H "Fiware-ServicePath: ${FIWARE_SERVICEPATH}" \
   -d '{
     "temperature": {
-      "value": 28.0,
+      "value": 38.5,
       "type": "Number"
     }
   }'
@@ -88,8 +94,13 @@ curl -iX PATCH \
 ```bash
 curl -iX DELETE \
   "${BROKER_URL}/v2/entities/urn:ngsi-ld:TemperatureSensor:001" \
-  -H "Authorization: Bearer ${BROKER_TOKEN}"
+  -H "Authorization: Bearer ${BROKER_TOKEN}" \
+  -H "Fiware-Service: ${FIWARE_SERVICE}" \
+  -H "Fiware-ServicePath: ${FIWARE_SERVICEPATH}"
+
 curl -iX DELETE \
   "${BROKER_URL}/v2/entities/urn:ngsi-ld:TemperatureSensor:002" \
-  -H "Authorization: Bearer ${BROKER_TOKEN}"
+  -H "Authorization: Bearer ${BROKER_TOKEN}" \
+  -H "Fiware-Service: ${FIWARE_SERVICE}" \
+  -H "Fiware-ServicePath: ${FIWARE_SERVICEPATH}"
 ```

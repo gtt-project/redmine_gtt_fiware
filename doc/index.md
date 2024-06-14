@@ -42,12 +42,15 @@ To allow **public** access to NGSI-LD context documents, it's necessary to grant
 For all examples, the following environment variables are used:
 
 ```bash
-export BROKER_URL="http://your_broker:1026"
+export BROKER_URL=http://your_broker:1026
+export BROKER_TOKEN=your_token
+export FIWARE_SERVICE=your_service
+export FIWARE_SERVICEPATH=your_servicepath
 ```
 
-Replace `your_broker_url` with the actual URL of your FIWARE broker. After
-running this command, the BROKER_URL environment variable will be
-available to all subsequent commands in the same terminal session.
+Alternatively, you can use `.env` files to set these variables.
+Copy the `.env.example` file to `.env` and set the values accordingly.
+Then run `source .env` to load the environment variables.
 
 ### General FIWARE Broker Commands
 

@@ -53,8 +53,8 @@ en:
   field_subscription_template_expression_georel_placeholder: "near;maxDistance:1000"
   field_subscription_template_expression_geometry: "Geometry"
   field_subscription_template_expression_geometry_placeholder: "Select a geometry"
-  field_subscription_template_expression_coords: "Coordinates"
-  field_subscription_template_expression_coords_placeholder: "40.419,-3.691;40.429,-3.691;40.429,-3.701"
+  field_subscription_template_expression_coords: "Coordinates (lat, lon)"
+  field_subscription_template_expression_coords_placeholder: "lat1, lon1; lat2, lon2; lat3, lon3; lat1, lon1"
   field_subscription_template_alteration_types: "Alteration types"
   field_subscription_template_notify_on_metadata_change: "Notify on metadata change"
 
