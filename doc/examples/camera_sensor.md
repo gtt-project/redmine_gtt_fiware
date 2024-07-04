@@ -46,6 +46,8 @@ Create the subscription template and publish it.
 curl -iX POST "${BROKER_URL}/v2/entities" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${BROKER_TOKEN}" \
+  -H "Fiware-Service: ${FIWARE_SERVICE}" \
+  -H "Fiware-ServicePath: ${FIWARE_SERVICEPATH}" \
   -d '{
     "id": "urn:ngsi-ld:SpeedCameraSensor:001",
     "type": "SpeedCameraSensor",
@@ -78,6 +80,8 @@ curl -iX PATCH \
   "${BROKER_URL}/v2/entities/urn:ngsi-ld:SpeedCameraSensor:001/attrs" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${BROKER_TOKEN}" \
+  -H "Fiware-Service: ${FIWARE_SERVICE}" \
+  -H "Fiware-ServicePath: ${FIWARE_SERVICEPATH}" \
   -d '{
     "speed": {
       "value": 90.0,
@@ -91,5 +95,7 @@ curl -iX PATCH \
 ```bash
 curl -iX DELETE \
   "${BROKER_URL}/v2/entities/urn:ngsi-ld:SpeedCameraSensor:001" \
-  -H "Authorization: Bearer ${BROKER_TOKEN}"
+  -H "Authorization: Bearer ${BROKER_TOKEN}" \
+  -H "Fiware-Service: ${FIWARE_SERVICE}" \
+  -H "Fiware-ServicePath: ${FIWARE_SERVICEPATH}"
 ```

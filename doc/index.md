@@ -10,6 +10,11 @@ FIWARE plugin and its API endpoints.
 - For security reasons don't select a user with admin rights for the FIWARE
   subscriptions. Instead, create a new user with the necessary permissions.
 
+If you need a test installation of FIWARE, you can use
+[FIWARE-Small-Bang](https://github.com/lets-fiware/FIWARE-Small-Bang) (for local
+development) or [FIWARE-Big-Bang](https://github.com/lets-fiware/FIWARE-Big-Bang)
+(for server deployment).
+
 ### Redmine Permissions
 
 ![Plugin permissions](permissions.png)
@@ -37,12 +42,15 @@ To allow **public** access to NGSI-LD context documents, it's necessary to grant
 For all examples, the following environment variables are used:
 
 ```bash
-export BROKER_URL="http://your_broker:1026"
+export BROKER_URL=http://your_broker:1026
+export BROKER_TOKEN=your_token
+export FIWARE_SERVICE=your_service
+export FIWARE_SERVICEPATH=your_servicepath
 ```
 
-Replace `your_broker_url` with the actual URL of your FIWARE broker. After
-running this command, the BROKER_URL environment variable will be
-available to all subsequent commands in the same terminal session.
+Alternatively, you can use `.env` files to set these variables.
+Copy the `.env.example` file to `.env` and set the values accordingly.
+Then run `source .env` to load the environment variables.
 
 ### General FIWARE Broker Commands
 
@@ -67,3 +75,42 @@ curl -sX GET "${BROKER_URL}/v2/subscriptions" -H "Accept: application/json" | jq
 These cURL commands should help you interact with the FIWARE broker and test the
 Redmine GTT FIWARE plugin effectively. If you encounter any issues or need
 further assistance, please let us know!
+
+#### CORS Issues
+
+If you encounter CORS issues, for example when you use FIWARE-Big-Bang, you can extend
+the Ngix configuration as follows:
+
+```nginx
+[snip]
+
+server {
+  [snip]
+
+  # Add CORS Headers
+  add_header 'Access-Control-Allow-Origin' '*' always;
+  add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, DELETE, PUT, PATCH' always;
+  add_header 'Access-Control-Allow-Headers' 'Origin, Content-Type, Accept, Authorization, X-Requested-With, fiware-service, fiware-servicepath' always;
+  add_header 'Access-Control-Expose-Headers' 'location, fiware-correlator' always;
+
+  location / {
+    if ($request_method = 'OPTIONS') {
+      add_header 'Access-Control-Allow-Origin' '*' always;
+      add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, DELETE, PUT, PATCH' always;
+      add_header 'Access-Control-Allow-Headers' 'Origin, Content-Type, Accept, Authorization, X-Requested-With, fiware-service, fiware-servicepath' always;
+      add_header 'Access-Control-Expose-Headers' 'location, fiware-correlator' always;
+      add_header 'Access-Control-Max-Age' 1728000;
+      add_header 'Content-Type' 'text/plain charset=UTF-8';
+      add_header 'Content-Length' 0;
+      return 204;
+    }
+
+    [snip]
+  }
+
+  [snip]
+}
+```
+
+In particular `location` and `fiware-service, fiware-servicepath` are important
+for the FIWARE broker to work correctly.
