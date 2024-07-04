@@ -237,16 +237,19 @@ class SubscriptionTemplatesController < ApplicationController
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = (uri.scheme == 'https')
 
+    headers = {
+      'Authorization' => "Bearer #{@fiware_broker_auth_token}"
+    }
+
+    headers['Content-Type'] = 'application/json' if action == 'publish'
+    headers['Fiware-Service'] = @subscription_template.fiware_service if @subscription_template.fiware_service.present?
+    headers['Fiware-ServicePath'] = @subscription_template.fiware_servicepath if @subscription_template.fiware_servicepath.present?
+
     request = case action
               when 'publish'
-                Net::HTTP::Post.new(uri.path, initheader = {
-                  'Content-Type' => 'application/json',
-                  'Authorization' => "Bearer #{@fiware_broker_auth_token}"
-                }).tap { |req| req.body = @json_payload }
+                Net::HTTP::Post.new(uri.path, headers).tap { |req| req.body = @json_payload }
               when 'unpublish'
-                Net::HTTP::Delete.new(uri.path, initheader = {
-                  'Authorization' => "Bearer #{@fiware_broker_auth_token}"
-                })
+                Net::HTTP::Delete.new(uri.path, headers)
               else
                 Rails.logger.error "Unknown action: #{action}"
                 @error_message = l(:general_action_error)
