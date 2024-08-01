@@ -57,13 +57,23 @@ Then run `source .env` to load the environment variables.
 #### Get Entities
 
 ```bash
-curl -sX GET "${BROKER_URL}/v2/entities" -H "Accept: application/json" | jq
+curl -sX GET "${BROKER_URL}/v2/entities" \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer ${BROKER_TOKEN}" \
+  -H "Fiware-Service: ${FIWARE_SERVICE}" \
+  -H "Fiware-ServicePath: ${FIWARE_SERVICEPATH}" \
+| jq
 ```
 
 #### Get Subscriptions
 
 ```bash
-curl -sX GET "${BROKER_URL}/v2/subscriptions" -H "Accept: application/json" | jq
+curl -sX GET "${BROKER_URL}/v2/subscriptions" \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer ${BROKER_TOKEN}" \
+  -H "Fiware-Service: ${FIWARE_SERVICE}" \
+  -H "Fiware-ServicePath: ${FIWARE_SERVICEPATH}" \
+| jq
 ```
 
 ### Notes
