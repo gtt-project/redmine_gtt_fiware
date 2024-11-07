@@ -1,4 +1,5 @@
 require 'net/http'
+require 'uri'
 
 class SubscriptionTemplatesController < ApplicationController
   layout 'base'
@@ -90,7 +91,8 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def unpublish
-    @broker_url = URI.join(@subscription_template.broker_url, "/v2/subscriptions/", @subscription_template.subscription_id).to_s
+    broker_url = URI(@subscription_template.broker_url)
+    @broker_url = broker_url.merge("/v2/subscriptions/#{@subscription_template.subscription_id}").to_s
     handle_publish_unpublish('unpublish', l(:subscription_unpublished), 'unpublish.js.erb')
   end
 
@@ -123,8 +125,9 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def prepare_payload
-    @broker_url = URI.join(@subscription_template.broker_url, "/v2/subscriptions").to_s
-    @entity_url = URI.join(@subscription_template.broker_url, "/v2/entities").to_s
+    broker_url = URI(@subscription_template.broker_url)
+    @broker_url = broker_url.merge("v2/subscriptions").to_s
+    @entity_url = broker_url.merge("v2/entities").to_s
     @member = Member.find(@subscription_template.member_id)
 
     http_custom = {
