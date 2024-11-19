@@ -18,15 +18,15 @@
     <%= textilizable subscription_template.status %>
   </td>
   <td>
-    <%= link_to l(:link_to_copy), copy_project_subscription_template_path(@project, subscription_template),
-        method: :get, remote: true,class: 'copy-command-link icon icon-copy', title: l(:link_to_copy_hint) %>
+    <%= link_to sprite_icon('fiware-clipboard', l(:link_to_copy), :plugin => :redmine_gtt_fiware), copy_project_subscription_template_path(@project, subscription_template),
+        method: :get, remote: true, class: 'icon icon-copy copy-command-link', title: l(:link_to_copy_hint) %>
   </td>
   <td>
     <% if subscription_template.subscription_id.present? %>
-      <%= link_to l(:link_to_unpublish), unpublish_project_subscription_template_path(@project, subscription_template),
+      <%= link_to sprite_icon('fiware-unpublish', l(:link_to_unpublish), :plugin => :redmine_gtt_fiware), unpublish_project_subscription_template_path(@project, subscription_template),
           method: :get, remote: true, class: 'icon icon-shared' %>
     <% else %>
-      <%= link_to l(:link_to_publish), publish_project_subscription_template_path(@project, subscription_template),
+      <%= link_to sprite_icon('fiware-publish', l(:link_to_publish), :plugin => :redmine_gtt_fiware), publish_project_subscription_template_path(@project, subscription_template),
           method: :get, remote: true, class: 'icon icon-shared' %>
     <% end %>
   </td>

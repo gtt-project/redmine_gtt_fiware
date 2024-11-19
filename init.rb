@@ -1,5 +1,4 @@
-# Require the issues overrides file
-require File.expand_path('../lib/redmine_gtt_fiware/view_hooks', __FILE__)
+require_relative 'lib/redmine_gtt_fiware/view_hooks'
 
 # Register MIME Types for JSON-LD format
 Mime::Type.register 'application/ld+json', :jsonld
@@ -12,10 +11,10 @@ Redmine::Plugin.register :redmine_gtt_fiware do
   author_url 'https://github.com/georepublic'
   url 'https://github.com/gtt-project/redmine_gtt_fiware'
   description 'Adds FIWARE integration capabilities for GTT projects'
-  version '1.0.6'
+  version '1.1.0'
 
   # Specify the minimum required Redmine version
-  requires_redmine :version_or_higher => '5.0.0'
+  requires_redmine :version_or_higher => '5.1.0'
 
   # Plugin settings with default values and partial view for settings
   settings(
