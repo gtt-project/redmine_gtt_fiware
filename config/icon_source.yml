@@ -1,0 +1,6 @@
+- name: fiware-clipboard
+  svg: clipboard-copy
+- name: fiware-publish
+  svg: link-plus
+- name: fiware-unpublish
+  svg: link-minus

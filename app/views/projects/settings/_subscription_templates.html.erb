@@ -1,5 +1,5 @@
 <p>
-  <%= link_to l(:label_subscription_template_new), new_project_subscription_template_path(@project), class: 'icon icon-add' %>
+  <%= link_to sprite_icon('add', l(:label_subscription_template_new)), new_project_subscription_template_path(@project), class: 'icon icon-add' %>
 </p>
 
 <%= render partial: 'subscription_templates/list', locals: { subscription_templates: SubscriptionTemplate.where(project_id: @project.id) } %>
