@@ -1,4 +1,4 @@
-class SubscriptionTemplate < ActiveRecord::Base
+class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? ApplicationRecord : ActiveRecord::Base)
   self.table_name = "fiware_subscription_templates"
 
   after_initialize :set_default_alteration_types, if: :new_record?
