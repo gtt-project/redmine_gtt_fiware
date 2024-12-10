@@ -11,7 +11,7 @@ The Geo-Task-Tracker (GTT) FIWARE plugin adds support for interacting with [FIWA
 Redmine GTT FIWARE **requires PostgreSQL/PostGIS** and will not work with SQLite
 or MariaDB/MySQL!!!
 
-- Redmine >= 5.0.0
+- Redmine >= 6.0.0
 - [redmine_gtt](https://github.com/gtt-project/redmine_gtt/) plugin
 
 ## Installation
