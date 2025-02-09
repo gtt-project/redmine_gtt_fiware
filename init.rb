@@ -11,7 +11,7 @@ Redmine::Plugin.register :redmine_gtt_fiware do
   author_url 'https://github.com/georepublic'
   url 'https://github.com/gtt-project/redmine_gtt_fiware'
   description 'Adds FIWARE integration capabilities for GTT projects'
-  version '2.0.0'
+  version '2.0.1'
 
   # Specify the minimum required Redmine version
   requires_redmine :version_or_higher => '6.0.0'
