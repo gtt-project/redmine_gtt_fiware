@@ -92,7 +92,8 @@ class SubscriptionTemplatesController < ApplicationController
 
   def unpublish
     broker_url = URI(@subscription_template.broker_url)
-    @broker_url = broker_url.merge("/v2/subscriptions/#{@subscription_template.subscription_id}").to_s
+    version_path = broker_url.path.match(/\/v2\.\d+\//) ? broker_url.path : "/v2/"
+    @broker_url = broker_url.merge("#{version_path}subscriptions/#{@subscription_template.subscription_id}").to_s
     handle_publish_unpublish('unpublish', l(:subscription_unpublished), 'unpublish.js.erb')
   end
 
@@ -126,8 +127,9 @@ class SubscriptionTemplatesController < ApplicationController
 
   def prepare_payload
     broker_url = URI(@subscription_template.broker_url)
-    @broker_url = broker_url.merge("v2/subscriptions").to_s
-    @entity_url = broker_url.merge("v2/entities").to_s
+    version_path = broker_url.path.match(/\/v2\.\d+\//) ? broker_url.path : "/v2/"
+    @broker_url = broker_url.merge("#{version_path}subscriptions").to_s
+    @entity_url = broker_url.merge("#{version_path}entities").to_s
     @member = Member.find(@subscription_template.member_id)
 
     http_custom = {
