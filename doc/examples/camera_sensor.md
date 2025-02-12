@@ -79,7 +79,7 @@ Photo by <a href="https://unsplash.com/@sebastianpoc?utm_content=creditCopyText&
 
 ```bash
 curl -iX PATCH \
-  "${BROKER_URL}/v2/entities/urn:ngsi-ld:SpeedCameraSensor:001/attrs" \
+  "${BROKER_URL}/v2/entities/urn%3Angsi-ld%3ASpeedCameraSensor%3A001/attrs" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${BROKER_TOKEN}" \
   -H "Fiware-Service: ${FIWARE_SERVICE}" \
@@ -96,7 +96,7 @@ curl -iX PATCH \
 
 ```bash
 curl -iX DELETE \
-  "${BROKER_URL}/v2/entities/urn:ngsi-ld:SpeedCameraSensor:001" \
+  "${BROKER_URL}/v2/entities/urn%3Angsi-ld%3ASpeedCameraSensor%3A001" \
   -H "Authorization: Bearer ${BROKER_TOKEN}" \
   -H "Fiware-Service: ${FIWARE_SERVICE}" \
   -H "Fiware-ServicePath: ${FIWARE_SERVICEPATH}"

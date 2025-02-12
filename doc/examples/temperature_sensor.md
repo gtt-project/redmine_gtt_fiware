@@ -76,7 +76,7 @@ curl -iX POST "${BROKER_URL}/v2/entities" \
 
 ```bash
 curl -iX PATCH \
-  "${BROKER_URL}/v2/entities/urn:ngsi-ld:TemperatureSensor:001/attrs" \
+  "${BROKER_URL}/v2/entities/urn%3Angsi-ld%3ATemperatureSensor%3A001/attrs" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${BROKER_TOKEN}" \
   -H "Fiware-Service: ${FIWARE_SERVICE}" \
@@ -93,13 +93,13 @@ curl -iX PATCH \
 
 ```bash
 curl -iX DELETE \
-  "${BROKER_URL}/v2/entities/urn:ngsi-ld:TemperatureSensor:001" \
+  "${BROKER_URL}/v2/entities/urn%3Angsi-ld%3ATemperatureSensor%3A001" \
   -H "Authorization: Bearer ${BROKER_TOKEN}" \
   -H "Fiware-Service: ${FIWARE_SERVICE}" \
   -H "Fiware-ServicePath: ${FIWARE_SERVICEPATH}"
 
 curl -iX DELETE \
-  "${BROKER_URL}/v2/entities/urn:ngsi-ld:TemperatureSensor:002" \
+  "${BROKER_URL}/v2/entities/urn%3Angsi-ld%3ATemperatureSensor%3A002" \
   -H "Authorization: Bearer ${BROKER_TOKEN}" \
   -H "Fiware-Service: ${FIWARE_SERVICE}" \
   -H "Fiware-ServicePath: ${FIWARE_SERVICEPATH}"
