@@ -1,0 +1,127 @@
+project_module_gtt_fiware: GTT FIWARE
+permission_view_gtt_fiware_ngsi: Visa NGSI-LD Context-filer
+permission_manage_subscription_templates: Hantera prenumerationsmallar
+label_gtt_fiware: FIWARE
+label_gtt_fiware_plural: FIWARE
+label_subscription_template: Mall för prenumeration
+label_subscription_template_plural: Mallar för prenumerationer
+label_subscription_template_new: Ny mall för prenumeration
+gtt_fiware_settings_general: Allmänna inställningar
+field_ngsi_ld_format: Standard NGSI-LD-format
+option_ngsi_ld_format_normalized: Normaliserad
+option_ngsi_ld_format_not_normalized: Ej normaliserad
+gtt_fiware_settings_broker: Inställningar för FIWARE-broker
+field_connect_via_proxy: Anslut via intern proxy
+button_connect_via_proxy_text: PROXY
+field_fiware_broker_subscription_throttling: Strypning av abonnemang
+gtt_fiware_subscription_template_general: Allmänt
+field_subscription_template_standard: NGSI-standard
+field_subscription_template_name: Namn
+field_subscription_template_name_placeholder: Temperaturvarning
+field_subscription_template_broker_url: URL för mäklare
+field_subscription_template_broker_url_placeholder: https://broker.example.com/
+field_subscription_template_status: Status för prenumeration
+field_subscription_template_fiware_service: FIWARE Service
+field_subscription_template_fiware_service_placeholder: smartcity
+field_subscription_template_fiware_servicepath: FIWARE Service Path
+field_subscription_template_fiware_servicepath_placeholder: /environment
+field_subscription_template_context: NGSI-LD Sammanhang
+field_subscription_template_context_placeholder: https://smartdatamodels.org/context.jsonld
+field_subscription_template_expiration: Förfallodatum
+field_subscription_template_comment: Kommentar
+field_subscription_template_comment_placeholder: Denna kommentar används endast internt.
+gtt_fiware_subscription_template_subject: Prenumerationsinställningar
+field_subscription_template_subscription: Prenumerations-ID
+field_subscription_template_subscription_placeholder: Abonnemangets unika identifierare
+  (tillhandahålls av mäklaren)
+field_subscription_template_entities_string: Entiteter (array av)
+field_subscription_template_entities_string_placeholder: '[{"idPattern": ".*", "type":
+  "Room"}]'
+field_subscription_template_attrs: Attribut (array av)
+field_subscription_template_attrs_placeholder: '["temperature"]'
+field_subscription_template_expression_query: Fråga
+gtt_fiware_subscription_template_geoquery: Geospatial förfrågan
+field_subscription_template_expression_georel: Georel
+field_subscription_template_expression_georel_placeholder: nära;maxAvstånd:1000
+field_subscription_template_expression_geometry: Geometri
+field_subscription_template_expression_geometry_placeholder: Välj en geometri
+field_subscription_template_expression_coords: Koordinater (lat, lon)
+field_subscription_template_expression_coords_placeholder: lat1, lon1; lat2, lon2;
+  lat3, lon3; lat1, lon1
+field_subscription_template_alteration_types: Typer av ändringar
+field_subscription_template_notify_on_metadata_change: Meddela om ändring av metadata
+gtt_fiware_subscription_template_notification: Utgåva mall
+gtt_fiware_subscription_template_variable_hint: Attributavläsningar kan bäddas in
+  som <code>${variable}</code>.
+field_subscription_template_subject: Ämne
+field_subscription_template_subject_placeholder: Temperaturvarning i ${Room}
+field_subscription_template_description: Beskrivning
+field_subscription_template_expression_query_placeholder: temperatur > 30
+field_subscription_template_description_placeholder: "Sensorn i rum ${Room} registrerade
+  en temperatur på ${temperature}°C.\n* [ ] Öppna fönstret\n* [ ] Slå på luftkonditioneringen"
+field_subscription_template_attachments_string: Bifogade filer (array av)
+field_subscription_template_attachments_placeholder: '[{"filename": "image.jpg", "url":
+  "https://example.com/image.jpg"}]'
+field_subscription_template_notification_user: Skickat från användare
+field_subscription_template_threshold_create_hours: Tröskelvärde (h)
+field_subscription_template_threshold_create_hours_hint: Tröskelvärde för att skapa
+  ett nytt ärende i timmar.
+field_subscription_template_notes: Emissionsnoteringar
+field_subscription_template_notes_placeholder: Lägg upp en problemanteckning istället
+  för att skapa ett nytt problem om ett problem har skapats inom tröskelvärdet.
+field_subscription_template_geometry_string: Frågans geometri (GeoJSON)
+field_subscription_template_geometry_placeholder: '{"type": "Feature", "geometry":
+  "${location}"}'
+link_to_insert_project_geometry: Infoga projektgräns
+link_to_insert_project_geometry_hint: Detta kommer att använda projektgränsen som
+  den geospatiala frågan för prenumerationen
+project_geometry_not_defined: Projektgränsen är inte definierad
+project_geometry_not_supported_multipolygon: Projektgränsen är en multipolygon, som
+  inte stöds för geospatiala frågor
+field_subscription_auth_token: Auktoriseringstoken
+field_subscription_auth_token_placeholder: Bearer-token
+field_subscription_auth_token_hint: Auktoriseringstoken som ska inkluderas i rubrikerna
+  för begäran. Lämna tomt för ingen auktorisering. Token lagras inte i databasen.
+  När <code>PROXY-knappen</code> är aktiverad (grön) kommer begäran att proxybehandlas
+  via servern.
+link_to_copy: Urklipp
+link_to_copy_hint: Kopiera kommandot till urklipp
+command_copied: Kommando kopieras till urklipp
+link_to_publish: Publicera
+link_to_publish_hint: Publicera prenumeration till mäklare
+subscription_published: Prenumeration publicerad till mäklare
+subscription_published_error: Det uppstod ett problem med att publicera prenumerationen
+  från mäklaren
+link_to_unpublish: Avpublicera
+link_to_unpublish_hint: Avpublicera prenumeration till mäklare
+subscription_unpublished: Prenumeration opublicerad från mäklare
+subscription_unpublished_warning: Det uppstod ett problem med att avpublicera prenumerationen
+  från mäklaren
+subscription_unauthorized_error: Obehörig att utföra denna åtgärd
+general_action_error: Det uppstod ett fel vid utförandet av denna åtgärd
+gtt_fiware:
+  attachement_not_found: Bilagan hittades inte
+  category_not_found: Kategori hittades inte
+  detail_not_found: Detalj hittades inte
+  issue_not_found: Problemet hittades inte
+  journal_not_found: Journalen hittades inte
+  priority_not_found: Prioritet hittades inte
+  project_not_found: Projektet hittades inte
+  relation_not_found: Relationen hittades inte
+  status_not_found: Tracker hittades inte
+  tracker_not_found: Status hittades inte
+  user_not_found: Användare kunde inte hittas
+  version_not_found: Version hittades inte
+  issue_deletion_error: Det uppstod ett fel när jag försökte ta bort frågan.
+  error_plugin_not_enabled: GTT FIWARE-plugin är inte aktiverat för det här projektet
+model:
+  subscription_template:
+    name_uniqueness: En prenumerationsmall med det namnet finns redan.
+    attrs_must_be_array_of_strings: Attributen måste vara en array av strängar
+    must_be_valid_array_of_objects: måste vara en giltig array av objekt
+    geo_query_fields_must_be_all_or_none: Alla fält för geoförfrågan (Georel, Geometry,
+      Coordinates) måste anges eller inget av dem
+    valid_standard: '%{value} är inte en giltig standard'
+    valid_status: '%{value} är inte en giltig status'
+    valid_geometry: '%{value} är inte en giltig geometri'
+    valid_alteration_types: '%{value} är inte en giltig ändringstyp'
