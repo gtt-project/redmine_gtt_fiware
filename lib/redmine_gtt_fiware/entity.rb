@@ -53,12 +53,22 @@ module RedmineGttFiware
       new(id: entity['id'], type: entity['type'], attributes: attributes, geometry: geometry)
     end
 
+    # A typed GeoProperty is always geometry. Falling back on the attribute name
+    # alone would capture a plain `location` Property whose value is a scalar
+    # (e.g. "indoors"), so the name-based match additionally requires the value
+    # to look like GeoJSON. Combined with the caller's `||=` (first geometry
+    # wins), this keeps a real GeoProperty from being shadowed by such a value.
     def self.geo_property?(key, raw)
-      raw['type'].to_s == 'GeoProperty' || key == LOCATION_ATTRIBUTE
+      raw['type'].to_s == 'GeoProperty' || (key == LOCATION_ATTRIBUTE && geo_json_value?(raw['value']))
     end
 
     def self.geo_json?(key, raw)
-      raw['type'].to_s == 'geo:json' || (key == LOCATION_ATTRIBUTE && raw['value'].is_a?(Hash))
+      raw['type'].to_s == 'geo:json' || (key == LOCATION_ATTRIBUTE && geo_json_value?(raw['value']))
+    end
+
+    # A minimal GeoJSON geometry check: a hash with a type and coordinates.
+    def self.geo_json_value?(value)
+      value.is_a?(Hash) && value['type'].present? && value.key?('coordinates')
     end
 
     def initialize(id:, type:, attributes:, geometry: nil)

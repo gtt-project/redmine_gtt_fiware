@@ -46,6 +46,26 @@ class EntityTest < ActiveSupport::TestCase
     assert_equal({ 'type' => 'Point', 'coordinates' => [135.5, 34.7] }, e.geometry)
   end
 
+  # A `location` attribute whose value is a scalar (a plain Property, not a
+  # GeoProperty) must not be captured as geometry.
+  def test_ignores_a_scalar_location_property
+    e = Entity.from(ngsi_ld_entity('location' => { 'type' => 'Property', 'value' => 'indoors' }), 'NGSI-LD')
+    assert_nil e.geometry
+  end
+
+  # A real GeoProperty is still captured even when a non-geo attribute sorts
+  # before it (the scalar must not shadow the GeoProperty via `||=`).
+  def test_real_geoproperty_wins_over_a_scalar_location
+    entity = {
+      'id' => 'urn:ngsi-ld:X:1',
+      'type' => 'X',
+      'location' => { 'type' => 'Property', 'value' => 'indoors' },
+      'footprint' => { 'type' => 'GeoProperty', 'value' => { 'type' => 'Point', 'coordinates' => [1, 2] } }
+    }
+    e = Entity.from(entity, 'NGSI-LD')
+    assert_equal({ 'type' => 'Point', 'coordinates' => [1, 2] }, e.geometry)
+  end
+
   def test_ignores_context_and_unknown_paths
     e = Entity.from(ngsi_ld_entity, 'NGSI-LD')
     assert_nil e.resolve('@context')

@@ -133,6 +133,19 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
     assert_response :unprocessable_entity
   end
 
+  # A malformed body is a 400 (bad request), distinct from a well-formed
+  # notification that simply carries no entities (422). Sent without a JSON
+  # content type so the controller's own parse (not Rails' params middleware,
+  # which would 400 in the middleware layer) handles it.
+  def test_create_rejects_a_malformed_json_body
+    @request.headers[SECRET_HEADER] = @template.webhook_secret
+    @request.headers['CONTENT_TYPE'] = 'text/plain'
+    assert_no_difference 'Issue.count' do
+      post :create, params: { subscription_template_id: @template.id }, body: '{ not json'
+    end
+    assert_response :bad_request
+  end
+
   def test_create_rejects_when_the_member_cannot_add_issues
     Role.all.each { |role| role.remove_permission!(:add_issues) }
     assert_no_difference 'Issue.count' do

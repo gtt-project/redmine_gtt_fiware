@@ -23,6 +23,10 @@ class SubscriptionIssuesController < ApplicationController
   # validation (a permanent error the broker should not retry).
   def create
     entities = notification_entities
+    if entities == :invalid_json
+      render json: { error: 'Malformed JSON' }, status: :bad_request
+      return
+    end
     if entities.empty?
       render json: { error: 'No entities in notification' }, status: :unprocessable_entity
       return
@@ -53,7 +57,10 @@ class SubscriptionIssuesController < ApplicationController
   # process. Reads the raw JSON body directly (not filtered params) so
   # arbitrary entity attribute names survive untouched. Accepts the NGSIv2
   # notification shape `{ "data": [ {entity}, ... ] }`, a bare entity array, or
-  # a single entity object; anything else yields an empty list.
+  # a single entity object; a well-formed body with none of these yields an
+  # empty list. Returns the :invalid_json sentinel for a malformed body so
+  # #create can answer 400 (bad request) rather than 422 (well-formed but
+  # unprocessable).
   def notification_entities
     body = JSON.parse(request.raw_post)
 
@@ -70,7 +77,7 @@ class SubscriptionIssuesController < ApplicationController
 
     entities.select { |entity| entity.is_a?(Hash) }
   rescue JSON::ParserError
-    []
+    :invalid_json
   end
 
   # Authenticates the notification on the template's webhook secret, then acts
