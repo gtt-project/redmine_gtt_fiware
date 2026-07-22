@@ -100,6 +100,71 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
     assert_equal 'Latest reading: 42', issue.journals.order(:id).last.notes
   end
 
+  # #47: value updates must be applied even when the template has no notes
+  # configured. A geometry change within the threshold window updates the
+  # issue's geom and records a journal detail, notes or not.
+  def test_update_applies_geometry_change_without_notes_configured
+    skip 'redmine_gtt not installed' unless Redmine::Plugin.installed?(:redmine_gtt)
+    Project.find(1).enabled_module_names |= ['gtt']
+    @template.update_columns(notes: nil, geometry: '${location}')
+
+    location = { 'type' => 'geo:json', 'value' => { 'type' => 'Point', 'coordinates' => [135.0, 35.0] } }
+    post_notification(entities: [entity('location' => location)])
+    assert_response :success
+    issue = Issue.order(id: :desc).first
+    assert_not_nil issue.geom
+
+    moved = { 'type' => 'geo:json', 'value' => { 'type' => 'Point', 'coordinates' => [136.0, 36.0] } }
+    original_geom = issue.geom
+    assert_no_difference 'Issue.count' do
+      post_notification(entities: [entity('location' => moved)])
+    end
+    assert_response :success
+    issue.reload
+    assert_not_equal original_geom, issue.geom, 'the geometry must actually change'
+    journal = issue.journals.order(:id).last
+    assert_not_nil journal
+    assert journal.notes.blank?, 'no notes template configured, so the journal has no notes'
+    assert journal.details.any? { |d| d.prop_key == 'geom' },
+           'geometry change must be recorded as a journal detail'
+  end
+
+  # #47: new attachments (e.g. new photos) are added on update even when the
+  # template has no notes configured; already-attached filenames are skipped.
+  def test_update_adds_new_attachments_without_notes_configured
+    set_tmp_attachments_directory
+    tempfile = Tempfile.new(['fetched', '.png'])
+    tempfile.binmode
+    tempfile.write('PNGDATA')
+    tempfile.rewind
+    result = RedmineGttFiware::AttachmentFetcher::Result.new(
+      tempfile: tempfile, content_type: 'image/png'
+    )
+    RedmineGttFiware::AttachmentFetcher.stubs(:for_template).returns(FakeFetcher.new(result))
+    @template.update_columns(
+      notes: nil,
+      attachments: [{ 'url' => 'https://broker.example.com/photo.png', 'filename' => 'reading-${attrs.temperature.value}.png' }]
+    )
+
+    post_notification
+    assert_response :success
+    issue = Issue.order(id: :desc).first
+    assert_equal ['reading-30.png'], issue.attachments.map(&:filename)
+
+    # Same filename again: skipped. New reading -> new filename: attached.
+    assert_no_difference 'Issue.count' do
+      post_notification(entities: [entity, entity('temperature' => { 'type' => 'Number', 'value' => 31 })])
+    end
+    assert_response :success
+    issue.reload
+    assert_equal ['reading-30.png', 'reading-31.png'], issue.attachments.map(&:filename).sort
+    # No notes template configured: the update journals must carry no notes.
+    assert issue.journals.all? { |j| j.notes.blank? },
+           'no notes template configured, so update journals have no notes'
+  ensure
+    tempfile&.close!
+  end
+
   # Outside the threshold_create window a new notification creates a new issue.
   def test_create_makes_a_new_issue_outside_the_threshold_window
     post_notification

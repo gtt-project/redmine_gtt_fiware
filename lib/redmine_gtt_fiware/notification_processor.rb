@@ -113,10 +113,20 @@ module RedmineGttFiware
       geometry = TemplateRenderer.render_geometry(@template.geometry, entity)
       return nil if geometry.blank?
 
-      RedmineGtt::Conversions.to_geom(geometry.to_json)
+      RedmineGtt::Conversions.to_geom(as_feature(geometry).to_json)
     rescue StandardError => e
       @logger.warn "[FIWARE] Failed to convert geometry data: #{e.message}"
       nil
+    end
+
+    # RedmineGtt::Conversions.to_geom expects a GeoJSON Feature (it calls
+    # .geometry on the decoded result), so a template resolving to a bare
+    # geometry — the common `${location}` case — is wrapped in one.
+    def as_feature(geometry)
+      return geometry unless geometry.is_a?(Hash)
+      return geometry if geometry['type'].to_s == 'Feature'
+
+      { 'type' => 'Feature', 'geometry' => geometry, 'properties' => nil }
     end
 
     def gtt_enabled?
