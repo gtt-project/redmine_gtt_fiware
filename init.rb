@@ -7,8 +7,8 @@ Mime::Type.register 'application/ld+json', :jsonld
 Redmine::Plugin.register :redmine_gtt_fiware do
   # Plugin metadata
   name 'Redmine GTT FIWARE plugin'
-  author 'Georepublic'
-  author_url 'https://github.com/georepublic'
+  author 'Daniel Kastl'
+  author_url 'https://github.com/dkastl'
   url 'https://github.com/gtt-project/redmine_gtt_fiware'
   description 'Adds FIWARE integration capabilities for GTT projects'
   version '2.0.1'
