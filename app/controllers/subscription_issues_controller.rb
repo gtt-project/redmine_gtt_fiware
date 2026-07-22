@@ -1,4 +1,4 @@
-require 'net/http'
+require 'uri'
 require 'rack'
 
 # This controller handles the creation of issues from subscription templates.
@@ -100,33 +100,32 @@ class SubscriptionIssuesController < ApplicationController
   end
 
   # Handles attachments by downloading them and attaching them to the issue.
+  # Downloads go through AttachmentFetcher, which enforces the SSRF
+  # protections: https only, host allowlist, public addresses only, no
+  # redirects, timeouts, content-type allowlist and a size limit. The
+  # stored content type is the one the server responded with; a type
+  # claimed in the notification payload is not trusted. Rejected
+  # attachments are skipped and logged so one bad attachment does not
+  # fail the whole notification.
   def handle_attachments
+    fetcher = RedmineGttFiware::AttachmentFetcher.for_template(@subscription_template)
     existing_filenames = @issue.attachments.map { |a| a.filename }
 
     params[:attachments].each do |attachment|
-      uri = URI.parse(attachment['url'])
-      filename = attachment['filename'] || File.basename(uri.path)
-
-      next if existing_filenames.include?(filename)
-
       begin
-        response = Net::HTTP.get_response(uri)
+        filename = attachment['filename'].presence ||
+                   File.basename(URI.parse(attachment['url'].to_s).path.to_s)
 
-        if response.is_a?(Net::HTTPSuccess)
-          file = Tempfile.new('attachment')
-          file.binmode
-          file.write(response.body)
-          file.rewind
+        next if filename.empty? || existing_filenames.include?(filename)
 
-          description = attachment['description'] || ''
-          content_type = attachment['content_type'] || response.content_type
-
-          uploaded_file = Rack::Multipart::UploadedFile.new(file.path, content_type, true, filename: filename)
-
-          @issue.attachments.build(file: uploaded_file, description: description, author: User.current)
-        else
-          logger.warn "Failed to download file: #{response.message}"
-        end
+        result = fetcher.fetch(attachment['url'])
+        description = attachment['description'] || ''
+        uploaded_file = Rack::Multipart::UploadedFile.new(
+          result.tempfile.path, result.content_type, true, filename: filename
+        )
+        @issue.attachments.build(file: uploaded_file, description: description, author: User.current)
+      rescue RedmineGttFiware::AttachmentFetcher::RejectedError => e
+        logger.warn "Rejected attachment download from #{attachment['url'].inspect}: #{e.message}"
       rescue => e
         logger.warn "Failed to attach file: #{e.message}"
       end

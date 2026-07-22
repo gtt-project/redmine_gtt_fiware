@@ -125,6 +125,21 @@ be created or updated based on the subscription notifications.
   ]
   ```
 
+  For security reasons, attachment downloads are restricted:
+
+  - Only `https` URLs are downloaded.
+  - The URL host must be the subscription template's broker host, or one
+    of the additional hosts configured in the plugin settings
+    (*Administration → Plugins → Redmine GTT FIWARE plugin → Configure*).
+  - Hosts that resolve to private, loopback, or otherwise non-public
+    addresses are rejected, and redirects are not followed.
+  - The response content type must be on the configured allowlist
+    (images, PDF, plain text, CSV, and JSON by default), and downloads
+    are limited by Redmine's maximum attachment size.
+
+  Rejected attachments are skipped and logged; the issue itself is still
+  created or updated.
+
 - **Issue status**: Set the status of the issue (e.g., *New*).
 - **Priority**: Define the priority of the issue (e.g., *Normal*).
 - **Issue category**: Select the issue category. Categories can be created in
