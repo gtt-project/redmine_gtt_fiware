@@ -6,11 +6,14 @@ module RedmineGttFiware
     class NgsiV2 < SubscriptionRequest
       private
 
-      # Preserve an explicit versioned path in the broker URL (e.g. /v2.1/),
-      # otherwise default to /v2/.
-      def version_path
-        path = broker_uri.path
-        path.match(%r{/v2\.\d+/}) ? path : '/v2/'
+      # An explicit versioned path in the broker URL (e.g. /orion/v2.1) is
+      # preserved by SubscriptionRequest#version_path; otherwise /v2/.
+      def default_version_path
+        '/v2/'
+      end
+
+      def versioned_path_pattern
+        %r{/v2\.\d+(/|\z)}
       end
 
       def payload

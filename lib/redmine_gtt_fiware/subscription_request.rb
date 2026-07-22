@@ -48,8 +48,22 @@ module RedmineGttFiware
 
     private
 
-    # Subclasses implement these.
+    # Preserve an explicit versioned API path in the broker URL, with or
+    # without a trailing slash (normalized to end with one), otherwise fall
+    # back to the standard's default prefix.
     def version_path
+      path = broker_uri.path
+      return default_version_path unless path.match?(versioned_path_pattern)
+
+      path.end_with?('/') ? path : "#{path}/"
+    end
+
+    # Subclasses implement these.
+    def default_version_path
+      raise NotImplementedError
+    end
+
+    def versioned_path_pattern
       raise NotImplementedError
     end
 

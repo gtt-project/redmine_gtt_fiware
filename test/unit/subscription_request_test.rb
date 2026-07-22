@@ -17,6 +17,9 @@ class SubscriptionRequestTest < ActiveSupport::TestCase
         context: 'https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld'
       }.merge(overrides)
     )
+    # Deterministic id without a DB write so callback URLs have a realistic
+    # shape (`.../subscription_template/123/notification`).
+    t.id = 123
     t.entities = [{ 'idPattern' => '.*', 'type' => 'TemperatureSensor' }]
     t.webhook_secret = 'secret-abc'
     t.alteration_types = overrides[:alteration_types] if overrides.key?(:alteration_types)
@@ -58,6 +61,23 @@ class SubscriptionRequestTest < ActiveSupport::TestCase
     assert_equal 'https://broker.example.com/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1', req.subscription_url
   end
 
+  # An explicit versioned path in the broker URL is preserved, with or without
+  # a trailing slash (normalized to end with one).
+  def test_ngsi_v2_preserves_a_versioned_broker_path_without_trailing_slash
+    req = build('NGSIv2', broker_url: 'https://broker.example.com/orion/v2.1')
+    assert_equal 'https://broker.example.com/orion/v2.1/subscriptions', req.subscriptions_url
+  end
+
+  def test_ngsi_v2_preserves_a_versioned_broker_path_with_trailing_slash
+    req = build('NGSIv2', broker_url: 'https://broker.example.com/orion/v2.1/')
+    assert_equal 'https://broker.example.com/orion/v2.1/subscriptions', req.subscriptions_url
+  end
+
+  def test_ngsi_ld_preserves_a_versioned_broker_path_without_trailing_slash
+    req = build('NGSI-LD', broker_url: 'https://broker.example.com/broker/ngsi-ld/v1')
+    assert_equal 'https://broker.example.com/broker/ngsi-ld/v1/subscriptions', req.subscriptions_url
+  end
+
   # --- NGSIv2 payload -------------------------------------------------------
 
   def test_ngsi_v2_payload_shape
@@ -70,7 +90,7 @@ class SubscriptionRequestTest < ActiveSupport::TestCase
 
   def test_ngsi_v2_notification_carries_only_callback_and_headers_no_templating
     http_custom = payload('NGSIv2').dig('notification', 'httpCustom')
-    assert_equal 'https://redmine.example.com/fiware/subscription_template//notification', http_custom['url']
+    assert_equal 'https://redmine.example.com/fiware/subscription_template/123/notification', http_custom['url']
     assert_equal 'POST', http_custom['method']
     assert_equal 'secret-abc', http_custom.dig('headers', 'X-Gtt-Webhook-Secret')
     # The broker does no field templating anymore (#64): no json block.
@@ -103,7 +123,7 @@ class SubscriptionRequestTest < ActiveSupport::TestCase
 
   def test_ngsi_ld_endpoint_carries_receiver_info_headers
     endpoint = payload('NGSI-LD').dig('notification', 'endpoint')
-    assert_equal 'https://redmine.example.com/fiware/subscription_template//notification', endpoint['uri']
+    assert_equal 'https://redmine.example.com/fiware/subscription_template/123/notification', endpoint['uri']
     secret = endpoint['receiverInfo'].find { |h| h['key'] == 'X-Gtt-Webhook-Secret' }
     assert_equal 'secret-abc', secret['value']
     assert endpoint['receiverInfo'].any? { |h| h['key'] == 'X-Redmine-GTT-Subscription-Template-URL' }

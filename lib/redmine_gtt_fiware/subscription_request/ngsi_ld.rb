@@ -12,11 +12,14 @@ module RedmineGttFiware
     class NgsiLd < SubscriptionRequest
       private
 
-      # Preserve an explicit /ngsi-ld/v1/-style path in the broker URL,
-      # otherwise default to the standard prefix.
-      def version_path
-        path = broker_uri.path
-        path.match(%r{/ngsi-ld/v\d+/}) ? path : '/ngsi-ld/v1/'
+      # An explicit /ngsi-ld/v1-style path in the broker URL is preserved by
+      # SubscriptionRequest#version_path; otherwise the standard prefix.
+      def default_version_path
+        '/ngsi-ld/v1/'
+      end
+
+      def versioned_path_pattern
+        %r{/ngsi-ld/v\d+(/|\z)}
       end
 
       def payload
