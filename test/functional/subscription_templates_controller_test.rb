@@ -262,6 +262,82 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     assert_equal I18n.t(:subscription_unauthorized_error), flash[:error]
   end
 
+  # --- live preview (#68) ----------------------------------------------------
+
+  def preview_params(overrides = {})
+    {
+      project_id: @project.id,
+      broker_connection_id: @broker_connection.id,
+      entity_type: 'TemperatureSensor',
+      subject: 'Sensor ${id}',
+      description: 'Temperature is ${attrs.temperature.value}',
+      notes: ''
+    }.merge(overrides)
+  end
+
+  def stub_entities_response(payload)
+    response = Net::HTTPOK.new('1.1', '200', 'OK')
+    response.stubs(:body).returns(payload.to_json)
+    Net::HTTP.any_instance.stubs(:request).returns(response)
+  end
+
+  # The preview renders through the same pipeline notifications use, so it
+  # shows exactly what a notification would produce.
+  def test_preview_renders_templates_against_a_sample_entity
+    stub_entities_response([
+      { 'id' => 'urn:ngsi-ld:TemperatureSensor:001', 'type' => 'TemperatureSensor',
+        'temperature' => { 'type' => 'Number', 'value' => 30 },
+        'location' => { 'type' => 'geo:json', 'value' => { 'type' => 'Point', 'coordinates' => [135, 35] } } }
+    ])
+    post :preview, params: preview_params
+    assert_response :success
+    json = JSON.parse(response.body)
+    assert_equal 'Sensor urn:ngsi-ld:TemperatureSensor:001', json['subject']
+    assert_equal 'Temperature is 30', json['description']
+    assert_nil json['notes']
+    assert_equal 'urn:ngsi-ld:TemperatureSensor:001', json['entity_id']
+    assert json['has_geometry']
+  end
+
+  def test_preview_reports_when_no_entity_matches
+    stub_entities_response([])
+    post :preview, params: preview_params
+    assert_response :unprocessable_entity
+    assert_includes JSON.parse(response.body)['error'], 'TemperatureSensor'
+  end
+
+  def test_preview_reports_broker_errors
+    Net::HTTP.any_instance.stubs(:request).returns(Net::HTTPUnauthorized.new('1.1', '401', 'Unauthorized'))
+    post :preview, params: preview_params
+    assert_response :unprocessable_entity
+    assert_includes JSON.parse(response.body)['error'], '401'
+  end
+
+  def test_preview_requires_a_connection_and_an_entity_type
+    post :preview, params: preview_params(broker_connection_id: 987_654)
+    assert_response :unprocessable_entity
+
+    post :preview, params: preview_params(entity_type: '')
+    assert_response :unprocessable_entity
+  end
+
+  def test_preview_uses_the_stored_token
+    stored_connection = BrokerConnection.create!(
+      name: 'Preview broker', standard: 'NGSIv2', url: 'https://broker.example.com',
+      auth_mode: 'stored', auth_token: 'preview-secret'
+    )
+    captured_request = nil
+    broker_response = Net::HTTPOK.new('1.1', '200', 'OK')
+    broker_response.stubs(:body).returns([{ 'id' => 'x', 'type' => 'T' }].to_json)
+    Net::HTTP.any_instance.stubs(:request).with { |req| captured_request = req }.returns(broker_response)
+
+    post :preview, params: preview_params(broker_connection_id: stored_connection.id)
+    assert_response :success
+    assert_equal 'Bearer preview-secret', captured_request['Authorization']
+    # The controller response (not the stubbed broker body) must not leak the token.
+    assert_not_includes @response.body, 'preview-secret'
+  end
+
   # --- sync (#13) -----------------------------------------------------------
 
   def stub_broker_get(response)

@@ -134,7 +134,73 @@ class SubscriptionTemplatesController < ApplicationController
     end
   end
 
+  # Live preview (#68): fetches one entity of the given type from the broker
+  # connection and renders the subject/description/notes templates against it
+  # through the same pipeline notifications use (Entity + TemplateRenderer),
+  # so what the preview shows is exactly what a notification would produce.
+  def preview
+    connection = BrokerConnection.find_by(id: params[:broker_connection_id])
+    if connection.nil?
+      render json: { error: l(:preview_no_connection) }, status: :unprocessable_entity
+      return
+    end
+
+    raw_entity = fetch_sample_entity(connection, params[:entity_type].to_s.strip)
+    if raw_entity.nil?
+      render json: { error: @preview_error }, status: :unprocessable_entity
+      return
+    end
+
+    entity = RedmineGttFiware::Entity.from(raw_entity, connection.standard)
+    render json: {
+      entity_id: entity.id,
+      subject: RedmineGttFiware::TemplateRenderer.render(params[:subject].to_s, entity),
+      description: RedmineGttFiware::TemplateRenderer.render(params[:description].to_s, entity),
+      notes: params[:notes].present? ? RedmineGttFiware::TemplateRenderer.render(params[:notes], entity) : nil,
+      has_geometry: entity.geometry.present?
+    }
+  end
+
   private
+
+  # GET one entity of the type from the broker's entities endpoint. Uses the
+  # connection's stored token when it has one; an open broker works without.
+  # Returns nil (with @preview_error set) on any failure.
+  def fetch_sample_entity(connection, entity_type)
+    if entity_type.blank?
+      @preview_error = l(:preview_no_entity_type)
+      return nil
+    end
+
+    template = SubscriptionTemplate.new(broker_connection: connection)
+    request_builder = RedmineGttFiware::SubscriptionRequest.build(template, base_url: request.base_url)
+    uri = URI(request_builder.entities_url)
+    uri.query = URI.encode_www_form(type: entity_type, limit: 1)
+
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = (uri.scheme == 'https')
+    headers = { 'Accept' => 'application/json' }
+    headers['Authorization'] = "Bearer #{connection.auth_token}" if connection.stored_auth? && connection.auth_token.present?
+    headers.merge!(request_builder.tenant_headers)
+    response = http.request(Net::HTTP::Get.new(uri.request_uri, headers))
+
+    unless response.is_a?(Net::HTTPSuccess)
+      @preview_error = l(:preview_broker_error, code: response.code)
+      return nil
+    end
+
+    entities = JSON.parse(response.body)
+    entity = entities.is_a?(Array) ? entities.first : entities
+    @preview_error = l(:preview_no_entity, type: entity_type) if entity.nil?
+    entity
+  rescue JSON::ParserError
+    @preview_error = l(:preview_broker_error, code: 'JSON')
+    nil
+  rescue StandardError => e
+    Rails.logger.error "FIWARE preview fetch failed: #{e.message}"
+    @preview_error = l(:preview_broker_error, code: e.class.name)
+    nil
+  end
 
   # js_template is the template basename (e.g. 'publish'); Rails resolves it
   # to <name>.js.erb for the js format. Passing the full 'publish.js.erb'

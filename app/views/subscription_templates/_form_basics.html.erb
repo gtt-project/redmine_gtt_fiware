@@ -61,4 +61,17 @@
 
   <p><%= f.text_field :subject, required: true, size: 75, placeholder: l(:field_subscription_template_subject_placeholder) %>
     <em class="info"><%= t(:gtt_fiware_subscription_template_variable_hint).html_safe %></em></p>
+
+  <%# Live preview (#68): renders the templates against a sample entity
+      fetched from the selected broker connection. %>
+  <p>
+    <%= content_tag :label, '' %>
+    <a href="#" id="gtt-fiware-preview-button"
+       data-url="<%= preview_project_subscription_templates_path(@project) %>"
+       data-loading="<%= l(:preview_loading) %>"
+       data-entity-label="<%= l(:preview_entity_label) %>"
+       data-geometry-label="<%= l(:preview_geometry_label) %>"
+       data-error="<%= l(:preview_request_error) %>"><%= l(:label_template_preview) %></a>
+  </p>
+  <div id="gtt-fiware-preview-result" class="box" style="display: none; white-space: pre-wrap;"></div>
 </div>
