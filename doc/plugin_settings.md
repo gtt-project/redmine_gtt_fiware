@@ -7,15 +7,6 @@ notifications.
 
 ![Plugin Settings Screenshot](plugin_settings.png)
 
-## General Settings
-
-### Default NGSI-LD Format
-
-- **Description**: Specifies the format of the NGSI-LD data.
-- **Options**:
-  - **Not normalized**: The data is not converted to a normalized format.
-  - **Normalized**: The data is converted to a normalized format.
-
 ## FIWARE Broker Settings
 
 ### Subscription Throttling

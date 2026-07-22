@@ -59,7 +59,6 @@ de:
   field_subscription_template_fiware_service_placeholder: 'smartcity'
   field_subscription_template_attachments_placeholder: '[{"filename": "image.jpg",
     "url": "https://example.com/image.jpg"}]'
-  field_ngsi_ld_format: 'Standard NGSI-LD-Format'
   field_subscription_template_threshold_create_hours_hint: 'Schwellenwert für die
     Erstellung eines neuen Tickets in Stunden.'
   field_fiware_broker_subscription_throttling: 'Drosslung von Subscriptions'
@@ -94,7 +93,6 @@ de:
   field_subscription_template_entities_string: 'Entities (Array)'
   field_subscription_template_notify_on_metadata_change: 'Benachrichtigung bei Änderung
     der Metadaten'
-  option_ngsi_ld_format_not_normalized: 'Nicht normalisiert'
   field_subscription_template_description_placeholder: "Der Sensor in Raum ${Room}
     hat eine Temperatur von ${temperature}°C festgestellt. \n* [ ] Fenster öffnen
     \n* [ ] Schalten Sie die Klimaanlage ein"
@@ -113,17 +111,14 @@ de:
   field_subscription_template_context: 'NGSI-LD Context'
   field_subscription_template_attrs: 'Attributes (Array)'
   field_subscription_template_notification_user: 'Gesendet vom Nutzer'
-  option_ngsi_ld_format_normalized: 'Normalisiert'
   label_subscription_template_plural: 'Vorlagen für Subscriptions'
   field_subscription_template_geometry_string: 'Ticket-Geometrie (GeoJSON)'
   field_subscription_template_fiware_service: 'FIWARE Service'
   link_to_unpublish_hint: 'Subscription vom Broker aufheben'
   field_subscription_template_subject_placeholder: 'Temperaturalarm in ${Room}'
   gtt_fiware_subscription_template_general: 'Allgemein'
-  permission_view_gtt_fiware_ngsi: 'NGSI-LD-Kontextdateien ansehen'
   field_subscription_template_entities_string_placeholder: '[{"idPattern": ".*", "type":
     "Room"}]'
-  gtt_fiware_settings_general: 'Allgemeine Einstellungen'
   field_subscription_template_expression_georel_placeholder: 'near;maxDistance:1000'
   label_gtt_fiware_plural: 'FIWARE'
   field_subscription_template_subscription: 'Subscription ID'
