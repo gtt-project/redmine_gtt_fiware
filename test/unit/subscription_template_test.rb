@@ -36,6 +36,11 @@ class SubscriptionTemplateTest < ActiveSupport::TestCase
     assert_equal true, template.notify_on_metadata_change
   end
 
+  def test_explicit_false_notify_on_metadata_change_is_respected
+    template = SubscriptionTemplate.new(valid_attributes(notify_on_metadata_change: false))
+    assert_equal false, template.notify_on_metadata_change
+  end
+
   def test_name_is_required
     template = SubscriptionTemplate.new(valid_attributes(name: nil))
     assert_not template.valid?
