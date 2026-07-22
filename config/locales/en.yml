@@ -157,6 +157,7 @@ en:
   preview_no_entity_type: "Enter an entity type first"
   preview_no_entity: "No entity of type %{type} found on the broker"
   preview_broker_error: "Could not fetch a sample entity from the broker (%{code})"
+  preview_request_error: "The preview request failed. Try again."
   text_subscription_template_default_subject: "${type} ${id}"
   text_subscription_template_default_description: "Entity ${id} of type ${type} changed."
   link_to_sync_hint: "Check the subscription on the broker and update the local status"

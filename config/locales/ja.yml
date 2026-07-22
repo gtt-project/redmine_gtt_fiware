@@ -154,6 +154,7 @@ ja:
   preview_no_entity_type: "先にエンティティタイプを入力してください"
   preview_no_entity: "タイプ%{type}のエンティティがブローカーに見つかりません"
   preview_broker_error: "ブローカーからサンプルエンティティを取得できませんでした（%{code}）"
+  preview_request_error: "プレビューのリクエストに失敗しました。もう一度お試しください。"
   text_subscription_template_default_subject: "${type} ${id}"
   text_subscription_template_default_description: "タイプ${type}のエンティティ${id}が変化しました。"
   link_to_sync_hint: "ブローカー上のサブスクリプションを確認し、ローカルの状態を更新します"

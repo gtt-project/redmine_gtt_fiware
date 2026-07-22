@@ -327,14 +327,15 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
       auth_mode: 'stored', auth_token: 'preview-secret'
     )
     captured_request = nil
-    response = Net::HTTPOK.new('1.1', '200', 'OK')
-    response.stubs(:body).returns([{ 'id' => 'x', 'type' => 'T' }].to_json)
-    Net::HTTP.any_instance.stubs(:request).with { |req| captured_request = req }.returns(response)
+    broker_response = Net::HTTPOK.new('1.1', '200', 'OK')
+    broker_response.stubs(:body).returns([{ 'id' => 'x', 'type' => 'T' }].to_json)
+    Net::HTTP.any_instance.stubs(:request).with { |req| captured_request = req }.returns(broker_response)
 
     post :preview, params: preview_params(broker_connection_id: stored_connection.id)
     assert_response :success
     assert_equal 'Bearer preview-secret', captured_request['Authorization']
-    assert_not_includes response.body, 'preview-secret'
+    # The controller response (not the stubbed broker body) must not leak the token.
+    assert_not_includes @response.body, 'preview-secret'
   end
 
   # --- sync (#13) -----------------------------------------------------------

@@ -238,7 +238,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return response.json().then(function(json) { return { ok: response.ok, json: json }; });
       }).then(function(result) {
         if (!result.ok) {
-          out.textContent = result.json.error || 'Error';
+          out.textContent = result.json.error || previewButton.dataset.error;
           return;
         }
         out.innerHTML = '';
@@ -254,7 +254,7 @@ document.addEventListener('DOMContentLoaded', function() {
           (result.json.has_geometry ? ', ' + previewButton.dataset.geometryLabel : '');
         out.appendChild(em);
       }).catch(function() {
-        out.textContent = 'Error';
+        out.textContent = previewButton.dataset.error;
       });
     });
   }
