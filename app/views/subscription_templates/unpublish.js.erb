@@ -21,30 +21,42 @@ var deleteRequestOptions = {
   redirect: 'follow'
 };
 
+var subscriptionTemplateList = document.getElementById('subscriptionTemplateList');
+
+// Clears the stored subscription id on the Redmine side and refreshes the list.
+function clearSubscriptionId() {
+  return fetch('<%= update_subscription_id_project_subscription_template_path(@project, @subscription_template) %>', {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': '<%= form_authenticity_token %>'
+    },
+    body: JSON.stringify({ subscription_id: "" })
+  })
+    .then(response => response.text())
+    .then(result => {
+      subscriptionTemplateList.innerHTML = result;
+    });
+}
+
 // Send the DELETE request to the Orion broker
 fetch('<%= raw j(@broker_url) %>', deleteRequestOptions)
   .then(response => {
-    if (!response.ok) {
-      console.warn('Warning: Network response was not ok');
-      showNotification("<%= raw j(l(:subscription_unpublished_warning)) %>");
-    } else {
+    // Only clear the local subscription id when the broker actually removed the
+    // subscription (2xx) or it is already gone (404). Otherwise keep it: the
+    // subscription is still active on the broker, so the template must keep
+    // showing as published and the user must be told to retry (e.g. after
+    // fixing the authorization token). See #35.
+    if (response.ok || response.status === 404) {
       showNotification("<%= raw j(l(:subscription_unpublished)) %>");
+      return clearSubscriptionId();
     }
 
-    // Send the PATCH request to update the subscription_id
-    return fetch('<%= update_subscription_id_project_subscription_template_path(@project, @subscription_template) %>', {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': '<%= form_authenticity_token %>'
-      },
-      body: JSON.stringify({ subscription_id: "" }) // Clear the subscription_id field
-    });
+    console.warn('Broker did not remove the subscription (HTTP ' + response.status + ')');
+    showNotification("<%= raw j(l(:subscription_unpublished_warning)) %>");
   })
-  .then(response => response.text())
-  .then(result => {
-    // Update the subscription template list
-    var subscriptionTemplateList = document.getElementById('subscriptionTemplateList');
-    subscriptionTemplateList.innerHTML = result;
-  })
-  .catch(error => console.log('error', error));
+  .catch(error => {
+    // The broker could not be reached; leave the subscription id in place.
+    console.log('error', error);
+    showNotification("<%= raw j(l(:subscription_unpublished_warning)) %>");
+  });

@@ -106,8 +106,8 @@ ja:
   link_to_unpublish: "Unpublish"
   link_to_unpublish_hint: "Unpublish subscription to broker"
   subscription_unpublished: "Subscription unpublished from broker"
-  subscription_unpublished_warning: "There was a problem unpublishing the subscription
-    from the broker"
+  subscription_unpublished_warning: "ブローカーからサブスクリプションを削除できませんでした。
+    サブスクリプションはまだ有効です。認証トークンを確認して再試行してください。"
 
   subscription_unauthorized_error: "Unauthorized to perform this action"
 

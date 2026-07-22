@@ -45,8 +45,9 @@ de:
   field_subscription_template_attrs_placeholder: '["temperature"]'
   project_geometry_not_supported_multipolygon: 'Die Projektgrenze ist ein Multipolygon,
     das für räumliche Suchanfragen nicht unterstützt wird'
-  subscription_unpublished_warning: 'Es gab ein Problem beim Aufheben der Subscription
-    im Broker'
+  subscription_unpublished_warning: 'Die Subscription konnte nicht vom Broker entfernt
+    werden und ist weiterhin aktiv. Prüfen Sie den Autorisierungstoken und versuchen
+    Sie es erneut.'
   link_to_insert_project_geometry_hint: 'Die Projektgrenze wird dabei als räumliche
     Suchmaske für die Subscription verwendet'
   gtt_fiware_subscription_template_variable_hint: 'Attributwerte können als <code>${Variable}</code>
