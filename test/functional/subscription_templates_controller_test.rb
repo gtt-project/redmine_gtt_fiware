@@ -40,6 +40,23 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     assert_includes response.body, ESCAPED_INJECTION
   end
 
+  # The broker payload must carry the per-template webhook secret and must never
+  # embed a Redmine API key.
+  def test_publish_embeds_the_webhook_secret_and_no_api_key
+    post :publish, params: { project_id: @project.id, id: @template.id }, xhr: true, format: :js
+    assert_response :success
+    assert_includes response.body, 'X-Gtt-Webhook-Secret'
+    assert_includes response.body, @template.reload.webhook_secret
+    assert_not_includes response.body, 'X-Redmine-API-Key'
+  end
+
+  def test_publish_rotates_the_webhook_secret
+    original = @template.webhook_secret
+    post :publish, params: { project_id: @project.id, id: @template.id }, xhr: true, format: :js
+    assert_response :success
+    assert_not_equal original, @template.reload.webhook_secret
+  end
+
   def test_publish_escapes_the_fiware_service_header
     post :publish, params: { project_id: @project.id, id: @template.id }, xhr: true, format: :js
     assert_response :success

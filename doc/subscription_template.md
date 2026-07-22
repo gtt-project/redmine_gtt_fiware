@@ -146,9 +146,11 @@ be created or updated based on the subscription notifications.
   the project settings.
 - **Version**: Specify the version. Versions can be created in the project settings.
 - **Sent from user**: Select the user from whom the issue is sent. The user must
-  have the necessary permissions to create issues in this project. However, **for
-  security reasons the user should not have administrator rights**, because its
-  API key is stored in the subscription template.
+  have the necessary permissions to create issues in this project. Notifications
+  from the broker are authenticated by a per-template webhook secret (rotated on
+  every publish), not by this user's Redmine API key, so no Redmine credential is
+  stored on the broker. Still, **for security reasons prefer a dedicated,
+  non-administrator user** for this role.
 - **Private**: Check if the issue should be marked *private*.
 
 ## Applying Settings

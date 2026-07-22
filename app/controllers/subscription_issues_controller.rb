@@ -4,10 +4,15 @@ require 'rack'
 # This controller handles the creation of issues from subscription templates.
 class SubscriptionIssuesController < ApplicationController
 
-  # Before actions
-  before_action :find_template_and_authorize
+  # The notification endpoint is a machine callback authenticated solely by the
+  # template's webhook secret (see #58), not by a Redmine session or API key.
+  # Skip the CSRF token check and the global login requirement, then
+  # authenticate on the secret and act as the template's configured member.
   skip_before_action :verify_authenticity_token, only: [:create]
-  accept_api_auth :create
+  skip_before_action :check_if_login_required, only: [:create]
+  before_action :authenticate_webhook, only: [:create]
+
+  WEBHOOK_SECRET_HEADER = 'X-Gtt-Webhook-Secret'.freeze
 
   # Creates a new issue or updates an existing one based on the provided parameters.
   def create
@@ -26,13 +31,24 @@ class SubscriptionIssuesController < ApplicationController
 
   private
 
-  # Finds the subscription template and checks if the current user is authorized to create issues.
-  def find_template_and_authorize
+  # Authenticates the notification on the template's webhook secret, then acts
+  # as the template's configured member for the rest of the request.
+  #
+  # A missing template and a wrong/absent secret both return an identical 401
+  # so the endpoint never reveals whether a given template id exists. The
+  # secret is compared in constant time (SubscriptionTemplate#valid_webhook_secret?).
+  def authenticate_webhook
     @subscription_template = SubscriptionTemplate.find_by(id: params[:subscription_template_id])
-    unless @subscription_template
-      render json: { error: 'Subscription template not found' }, status: :not_found
+    provided_secret = request.headers[WEBHOOK_SECRET_HEADER].to_s
+
+    unless @subscription_template && @subscription_template.valid_webhook_secret?(provided_secret)
+      render json: { error: 'Unauthorized' }, status: :unauthorized
       return
     end
+
+    # Act as the configured member. The issue is authored by this user and all
+    # downstream permission checks (visibility, custom fields) use it.
+    User.current = @subscription_template.member.user
 
     unless User.current.allowed_to?(:add_issues, @subscription_template.project)
       render json: { error: 'Not authorized to create issues' }, status: :forbidden
