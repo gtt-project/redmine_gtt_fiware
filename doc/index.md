@@ -19,19 +19,21 @@ development) or [FIWARE-Big-Bang](https://github.com/lets-fiware/FIWARE-Big-Bang
 
 ![Plugin permissions](permissions.png)
 
-To allow **public** access to NGSI-LD context documents, it's necessary to grant
-*View* permissions to the *Anonymous* role.
-
 ## How to use
 
 - [Plugin Settings](plugin_settings.md)
 - [Project Settings](project_settings.md)
 - [Subscription Templates](subscription_template.md)
-- [API Endpoints](api_endpoints.md)
 
 ## Tools and Utilities
 
 - [FIWARE Broker Scripts](broker_scripts.md)
+
+## Reference
+
+- [Redmine NGSI-LD vocabulary](reference/ngsi-ld-vocabulary.md) — the JSON-LD
+  vocabulary preserved from the removed read API, kept as the seed for the
+  entity model the plugin will emit to a broker (Phase 3).
 
 ## Examples and Tutorials
 

@@ -1,6 +1,5 @@
 ja:
   project_module_gtt_fiware: "GTT FIWARE"
-  permission_view_gtt_fiware_ngsi: "View NGSI-LD Context files"
   permission_manage_subscription_templates: "Manage Subscription Templates"
 
   label_gtt_fiware: "FIWARE"
@@ -9,10 +8,6 @@ ja:
   label_subscription_template_plural: "Subscription Templates"
   label_subscription_template_new: "New Subscription Template"
 
-  gtt_fiware_settings_general: "General Settings"
-  field_ngsi_ld_format: "Default NGSI-LD format"
-  option_ngsi_ld_format_normalized: "Normalized"
-  option_ngsi_ld_format_not_normalized: "Not normalized"
 
   gtt_fiware_settings_broker: "FIWARE Broker Settings"
   field_connect_via_proxy: "Connect via internal proxy"
