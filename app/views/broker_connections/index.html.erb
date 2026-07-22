@@ -23,7 +23,7 @@
           <td><%= connection.standard %></td>
           <td><code><%= connection.url %></code></td>
           <td><%= l(:"label_broker_connection_auth_mode_#{connection.auth_mode}") %></td>
-          <td><%= connection.subscription_templates.count %></td>
+          <td><%= connection.subscription_templates.size %></td>
           <td class="buttons">
             <%= link_to l(:button_edit), edit_broker_connection_path(connection), class: 'icon icon-edit' %>
             <%= link_to l(:button_delete), broker_connection_path(connection),

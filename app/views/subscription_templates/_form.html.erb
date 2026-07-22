@@ -9,7 +9,7 @@
   <p class="min-width">
     <%= f.select :broker_connection_id,
                  BrokerConnection.sorted.map { |c| ["#{c.name} (#{c.standard})", c.id] },
-                 { include_blank: BrokerConnection.none? }, required: true %>
+                 { include_blank: true }, required: true %>
     <% if User.current.admin? %>
       <%= link_to l(:label_broker_connection_manage), broker_connections_path %>
     <% end %>

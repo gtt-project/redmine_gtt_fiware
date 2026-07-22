@@ -57,13 +57,14 @@ class CreateFiwareBrokerConnections < ActiveRecord::Migration[6.1]
       end
       name = "#{host || url || 'broker'} (#{index + 1})"
 
-      connection_id = select_value(<<~SQL.squish)
+      # connection.insert returns the inserted id through the adapter, so this
+      # stays portable (no PostgreSQL-specific RETURNING clause).
+      connection_id = connection.insert(<<~SQL.squish, 'create broker connection', 'id')
         INSERT INTO fiware_broker_connections
           (name, standard, url, fiware_service, fiware_servicepath, auth_mode, created_at, updated_at)
         VALUES
           (#{connection.quote(name)}, #{connection.quote(standard)}, #{connection.quote(url)}, #{connection.quote(service)},
            #{connection.quote(servicepath)}, 'browser', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        RETURNING id
       SQL
 
       update(<<~SQL.squish)

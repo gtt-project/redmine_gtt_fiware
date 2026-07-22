@@ -15,7 +15,9 @@ class BrokerConnectionsController < ApplicationController
   before_action :find_broker_connection, only: [:edit, :update, :destroy]
 
   def index
-    @broker_connections = BrokerConnection.sorted
+    # Preloaded so the per-connection template count renders without an extra
+    # query per row.
+    @broker_connections = BrokerConnection.sorted.includes(:subscription_templates)
   end
 
   def new
