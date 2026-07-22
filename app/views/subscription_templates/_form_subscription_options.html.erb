@@ -1,0 +1,17 @@
+<div class="box tabular">
+  <p class="min-width"><%= f.select :status, SubscriptionTemplate::STATUS, required: true, id: 'gtt-fiware-status-select' %>
+    <em class="info js-ngsi-ld-only" style="display: none;"><%= l(:text_status_oneshot_ld_info) %></em></p>
+
+  <p>
+    <%= f.label :expires, l(:field_subscription_template_expiration) %>
+    <%= f.datetime_select :expires, include_blank: true %>
+  </p>
+
+  <%# Subscription-level @context override; the connection's context is the default. LD only. %>
+  <p class="js-ngsi-ld-only"><%= f.text_field :context, size: 75, placeholder: l(:field_subscription_template_context_placeholder) %>
+    <em class="info"><%= l(:text_context_override_info) %></em></p>
+
+  <p><%= f.text_field :subscription_id, size: 75, placeholder: l(:field_subscription_template_subscription_placeholder) %></p>
+
+  <p><%= f.text_area :comment, placeholder: l(:field_subscription_template_comment_placeholder) %></p>
+</div>

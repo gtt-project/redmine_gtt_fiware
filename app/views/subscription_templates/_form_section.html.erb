@@ -1,0 +1,10 @@
+<%# One collapsible advanced section (core fieldset.collapsible idiom). %>
+<fieldset class="collapsible <%= 'collapsed' unless expanded %>" id="gtt-fiware-section-<%= section %>">
+  <legend onclick="toggleFieldset(this);" class="icon icon-<%= expanded ? 'expanded' : 'collapsed' %>">
+    <%= sprite_icon(expanded ? 'angle-down' : 'angle-right', rtl: !expanded) %>
+    <%= label %>
+  </legend>
+  <div style="<%= 'display: none;' unless expanded %>">
+    <%= render partial: "subscription_templates/form_#{section}", locals: { f: f } %>
+  </div>
+</fieldset>

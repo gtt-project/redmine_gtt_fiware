@@ -98,6 +98,23 @@ class SubscriptionTemplateTest < ActiveSupport::TestCase
     assert template.valid?, template.errors.full_messages.join(', ')
   end
 
+  # A template saved without alteration types stores nil; later validated
+  # updates (e.g. storing the broker's subscription id after publish) must
+  # still pass. Regression: the inclusion validation used to reject nil on
+  # persisted records, silently breaking the publish flow.
+  def test_persisted_template_without_alteration_types_stays_updatable
+    template = SubscriptionTemplate.create!(valid_attributes(alteration_types: []))
+    reloaded = SubscriptionTemplate.find(template.id)
+    assert_nil reloaded.alteration_types
+    assert reloaded.update(subscription_id: 'sub-1'), reloaded.errors.full_messages.join(', ')
+  end
+
+  def test_bogus_alteration_types_are_rejected
+    template = SubscriptionTemplate.new(valid_attributes(alteration_types: ['bogus']))
+    assert_not template.valid?
+    assert template.errors[:alteration_types].present?
+  end
+
   def test_status_must_be_valid
     template = SubscriptionTemplate.new(valid_attributes(status: 'paused'))
     assert_not template.valid?

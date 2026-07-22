@@ -26,8 +26,15 @@ class SubscriptionTemplatesController < ApplicationController
     @subscription_templates = subscription_template_scope
   end
 
+  # Prefilled defaults keep the happy path publishable without opening any
+  # advanced section (#66): a generic subject/description template and the
+  # current user's membership as the issue author.
   def new
-    @subscription_template = SubscriptionTemplate.new
+    @subscription_template = SubscriptionTemplate.new(
+      subject: l(:text_subscription_template_default_subject),
+      description: l(:text_subscription_template_default_description)
+    )
+    @subscription_template.member = @project.members.detect { |m| m.user_id == User.current.id }
   end
 
   def edit; end
@@ -35,6 +42,7 @@ class SubscriptionTemplatesController < ApplicationController
   def create
     r = RedmineGttFiware::SaveSubscriptionTemplate.(subscription_template_params, project: @project)
     if r.subscription_template_saved?
+      publish_after_create(r.subscription_template) if params[:publish_after_create].present?
       redirect_to params[:continue] ? new_path : index_path
     else
       @subscription_template = r.subscription_template
@@ -144,6 +152,31 @@ class SubscriptionTemplatesController < ApplicationController
       respond_to do |format|
         format.js { render js_template }
       end
+    end
+  end
+
+  # "Create and publish" (#66): after a successful create, publish the
+  # subscription server-side. Only possible with a stored-token connection
+  # (the browser-mode token never reaches the server); the form hides the
+  # button otherwise, and this guard covers direct POSTs.
+  def publish_after_create(template)
+    connection = template.broker_connection
+    unless connection&.stored_auth?
+      flash[:error] = l(:subscription_unauthorized_error)
+      return
+    end
+
+    # Reload: the just-saved instance carries alteration_types in its
+    # serialized (before_save) form, which would fail revalidation on the
+    # subscription-id update after publishing. A fresh load deserializes it.
+    @subscription_template = template.reload
+    @subscription_template.ensure_webhook_secret!
+    @fiware_broker_auth_token = connection.auth_token
+    prepare_payload
+    if handle_fiware_action('publish')
+      flash[:notice] = l(:subscription_published)
+    else
+      flash[:error] = @error_message
     end
   end
 
@@ -335,7 +368,13 @@ class SubscriptionTemplatesController < ApplicationController
       location_header = response['location'] || response['Location']
       if location_header
         subscription_id = location_header.split('/').last
-        @subscription_template.update(subscription_id: subscription_id)
+        # The subscription is live on the broker at this point; failing to
+        # store its id locally must be surfaced, not silently ignored.
+        unless @subscription_template.update(subscription_id: subscription_id)
+          Rails.logger.error "Subscription #{subscription_id} published but could not be stored: #{@subscription_template.errors.full_messages.join(', ')}"
+          @error_message = l(:general_action_error)
+          return false
+        end
         return true
       else
         Rails.logger.error "Location header is missing in the response"
