@@ -1,6 +1,21 @@
 de:
   project_module_gtt_fiware: GTT FIWARE
   field_subscription_template_name: 'Name'
+  label_broker_connection: 'FIWARE-Broker-Verbindung'
+  label_broker_connection_plural: 'FIWARE-Broker-Verbindungen'
+  label_broker_connection_new: 'Neue Broker-Verbindung'
+  label_broker_connection_manage: 'Broker-Verbindungen verwalten'
+  label_broker_connection_auth_mode_stored: 'Gespeicherter Token (serverseitig)'
+  label_broker_connection_auth_mode_browser: 'Im Browser eingegebener Token'
+  label_broker_connection_token_stored: 'Ein Token ist gespeichert - leer lassen, um ihn zu behalten'
+  field_broker_connection: 'Broker-Verbindung'
+  field_broker_connection_standard: 'NGSI-Standard'
+  field_broker_connection_url: 'Broker-URL'
+  field_broker_connection_auth_mode: 'Authentifizierung'
+  text_broker_connection_service_info: 'Mandantenname (Fiware-Service bei NGSIv2, NGSILD-Tenant bei NGSI-LD).'
+  text_broker_connection_context_info: 'Standard-@context für NGSI-LD; eine Subscription-Vorlage kann ihn überschreiben.'
+  text_broker_connection_auth_mode_info: 'Gespeichert: Der Token wird verschlüsselt gespeichert und Broker-Aufrufe laufen serverseitig. Browser: Der Token wird bei jeder Veröffentlichung im Browser eingegeben und nie gespeichert.'
+  text_broker_connection_token_info: 'Verschlüsselt gespeichert (database_cipher_key). Leer lassen, um den aktuellen Token zu behalten. Im Browser-Modus nicht verwendet.'
   gtt_fiware:
     tracker_not_found: 'Status nicht gefunden'
     version_not_found: 'Version nicht gefunden'
@@ -27,6 +42,10 @@ de:
         Koordinaten) müssen angegeben werden oder keines von ihnen'
       valid_alteration_types: '%{value} ist kein gültiger Änderungstyp'
       must_be_valid_array_of_objects: 'muss ein gültiges Array von Objekten sein'
+    broker_connection:
+      invalid_url: 'muss eine http(s)-URL sein'
+      invalid_service: 'darf nur Buchstaben, Ziffern und Unterstriche enthalten (max. 50 Zeichen)'
+      invalid_service_path: 'muss aus /-getrennten Ebenen aus Buchstaben, Ziffern und Unterstrichen bestehen (max. 10 Ebenen)'
   field_subscription_template_fiware_servicepath: 'FIWARE Service Path'
   gtt_fiware_settings_broker: 'FIWARE Broker-Einstellungen'
   subscription_published: 'Die Subscription wurde an den Broker übermittelt'

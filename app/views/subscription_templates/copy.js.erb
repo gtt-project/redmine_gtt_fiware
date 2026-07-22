@@ -3,12 +3,9 @@ var jsonPayload = JSON.parse('<%= raw j(@json_payload) %>');
 var prettifiedJson = JSON.stringify(jsonPayload, null, 2);
 
 var command = "curl -i -X POST '<%= raw j(@broker_url) %>' \\\n" +
-                "-H 'Content-Type: application/json' \\\n" +
-                <% if @subscription_template&.fiware_service&.present? %>
-                "-H 'Fiware-Service: <%= raw j(@subscription_template.fiware_service) %>' \\\n" +
-                <% end %>
-                <% if @subscription_template&.fiware_servicepath&.present? %>
-                "-H 'Fiware-ServicePath: <%= raw j(@subscription_template.fiware_servicepath) %>' \\\n" +
+                "-H 'Content-Type: <%= raw j(@subscription_request.content_type) %>' \\\n" +
+                <% @subscription_request.tenant_headers.each do |name, value| %>
+                "-H '<%= raw j(name) %>: <%= raw j(value) %>' \\\n" +
                 <% end %>
                 "--data-binary '" + prettifiedJson + "'";
 

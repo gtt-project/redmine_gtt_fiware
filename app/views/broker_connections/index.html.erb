@@ -1,0 +1,39 @@
+<div class="contextual">
+  <%= link_to l(:label_broker_connection_new), new_broker_connection_path, class: 'icon icon-add' %>
+</div>
+
+<h2><%= l(:label_broker_connection_plural) %></h2>
+
+<% if @broker_connections.any? %>
+  <table class="list">
+    <thead>
+      <tr>
+        <th><%= l(:field_name) %></th>
+        <th><%= l(:field_broker_connection_standard) %></th>
+        <th><%= l(:field_broker_connection_url) %></th>
+        <th><%= l(:field_broker_connection_auth_mode) %></th>
+        <th><%= l(:label_subscription_template_plural) %></th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @broker_connections.each do |connection| %>
+        <tr>
+          <td class="name"><%= link_to connection.name, edit_broker_connection_path(connection) %></td>
+          <td><%= connection.standard %></td>
+          <td><code><%= connection.url %></code></td>
+          <td><%= l(:"label_broker_connection_auth_mode_#{connection.auth_mode}") %></td>
+          <td><%= connection.subscription_templates.count %></td>
+          <td class="buttons">
+            <%= link_to l(:button_edit), edit_broker_connection_path(connection), class: 'icon icon-edit' %>
+            <%= link_to l(:button_delete), broker_connection_path(connection),
+                        method: :delete, data: { confirm: l(:text_are_you_sure) },
+                        class: 'icon icon-del' %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% end %>

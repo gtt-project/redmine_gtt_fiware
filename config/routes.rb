@@ -13,6 +13,9 @@ scope 'fiware/subscription_template/:subscription_template_id' do
        defaults: { format: 'json' }
 end
 
+# Instance-level broker connections, managed by admins (#67).
+resources :broker_connections, except: [:show]
+
 # Define a route for FIWARE broker subscription templates
 scope 'projects/:project_id' do
   resources :subscription_templates, only: %i(new create edit update destroy),

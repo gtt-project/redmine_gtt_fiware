@@ -8,11 +8,16 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
   SECRET_HEADER = 'X-Gtt-Webhook-Secret'.freeze
 
   def setup
-    @template = SubscriptionTemplate.create!(
+    @broker_connection = BrokerConnection.create!(
+      name: 'Test broker',
       standard: 'NGSIv2',
+      url: 'https://broker.example.com',
+      auth_mode: 'browser'
+    )
+    @template = SubscriptionTemplate.create!(
+      broker_connection_id: @broker_connection.id,
       status: 'active',
       name: 'Temperature alerts',
-      broker_url: 'https://broker.example.com',
       # Since #64 the broker POSTs raw entities and the plugin renders these
       # ${...} expressions itself (see NotificationProcessor / TemplateRenderer).
       subject: 'Sensor ${id}',
@@ -254,7 +259,7 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
   end
 
   def test_create_skips_attachments_resolving_to_non_public_addresses
-    @template.update_column(:broker_url, 'https://localhost')
+    @broker_connection.update_column(:url, 'https://localhost')
     @template.update_column(:attachments, [{ 'url' => 'https://localhost/file.png', 'filename' => 'file.png' }])
     assert_difference 'Issue.count', 1 do
       post_notification

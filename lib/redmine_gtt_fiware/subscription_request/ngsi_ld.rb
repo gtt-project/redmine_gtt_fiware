@@ -20,6 +20,12 @@ module RedmineGttFiware
         'polygon' => 'Polygon'
       }.freeze
 
+      # The payload embeds @context, which NGSI-LD requires to be declared as
+      # JSON-LD content.
+      def content_type
+        'application/ld+json'
+      end
+
       private
 
       # An explicit /ngsi-ld/v1-style path in the broker URL is preserved by
@@ -83,8 +89,9 @@ module RedmineGttFiware
 
       # @context may be a single URL or a JSON array/object of contexts. Parse
       # it when it is JSON, otherwise pass the URL string through unchanged.
+      # The template's own context overrides the connection's default.
       def ld_context
-        raw = @template.context.to_s.strip
+        raw = @template.effective_context.to_s.strip
         return nil if raw.empty?
 
         JSON.parse(raw)

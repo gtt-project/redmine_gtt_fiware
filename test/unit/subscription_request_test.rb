@@ -3,20 +3,28 @@ require File.expand_path('../../test_helper', __FILE__)
 class SubscriptionRequestTest < ActiveSupport::TestCase
   BASE_URL = 'https://redmine.example.com'.freeze
 
-  # Builds an unsaved template (no DB write) with sensible defaults for the
-  # given standard; overrides win.
+  # Builds an unsaved template + connection (no DB writes) with sensible
+  # defaults for the given standard; overrides win. Broker-level overrides
+  # (broker_url, fiware_service, fiware_servicepath) land on the connection.
   def template(standard, overrides = {})
+    connection = BrokerConnection.new(
+      name: 'Test broker',
+      standard: standard,
+      url: overrides.delete(:broker_url) || 'https://broker.example.com',
+      fiware_service: overrides.delete(:fiware_service),
+      fiware_servicepath: overrides.delete(:fiware_servicepath),
+      auth_mode: 'browser'
+    )
     t = SubscriptionTemplate.new(
       {
-        standard: standard,
         status: 'active',
         name: 'Temperature alerts',
-        broker_url: 'https://broker.example.com',
         subject: 'Sensor ${id}',
         description: 'changed',
         context: 'https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld'
       }.merge(overrides)
     )
+    t.broker_connection = connection
     # Deterministic id without a DB write so callback URLs have a realistic
     # shape (`.../subscription_template/123/notification`).
     t.id = 123
@@ -170,6 +178,35 @@ class SubscriptionRequestTest < ActiveSupport::TestCase
   def test_ngsi_ld_passes_unmappable_box_geometry_through
     p = payload('NGSI-LD', expression_georel: 'within', expression_geometry: 'box', expression_coords: '[[0,0],[1,1]]')
     assert_equal 'box', p.dig('geoQ', 'geometry')
+  end
+
+  # --- tenant headers / content type ---------------------------------------
+
+  def test_content_type_per_standard
+    assert_equal 'application/json', build('NGSIv2').content_type
+    assert_equal 'application/ld+json', build('NGSI-LD').content_type
+  end
+
+  def test_ngsi_v2_tenant_headers
+    req = build('NGSIv2', fiware_service: 'smartcity', fiware_servicepath: '/roads')
+    assert_equal({ 'Fiware-Service' => 'smartcity', 'Fiware-ServicePath' => '/roads' }, req.tenant_headers)
+  end
+
+  def test_ngsi_ld_tenant_headers_use_ngsild_tenant
+    req = build('NGSI-LD', fiware_service: 'smartcity')
+    assert_equal({ 'NGSILD-Tenant' => 'smartcity' }, req.tenant_headers)
+  end
+
+  def test_tenant_headers_empty_without_a_service
+    assert_equal({}, build('NGSIv2').tenant_headers)
+  end
+
+  # The template's own context overrides the connection's default.
+  def test_ngsi_ld_context_falls_back_to_the_connection_default
+    req = build('NGSI-LD', context: nil)
+    req_template = req.instance_variable_get(:@template)
+    req_template.broker_connection.context = 'https://conn.example.test/ctx.jsonld'
+    assert_equal 'https://conn.example.test/ctx.jsonld', JSON.parse(req.to_json)['@context']
   end
 
   def test_ngsi_ld_watched_attributes_from_attrs

@@ -3,15 +3,22 @@
 <div class="box tabular">
   <h3><%= l(:gtt_fiware_subscription_template_general) %></h3>
 
-  <p class="min-width"><%= f.select :standard, SubscriptionTemplate::STANDARDS, required: true %></p>
-
   <p><%= f.text_field :name, required: true, size: 75, placeholder: l(:field_subscription_template_name_placeholder) %></p>
-  <p><%= f.text_field :broker_url, required: true, size: 75, placeholder: l(:field_subscription_template_broker_url_placeholder) %></p>
+
+  <%# Broker URL, standard, tenant headers and auth live on the connection (#67). %>
+  <p class="min-width">
+    <%= f.select :broker_connection_id,
+                 BrokerConnection.sorted.map { |c| ["#{c.name} (#{c.standard})", c.id] },
+                 { include_blank: BrokerConnection.none? }, required: true %>
+    <% if User.current.admin? %>
+      <%= link_to l(:label_broker_connection_manage), broker_connections_path %>
+    <% end %>
+  </p>
+
   <p class="min-width"><%= f.select :status, SubscriptionTemplate::STATUS, required: true %></p>
 
-  <p><%= f.text_field :fiware_service, size: 75, placeholder: l(:field_subscription_template_fiware_service_placeholder) %></p>
-  <p><%= f.text_field :fiware_servicepath, size: 75, placeholder: l(:field_subscription_template_fiware_servicepath_placeholder) %></p>
-  <p class="hidden"><%= f.text_field :context, size: 75, placeholder: l(:field_subscription_template_context_placeholder) %>
+  <%# Subscription-level @context override; the connection's context is the default. %>
+  <p><%= f.text_field :context, size: 75, placeholder: l(:field_subscription_template_context_placeholder) %>
 
   <p>
     <%= f.label :expires, l(:field_subscription_template_expiration) %>

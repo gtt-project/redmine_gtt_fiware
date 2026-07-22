@@ -101,7 +101,8 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def unpublish
-    @broker_url = subscription_request.subscription_url
+    @subscription_request = subscription_request
+    @broker_url = @subscription_request.subscription_url
     handle_publish_unpublish('unpublish', l(:subscription_unpublished), 'unpublish')
   end
 
@@ -113,7 +114,7 @@ class SubscriptionTemplatesController < ApplicationController
   def handle_publish_unpublish(action, success_message, js_template)
     prepare_payload if action == 'publish'
 
-    if Setting.plugin_redmine_gtt_fiware['connect_via_proxy']
+    if server_side_broker_call?
       if handle_fiware_action(action)
         render_subscription_templates(success_message)
       else
@@ -124,6 +125,14 @@ class SubscriptionTemplatesController < ApplicationController
         format.js { render js_template }
       end
     end
+  end
+
+  # The broker call runs server-side when the proxy setting is on OR the
+  # template's connection stores its token (#67): a stored token must never
+  # reach the browser.
+  def server_side_broker_call?
+    Setting.plugin_redmine_gtt_fiware['connect_via_proxy'] ||
+      @subscription_template.broker_connection&.stored_auth?
   end
 
   def render_subscription_templates(message)
@@ -141,10 +150,10 @@ class SubscriptionTemplatesController < ApplicationController
   # pub/sub only (#64): the notification block carries just the callback URL and
   # auth headers; all field mapping happens plugin-side in NotificationProcessor.
   def prepare_payload
-    request_builder = subscription_request
-    @broker_url = request_builder.subscriptions_url
-    @entity_url = request_builder.entities_url
-    @json_payload = request_builder.to_json
+    @subscription_request = subscription_request
+    @broker_url = @subscription_request.subscriptions_url
+    @entity_url = @subscription_request.entities_url
+    @json_payload = @subscription_request.to_json
   end
 
   def subscription_request
@@ -189,16 +198,25 @@ class SubscriptionTemplatesController < ApplicationController
 
   def subscription_template_params
     params[:subscription_template][:alteration_types] ||= []
-    params.require(:subscription_template).permit(:standard, :broker_url, :fiware_service, :fiware_servicepath, :subscription_id, :name, :expires, :status, :context, :entities_string, :attrs, :expression_query, :expression_georel, :expression_geometry, :expression_coords, :notify_on_metadata_change, :subject, :description, :attachments_string, :is_private, :project_id, :tracker_id, :version_id, :issue_status_id, :issue_category_id, :issue_priority_id, :member_id, :comment, :threshold_create, :threshold_create_hours, :notes, :geometry, :geometry_string, alteration_types: [])
+    params.require(:subscription_template).permit(:broker_connection_id, :subscription_id, :name, :expires, :status, :context, :entities_string, :attrs, :expression_query, :expression_georel, :expression_geometry, :expression_coords, :notify_on_metadata_change, :subject, :description, :attachments_string, :is_private, :project_id, :tracker_id, :version_id, :issue_status_id, :issue_category_id, :issue_priority_id, :member_id, :comment, :threshold_create, :threshold_create_hours, :notes, :geometry, :geometry_string, alteration_types: [])
   end
 
+  # Stored connections supply their encrypted token server-side; browser-mode
+  # connections keep the pre-#67 behaviour of a per-request header token.
   def check_fiware_broker_auth_token
-    @fiware_broker_auth_token = request.headers['HTTP_FIWARE_BROKER_AUTH_TOKEN']
+    connection = @subscription_template&.broker_connection
+    @fiware_broker_auth_token =
+      if connection&.stored_auth?
+        connection.auth_token
+      else
+        request.headers['HTTP_FIWARE_BROKER_AUTH_TOKEN']
+      end
   end
 
   def handle_fiware_action(action)
-
-    if @fiware_broker_auth_token.blank?
+    # A stored connection may legitimately have no token (an open broker); in
+    # browser/proxy mode a missing header token is an error, as before.
+    if @fiware_broker_auth_token.blank? && !@subscription_template.broker_connection&.stored_auth?
       Rails.logger.error "FIWARE Broker Auth Token is missing"
       @error_message = l(:subscription_unauthorized_error)
       return false
@@ -208,13 +226,10 @@ class SubscriptionTemplatesController < ApplicationController
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = (uri.scheme == 'https')
 
-    headers = {
-      'Authorization' => "Bearer #{@fiware_broker_auth_token}"
-    }
-
-    headers['Content-Type'] = 'application/json' if action == 'publish'
-    headers['Fiware-Service'] = @subscription_template.fiware_service if @subscription_template.fiware_service.present?
-    headers['Fiware-ServicePath'] = @subscription_template.fiware_servicepath if @subscription_template.fiware_servicepath.present?
+    headers = {}
+    headers['Authorization'] = "Bearer #{@fiware_broker_auth_token}" if @fiware_broker_auth_token.present?
+    headers['Content-Type'] = @subscription_request.content_type if action == 'publish'
+    headers.merge!(@subscription_request.tenant_headers)
 
     request = case action
               when 'publish'
