@@ -12,32 +12,55 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: redmine:${{ matrix.redmine_version }} ruby:${{ matrix.ruby_version }} postgis:${{ matrix.db_version }}
     runs-on: ubuntu-latest
+    # Cap runaway steps (stalled bundle install, asset build, or DB wait) well
+    # under GitHub's 6-hour default so a hang can't hold the concurrency group.
+    timeout-minutes: 30
+
+    env:
+      # Redmine 7 (Rails 8.1) needs the 8.1-compatible geo gem stack; older
+      # Redmine stays on the defaults. redmine_gtt's Gemfile reads these env
+      # vars, and this plugin checks out redmine_gtt as a dependency, so
+      # setting them here drives the whole bundle.
+      GEM_RGEO_VERSION: ${{ matrix.rgeo || '3.0.1' }}
+      GEM_RGEO_ACTIVERECORD_VERSION: ${{ matrix.rgeo_ar || '8.0.0' }}
+      GEM_ACTIVERECORD_POSTGIS_ADAPTER_VERSION: ${{ matrix.postgis_adapter || '10.0.0' }}
 
     strategy:
       fail-fast: false
+      # Curated matrix mirroring redmine_gtt's `next` workflow instead of a full
+      # redmine x ruby x postgis cross-product, split into two concerns so
+      # coverage stays broad but the job count small:
+      #   * compat   - each supported Redmine/Ruby pair once, on the ceiling DB.
+      #                Supported Rubies per
+      #                https://redmine.jp/tech_note/supported-rubies/:
+      #                6.0 -> 3.3, 6.1 -> 3.3/3.4, 7.0 -> 3.4/4.0.
+      #   * database - the PostGIS variants (PG 15/17), pinned to the
+      #                known-stable 6.1/3.4 pair to isolate DB issues from
+      #                Redmine-7/Ruby-4 newness.
+      # Redmine 7 rows carry the Rails 8.1 geo gem stack via the matrix
+      # overrides consumed by the env block above; 6.x uses the defaults.
       matrix:
-        # Redmine >= 6 only (see init.rb requires_redmine). Each Redmine version
-        # is tested against the Ruby versions it supports, limited to Rubies
-        # still in upstream support:
-        #   6.0-stable -> 3.3
-        #   6.1-stable -> 3.3, 3.4
-        redmine_version: [6.0-stable, 6.1-stable]
-        ruby_version: ['3.3', '3.4']
-        # postgis/postgis tags spanning PG 15/17/18 and PostGIS 3.4/3.5/3.6
-        # (floor -> ceiling), matching the redmine_gtt matrix.
-        db_version: [15-3.4, 17-3.5, 18-3.6]
         include:
-          - system_test: true
-            redmine_version: 6.1-stable
-            ruby_version: '3.4'
-        exclude:
-          # Redmine 6.0 supports Ruby up to 3.3 only.
-          - redmine_version: 6.0-stable
-            ruby_version: '3.4'
+          # compat: each supported Redmine/Ruby pair once, on the 18-3.6 ceiling.
+          # The 6.1/3.4 pair is exercised by the database rows below.
+          - { redmine_version: 6.0-stable, ruby_version: '3.3', db_version: 18-3.6 }
+          - { redmine_version: 6.1-stable, ruby_version: '3.3', db_version: 18-3.6 }
+          - { redmine_version: 7.0-stable, ruby_version: '3.4', db_version: 18-3.6, rgeo_ar: '8.1.0', postgis_adapter: '11.1.0' }
+          - { redmine_version: 7.0-stable, ruby_version: '4.0', db_version: 18-3.6, rgeo: '3.1.0', rgeo_ar: '8.1.0', postgis_adapter: '11.1.0', system_test: true }
+          # database: PG 15/17 pinned to the known-stable 6.1/3.4 pair.
+          - { redmine_version: 6.1-stable, ruby_version: '3.4', db_version: 15-3.4 }
+          - { redmine_version: 6.1-stable, ruby_version: '3.4', db_version: 17-3.5 }
 
     services:
       postgres:
@@ -56,24 +79,27 @@ jobs:
           repository: redmine/redmine
           ref: ${{ matrix.redmine_version }}
           path: redmine
+          persist-credentials: false
 
       # redmine_gtt is a hard dependency: this plugin uses RedmineGtt::Conversions
       # for geometry and relies on the `geom` column its migration adds to issues.
       # It is checked out from `next` on purpose: that is redmine_gtt's
-      # integration branch, and this plugin must stay compatible with it.
-      # A CI break caused by a redmine_gtt change is a signal we want early,
-      # not noise to be pinned away.
+      # integration branch (Rails 8.1 / Redmine 7 compat lands there first), and
+      # this plugin must stay compatible with it. A CI break caused by a
+      # redmine_gtt change is a signal we want early, not noise to be pinned away.
       - name: Checkout redmine_gtt (dependency)
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           repository: gtt-project/redmine_gtt
           ref: next
           path: redmine/plugins/redmine_gtt
+          persist-credentials: false
 
       - name: Checkout Plugin
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           path: redmine/plugins/${{ env.PLUGIN_NAME }}
+          persist-credentials: false
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@a30dfa457ad68707b8b910ac3a244714b61c0626 # v1.320.0
