@@ -101,9 +101,7 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def unpublish
-    broker_url = URI(@subscription_template.broker_url)
-    version_path = broker_url.path.match(/\/v2\.\d+\//) ? broker_url.path : "/v2/"
-    @broker_url = broker_url.merge("#{version_path}subscriptions/#{@subscription_template.subscription_id}").to_s
+    @broker_url = subscription_request.subscription_url
     handle_publish_unpublish('unpublish', l(:subscription_unpublished), 'unpublish')
   end
 
@@ -138,67 +136,23 @@ class SubscriptionTemplatesController < ApplicationController
     end
   end
 
+  # Builds the broker request via SubscriptionRequest, which picks the NGSIv2 or
+  # NGSI-LD payload shape from the template's standard (#63). The broker is
+  # pub/sub only (#64): the notification block carries just the callback URL and
+  # auth headers; all field mapping happens plugin-side in NotificationProcessor.
   def prepare_payload
-    broker_url = URI(@subscription_template.broker_url)
-    version_path = broker_url.path.match(/\/v2\.\d+\//) ? broker_url.path : "/v2/"
-    @broker_url = broker_url.merge("#{version_path}subscriptions").to_s
-    @entity_url = broker_url.merge("#{version_path}entities").to_s
+    request_builder = subscription_request
+    @broker_url = request_builder.subscriptions_url
+    @entity_url = request_builder.entities_url
+    @json_payload = request_builder.to_json
+  end
 
-    # httpCustom carries only the callback URL and headers now (#64). The broker
-    # is pub/sub only: it POSTs the raw notification (entities under `data`) and
-    # the plugin renders all fields (subject/description/notes/geometry/
-    # attachments) itself in NotificationProcessor. No `json` templating block
-    # is sent, so no template expressions leave Redmine.
-    http_custom = {
-      url: URI.join(request.base_url, "/fiware/subscription_template/#{@subscription_template.id}/notification").to_s,
-      headers: {
-        "Content-Type" => "application/json",
-        # Per-template webhook secret, NOT a Redmine API key: it authenticates
-        # the notification and grants nothing beyond creating issues from this
-        # template (see #58). Backfilled on publish, then stable.
-        "X-Gtt-Webhook-Secret" => @subscription_template.webhook_secret,
-        "X-Redmine-GTT-Subscription-Template-URL" => URI.join(request.base_url, "/fiware/subscription_template/#{@subscription_template.id}/registration/").to_s
-      },
-      method: "POST"
-    }
-
-    @json_payload = {
-      description: CGI.escape(@subscription_template.name),
-      subject: {
-        entities: @subscription_template.entities,
-        condition: {
-          notifyOnMetadataChange: @subscription_template.notify_on_metadata_change
-        }
-      },
-      notification: {
-        attrsFormat: "normalized",
-        metadata: ["dateCreated", "*"],
-        onlyChangedAttrs: false,
-        covered: false,
-        httpCustom: http_custom
-      },
-      throttling: Setting.plugin_redmine_gtt_fiware['fiware_broker_subscription_throttling'].to_i || 1,
-      status: @subscription_template.status
-    }
-
-    @json_payload[:id] = @subscription_template.subscription_id if @subscription_template.subscription_id.present?
-    @json_payload[:expires] = @subscription_template.expires if @subscription_template.expires.present?
-
-    expression = {}
-
-    if @subscription_template.expression_georel.present? && @subscription_template.expression_geometry.present? && @subscription_template.expression_coords.present?
-      expression[:georel] = @subscription_template.expression_georel
-      expression[:geometry] = @subscription_template.expression_geometry
-      expression[:coords] = @subscription_template.expression_coords
-    end
-
-    expression[:q] = @subscription_template.expression_query if @subscription_template.expression_query.present?
-
-    @json_payload[:subject][:condition][:expression] = expression if expression.present?
-    @json_payload[:subject][:condition][:attrs] = JSON.parse(@subscription_template.attrs) if @subscription_template.attrs.present?
-    @json_payload[:subject][:condition][:alterationTypes] = @subscription_template.alteration_types if @subscription_template.alteration_types.present?
-
-    @json_payload = JSON.generate(@json_payload)
+  def subscription_request
+    RedmineGttFiware::SubscriptionRequest.build(
+      @subscription_template,
+      base_url: request.base_url,
+      throttling: Setting.plugin_redmine_gtt_fiware['fiware_broker_subscription_throttling'].to_i
+    )
   end
 
   def new_path

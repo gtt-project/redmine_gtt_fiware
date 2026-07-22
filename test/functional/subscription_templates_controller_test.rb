@@ -106,6 +106,36 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     assert_includes response.body, ESCAPED_INJECTION
   end
 
+  # Publishing an NGSI-LD template builds the LD subscription (#63): the broker
+  # URL uses the /ngsi-ld/v1/ prefix and the payload carries the LD shape
+  # (@context, notification.endpoint.receiverInfo, notificationTrigger).
+  def test_publish_builds_an_ngsi_ld_subscription
+    ld_template = SubscriptionTemplate.create!(
+      standard: 'NGSI-LD',
+      status: 'active',
+      name: 'LD alerts',
+      broker_url: 'https://broker.example.com',
+      subject: 'Sensor ${id}',
+      description: 'A monitored value changed',
+      context: 'https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld',
+      entities_string: '[{"idPattern": ".*", "type": "TemperatureSensor"}]',
+      project_id: 1,
+      tracker_id: 1,
+      issue_status_id: 1,
+      issue_priority_id: IssuePriority.first.id,
+      member_id: 1
+    )
+    post :publish, params: { project_id: @project.id, id: ld_template.id }, xhr: true, format: :js
+    assert_response :success
+    assert_includes response.body, 'https://broker.example.com/ngsi-ld/v1/subscriptions'
+    assert_includes response.body, 'receiverInfo'
+    assert_includes response.body, 'notificationTrigger'
+    assert_includes response.body, '@context'
+    # The webhook secret rides in receiverInfo, and no NGSIv2 httpCustom shape.
+    assert_includes response.body, ld_template.reload.webhook_secret
+    assert_not_includes response.body, 'httpCustom'
+  end
+
   # State-changing endpoints must not be reachable via GET.
   def test_publish_and_unpublish_are_post_only
     assert_routing(

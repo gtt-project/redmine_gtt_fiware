@@ -22,10 +22,21 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
   belongs_to :issue_category, optional: true
   belongs_to :issue_priority, optional: true, class_name: 'IssuePriority', foreign_key: 'issue_priority_id'
 
-  STANDARDS = ['NGSIv2'].freeze
+  STANDARDS = ['NGSIv2', 'NGSI-LD'].freeze
   STATUS = ['active', 'inactive', 'oneshot'].freeze
   GEOMETRIES = ['point', 'line', 'polygon', 'box'].freeze
   ALTERATION_TYPES = ['entityCreate', 'entityChange', 'entityUpdate', 'entityDelete'].freeze
+
+  # Maps the stored NGSIv2 alteration types to their NGSI-LD notification
+  # triggers. NGSI-LD replaces `alterationTypes` with `notificationTrigger`
+  # and has no distinct "change" trigger, so both entityChange and
+  # entityUpdate collapse to entityUpdated (deduplicated in #notification_triggers).
+  NGSI_LD_TRIGGER_MAP = {
+    'entityCreate' => 'entityCreated',
+    'entityChange' => 'entityUpdated',
+    'entityUpdate' => 'entityUpdated',
+    'entityDelete' => 'entityDeleted'
+  }.freeze
 
   validates :standard, inclusion: { in: STANDARDS, message: I18n.t('model.subscription_template.valid_standard') }
   validates :status, inclusion: { in: STATUS, message: I18n.t('model.subscription_template.valid_status') }
@@ -37,6 +48,9 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
   validates :subject, presence: true
   validates :description, presence: true
   validates :entities_string, presence: true
+  # NGSI-LD resolves the entity/attribute terms through @context, so a template
+  # for that standard must carry one. NGSIv2 has no context.
+  validates :context, presence: true, if: :ngsi_ld?
 
   validate :name_uniqueness
   validate :take_json_entities
@@ -50,6 +64,17 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
 
   def self.generate_webhook_secret
     SecureRandom.hex(WEBHOOK_SECRET_BYTES)
+  end
+
+  def ngsi_ld?
+    standard.to_s.casecmp('NGSI-LD').zero?
+  end
+
+  # The NGSI-LD notification triggers for this template's alteration types,
+  # deduplicated (see NGSI_LD_TRIGGER_MAP). Empty for a template with no
+  # alteration types configured.
+  def notification_triggers
+    Array(alteration_types).filter_map { |type| NGSI_LD_TRIGGER_MAP[type] }.uniq
   end
 
   # Persist a secret only if the template does not already have one (e.g. a
