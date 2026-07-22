@@ -93,6 +93,9 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def publish
+    # Rotate the webhook secret so each publish sends the broker a fresh
+    # credential; prepare_payload (below) then embeds the new value.
+    @subscription_template.rotate_webhook_secret!
     handle_publish_unpublish('publish', l(:subscription_published), 'publish')
   end
 
@@ -139,13 +142,15 @@ class SubscriptionTemplatesController < ApplicationController
     version_path = broker_url.path.match(/\/v2\.\d+\//) ? broker_url.path : "/v2/"
     @broker_url = broker_url.merge("#{version_path}subscriptions").to_s
     @entity_url = broker_url.merge("#{version_path}entities").to_s
-    @member = Member.find(@subscription_template.member_id)
 
     http_custom = {
       url: URI.join(request.base_url, "/fiware/subscription_template/#{@subscription_template.id}/notification").to_s,
       headers: {
         "Content-Type" => "application/json",
-        "X-Redmine-API-Key" => User.find(@member.user_id).api_key,
+        # Per-template webhook secret, NOT a Redmine API key: it authenticates
+        # the notification and grants nothing beyond creating issues from this
+        # template (see #58). Rotated on every publish.
+        "X-Gtt-Webhook-Secret" => @subscription_template.webhook_secret,
         "X-Redmine-GTT-Subscription-Template-URL" => URI.join(request.base_url, "/fiware/subscription_template/#{@subscription_template.id}/registration/").to_s
       },
       method: "POST",

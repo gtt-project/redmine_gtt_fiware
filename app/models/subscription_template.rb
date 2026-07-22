@@ -1,8 +1,18 @@
+require 'securerandom'
+require 'active_support/security_utils'
+
 class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? ApplicationRecord : ActiveRecord::Base)
   self.table_name = "fiware_subscription_templates"
 
+  # Number of random bytes for the per-template webhook secret. The broker
+  # stores this secret and sends it back on every notification; the
+  # notification endpoint authenticates on it alone (no Redmine API key is
+  # ever embedded in a broker payload). See #58.
+  WEBHOOK_SECRET_BYTES = 32
+
   after_initialize :set_default_alteration_types, if: :new_record?
   after_initialize :set_default_notify_on_metadata_change, if: :new_record?
+  before_create :ensure_webhook_secret
 
   belongs_to :project, optional: false
   belongs_to :tracker, optional: false
@@ -37,6 +47,26 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
 
   before_save :serialize_alteration_types
   after_find :deserialize_alteration_types
+
+  def self.generate_webhook_secret
+    SecureRandom.hex(WEBHOOK_SECRET_BYTES)
+  end
+
+  # Assign a fresh secret and persist it. Called on each (re)publish so the
+  # credential the broker holds is rotated every time the subscription is sent.
+  def rotate_webhook_secret!
+    update_column(:webhook_secret, self.class.generate_webhook_secret)
+  end
+
+  # Constant-time comparison of a provided secret against the stored one.
+  # Returns false (never raises) for a blank stored or provided secret.
+  def valid_webhook_secret?(provided)
+    provided = provided.to_s
+    secret = webhook_secret.to_s
+    return false if secret.empty? || provided.empty?
+
+    ActiveSupport::SecurityUtils.secure_compare(secret, provided)
+  end
 
   attr_accessor :threshold_create_hours
   # Override the getter for threshold_create_hours
@@ -126,5 +156,9 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
     if scope.any?
       errors.add :name, I18n.t('model.subscription_template.name_uniqueness')
     end
+  end
+
+  def ensure_webhook_secret
+    self.webhook_secret = self.class.generate_webhook_secret if webhook_secret.blank?
   end
 end

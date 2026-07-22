@@ -90,4 +90,33 @@ class SubscriptionTemplateTest < ActiveSupport::TestCase
     assert_not template.valid?
     assert template.errors[:base].present?
   end
+
+  def test_generates_a_webhook_secret_on_create
+    template = SubscriptionTemplate.create!(valid_attributes)
+    assert_not_nil template.webhook_secret
+    assert_equal 64, template.webhook_secret.length # SecureRandom.hex(32)
+  end
+
+  def test_rotate_webhook_secret_changes_and_persists_it
+    template = SubscriptionTemplate.create!(valid_attributes)
+    original = template.webhook_secret
+    template.rotate_webhook_secret!
+    assert_not_equal original, template.webhook_secret
+    assert_equal template.webhook_secret, template.reload.webhook_secret
+  end
+
+  def test_valid_webhook_secret_matches_only_the_stored_secret
+    template = SubscriptionTemplate.create!(valid_attributes)
+    assert template.valid_webhook_secret?(template.webhook_secret)
+    assert_not template.valid_webhook_secret?('wrong')
+    assert_not template.valid_webhook_secret?('')
+    assert_not template.valid_webhook_secret?(nil)
+  end
+
+  def test_valid_webhook_secret_is_false_when_no_secret_is_stored
+    template = SubscriptionTemplate.new(valid_attributes)
+    template.webhook_secret = nil
+    assert_not template.valid_webhook_secret?('anything')
+    assert_not template.valid_webhook_secret?(nil)
+  end
 end

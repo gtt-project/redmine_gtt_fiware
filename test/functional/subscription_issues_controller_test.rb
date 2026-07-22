@@ -5,6 +5,8 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
            :users, :email_addresses, :members, :member_roles, :roles,
            :enumerations, :issues, :journals
 
+  SECRET_HEADER = 'X-Gtt-Webhook-Secret'.freeze
+
   def setup
     @template = SubscriptionTemplate.create!(
       standard: 'NGSIv2',
@@ -18,9 +20,8 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
       tracker_id: 1,
       issue_status_id: 1,
       issue_priority_id: IssuePriority.first.id,
-      member_id: 1
+      member_id: 1 # jsmith on project 1 (Manager)
     )
-    @request.session[:user_id] = 2 # jsmith, manager of project 1
   end
 
   def notification_params(overrides = {})
@@ -32,39 +33,63 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
     }.merge(overrides)
   end
 
-  def test_create_returns_404_for_unknown_template
-    post :create, params: notification_params(subscription_template_id: 987654)
-    assert_response :not_found
+  # Posts a notification with the given webhook secret in the request header.
+  def post_notification(params = notification_params, secret: @template.webhook_secret)
+    @request.headers[SECRET_HEADER] = secret unless secret.nil?
+    post :create, params: params
   end
 
-  def test_create_requires_add_issues_permission
-    @request.session[:user_id] = nil
-    # Builtin roles may grant add_issues on public projects; strip it so
-    # the anonymous request is unauthorized regardless of fixture details.
-    Role.all.each { |role| role.remove_permission!(:add_issues) }
+  def test_create_rejects_a_missing_secret
     assert_no_difference 'Issue.count' do
-      post :create, params: notification_params
+      post_notification(notification_params, secret: nil)
     end
-    assert_response :forbidden
+    assert_response :unauthorized
   end
 
-  def test_create_creates_an_issue
+  def test_create_rejects_a_wrong_secret
+    assert_no_difference 'Issue.count' do
+      post_notification(notification_params, secret: 'not-the-secret')
+    end
+    assert_response :unauthorized
+  end
+
+  # A missing template returns the same 401 as a wrong secret, so the endpoint
+  # never reveals whether a given template id exists.
+  def test_create_does_not_leak_template_existence
+    post_notification(notification_params(subscription_template_id: 987_654), secret: 'anything')
+    assert_response :unauthorized
+    missing_body = @response.body
+
+    post_notification(notification_params, secret: 'wrong-secret')
+    assert_response :unauthorized
+    assert_equal missing_body, @response.body
+  end
+
+  def test_create_creates_an_issue_and_authors_it_as_the_member
     assert_difference 'Issue.count', 1 do
-      post :create, params: notification_params
+      post_notification
     end
     assert_response :success
     issue = Issue.order(id: :desc).first
     assert_equal 'Sensor urn:ngsi-ld:TemperatureSensor:001', issue.subject
     assert_equal 'urn:ngsi-ld:TemperatureSensor:001', issue.fiware_entity
     assert_equal @template.id, issue.subscription_template_id
-    assert_equal @template.project, issue.project
+    assert_equal @template.member.user_id, issue.author_id
+  end
+
+  def test_create_rejects_when_the_member_cannot_add_issues
+    Role.all.each { |role| role.remove_permission!(:add_issues) }
+    assert_no_difference 'Issue.count' do
+      post_notification
+    end
+    assert_response :forbidden
   end
 
   def test_create_skips_attachments_with_non_https_urls
     assert_difference 'Issue.count', 1 do
-      post :create, params: notification_params(
+      post_notification(notification_params(
         attachments: [{ url: 'http://169.254.169.254/latest/meta-data', filename: 'meta.txt' }]
-      )
+      ))
     end
     assert_response :success
     assert_equal 0, Issue.order(id: :desc).first.attachments.count
@@ -72,30 +97,28 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
 
   def test_create_skips_attachments_from_hosts_not_on_the_allowlist
     assert_difference 'Issue.count', 1 do
-      post :create, params: notification_params(
+      post_notification(notification_params(
         attachments: [{ url: 'https://evil.example.org/file.png', filename: 'file.png' }]
-      )
+      ))
     end
     assert_response :success
     assert_equal 0, Issue.order(id: :desc).first.attachments.count
   end
 
   def test_create_skips_attachments_resolving_to_non_public_addresses
-    # localhost is allowlisted via the broker URL here, but resolves to a
-    # loopback address, so the download must still be rejected.
     @template.update_column(:broker_url, 'https://localhost')
     assert_difference 'Issue.count', 1 do
-      post :create, params: notification_params(
+      post_notification(notification_params(
         attachments: [{ url: 'https://localhost/file.png', filename: 'file.png' }]
-      )
+      ))
     end
     assert_response :success
     assert_equal 0, Issue.order(id: :desc).first.attachments.count
   end
 
-  # Fake fetcher that returns a canned result without any network access.
-  # Stubbed in via the AttachmentFetcher.for_template factory (Mocha, which
-  # Redmine's own test harness loads) rather than any_instance.
+  # Fake fetcher returning a canned result without any network access, stubbed
+  # in via the AttachmentFetcher.for_template factory (Mocha, loaded by
+  # Redmine's test harness).
   class FakeFetcher
     def initialize(result)
       @result = result
@@ -118,17 +141,15 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
     RedmineGttFiware::AttachmentFetcher.stubs(:for_template).returns(FakeFetcher.new(result))
 
     assert_difference 'Issue.count', 1 do
-      post :create, params: notification_params(
+      post_notification(notification_params(
         attachments: [{ url: 'https://broker.example.com/photo.png', filename: 'photo.png' }]
-      )
+      ))
     end
-
     assert_response :success
     issue = Issue.order(id: :desc).first
     assert_equal 1, issue.attachments.count
-    attachment = issue.attachments.first
-    assert_equal 'photo.png', attachment.filename
-    assert_equal 'image/png', attachment.content_type
+    assert_equal 'photo.png', issue.attachments.first.filename
+    assert_equal 'image/png', issue.attachments.first.content_type
   ensure
     tempfile&.close!
   end
