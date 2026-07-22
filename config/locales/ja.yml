@@ -19,6 +19,12 @@ en:
   button_connect_via_proxy_text: "PROXY"
   field_fiware_broker_subscription_throttling: "Subscription Throttling"
 
+  gtt_fiware_settings_attachment_download: "通知添付ファイルのダウンロード"
+  field_attachment_download_hosts: "追加で許可するホスト"
+  text_attachment_download_hosts_info: "1行に1ホストを指定します。添付ファイルは、これらのホストまたはサブスクリプションテンプレートのブローカーホストから、HTTPS経由でのみダウンロードされます。"
+  field_attachment_download_content_types: "許可するコンテンツタイプ"
+  text_attachment_download_content_types_info: "1行に1タイプを指定します。image/* のようなワイルドカードが使えます。空欄の場合は既定のリストが使われます。"
+
   gtt_fiware_subscription_template_general: "General"
   field_subscription_template_standard: "NGSI standard"
   field_subscription_template_name: "Name"

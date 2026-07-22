@@ -26,3 +26,21 @@
     @settings['fiware_broker_subscription_throttling'], :min => 0, :step => 1 %>
 </p>
 </div>
+
+<div class="box tabular settings">
+<h3><%= l(:gtt_fiware_settings_attachment_download) %></h3>
+
+<p>
+  <%= content_tag(:label, l(:field_attachment_download_hosts)) %>
+  <%= text_area_tag 'settings[attachment_download_hosts]',
+    @settings['attachment_download_hosts'], rows: 3 %>
+  <em class="info"><%= l(:text_attachment_download_hosts_info) %></em>
+</p>
+
+<p>
+  <%= content_tag(:label, l(:field_attachment_download_content_types)) %>
+  <%= text_area_tag 'settings[attachment_download_content_types]',
+    @settings['attachment_download_content_types'], rows: 5 %>
+  <em class="info"><%= l(:text_attachment_download_content_types_info) %></em>
+</p>
+</div>
