@@ -51,7 +51,7 @@ jobs:
 
     steps:
       - name: Checkout Redmine
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: redmine/redmine
           ref: ${{ matrix.redmine_version }}
@@ -64,14 +64,14 @@ jobs:
       # A CI break caused by a redmine_gtt change is a signal we want early,
       # not noise to be pinned away.
       - name: Checkout redmine_gtt (dependency)
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: gtt-project/redmine_gtt
           ref: next
           path: redmine/plugins/redmine_gtt
 
       - name: Checkout Plugin
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           path: redmine/plugins/${{ env.PLUGIN_NAME }}
 
