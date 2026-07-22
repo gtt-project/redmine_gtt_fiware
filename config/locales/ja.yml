@@ -8,6 +8,22 @@ ja:
   label_subscription_template_plural: "Subscription Templates"
   label_subscription_template_new: "New Subscription Template"
 
+  label_broker_connection: "FIWAREブローカー接続"
+  label_broker_connection_plural: "FIWAREブローカー接続"
+  label_broker_connection_new: "新しいブローカー接続"
+  label_broker_connection_manage: "ブローカー接続の管理"
+  label_broker_connection_auth_mode_stored: "保存されたトークン（サーバー側）"
+  label_broker_connection_auth_mode_browser: "ブラウザーで入力するトークン"
+  label_broker_connection_token_stored: "トークンが保存されています。変更しない場合は空欄のままにしてください"
+  field_broker_connection: "ブローカー接続"
+  field_broker_connection_standard: "NGSI標準"
+  field_broker_connection_url: "ブローカーURL"
+  field_broker_connection_auth_mode: "認証"
+  text_broker_connection_service_info: "テナント名（NGSIv2はFiware-Service、NGSI-LDはNGSILD-Tenant）。"
+  text_broker_connection_context_info: "NGSI-LDの既定の@context。サブスクリプションテンプレートで上書きできます。"
+  text_broker_connection_auth_mode_info: "保存：トークンは暗号化して保存され、ブローカーへのリクエストはサーバー側で実行されます。ブラウザー：公開のたびにブラウザーで入力し、保存されません。"
+  text_broker_connection_token_info: "暗号化して保存されます（database_cipher_key）。現在のトークンを変更しない場合は空欄のままにしてください。ブラウザーモードでは使用されません。"
+
 
   gtt_fiware_settings_broker: "FIWARE Broker Settings"
   field_connect_via_proxy: "Connect via internal proxy"
@@ -140,3 +156,7 @@ ja:
       valid_status: "%{value} is not a valid status"
       valid_geometry: "%{value} is not a valid geometry"
       valid_alteration_types: "%{value} is not a valid alteration type"
+    broker_connection:
+      invalid_url: "はhttp(s)のURLである必要があります"
+      invalid_service: "は英数字とアンダースコアのみ使用できます（最大50文字）"
+      invalid_service_path: "は英数字とアンダースコアを/で区切った形式である必要があります（最大10階層）"

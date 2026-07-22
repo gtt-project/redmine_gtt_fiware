@@ -14,15 +14,25 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     @project.enabled_module_names = @project.enabled_module_names | ['gtt_fiware']
     Role.find(1).add_permission!(:manage_subscription_templates)
 
-    @template = SubscriptionTemplate.create!(
+    # Browser auth mode: publish/unpublish render the JS flow (the pre-#67
+    # behaviour) that these escaping tests exercise. The service value with a
+    # quote exercises header escaping; BrokerConnection#fiware_service is
+    # normally format-validated (#37), so it is written directly.
+    @broker_connection = BrokerConnection.create!(
+      name: 'Escaping broker',
       standard: 'NGSIv2',
+      url: 'https://broker.example.com',
+      auth_mode: 'browser'
+    )
+    @broker_connection.update_column(:fiware_service, "smart'city")
+
+    @template = SubscriptionTemplate.create!(
+      broker_connection_id: @broker_connection.id,
       status: 'active',
       name: 'Escaping test',
-      broker_url: 'https://broker.example.com',
       subject: 'Sensor ${id}',
       description: 'A monitored value changed',
       notes: 'Latest reading: ${attrs.temperature.value}',
-      fiware_service: "smart'city",
       # Since #64 the mapped fields (subject/description/notes/geometry/
       # attachments) are rendered plugin-side and never leave Redmine. The
       # entities selector still travels to the broker in the payload, so the
@@ -110,11 +120,16 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
   # URL uses the /ngsi-ld/v1/ prefix and the payload carries the LD shape
   # (@context, notification.endpoint.receiverInfo, notificationTrigger).
   def test_publish_builds_an_ngsi_ld_subscription
-    ld_template = SubscriptionTemplate.create!(
+    ld_connection = BrokerConnection.create!(
+      name: 'LD broker',
       standard: 'NGSI-LD',
+      url: 'https://broker.example.com',
+      auth_mode: 'browser'
+    )
+    ld_template = SubscriptionTemplate.create!(
+      broker_connection_id: ld_connection.id,
       status: 'active',
       name: 'LD alerts',
-      broker_url: 'https://broker.example.com',
       subject: 'Sensor ${id}',
       description: 'A monitored value changed',
       context: 'https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld',
@@ -134,6 +149,35 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     # The webhook secret rides in receiverInfo, and no NGSIv2 httpCustom shape.
     assert_includes response.body, ld_template.reload.webhook_secret
     assert_not_includes response.body, 'httpCustom'
+    # LD subscriptions embed @context, so they are declared as JSON-LD.
+    assert_includes response.body, 'application/ld+json'
+  end
+
+  # A stored-auth connection publishes server-side (#67): the encrypted token
+  # is used as a Bearer header on the server and never reaches the browser.
+  def test_publish_with_stored_auth_runs_server_side_and_hides_the_token
+    stored_connection = BrokerConnection.create!(
+      name: 'Stored broker',
+      standard: 'NGSIv2',
+      url: 'https://broker.example.com',
+      auth_mode: 'stored',
+      auth_token: 'server-secret-token'
+    )
+    @template.update_column(:broker_connection_id, stored_connection.id)
+
+    captured_request = nil
+    response_stub = Net::HTTPCreated.new('1.1', '201', 'Created')
+    response_stub['Location'] = '/v2/subscriptions/sub-777'
+    Net::HTTP.any_instance.stubs(:request).with { |req| captured_request = req }.returns(response_stub)
+
+    post :publish, params: { project_id: @project.id, id: @template.id }, xhr: true
+    assert_response :success
+
+    assert_not_nil captured_request, 'the broker call must run server-side'
+    assert_equal 'Bearer server-secret-token', captured_request['Authorization']
+    # The token must never be rendered into the response for the browser.
+    assert_not_includes response.body, 'server-secret-token'
+    assert_equal 'sub-777', @template.reload.subscription_id
   end
 
   # State-changing endpoints must not be reachable via GET.

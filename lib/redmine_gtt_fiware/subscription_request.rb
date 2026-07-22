@@ -46,6 +46,27 @@ module RedmineGttFiware
       JSON.generate(payload)
     end
 
+    # Content type for the subscription POST. NGSI-LD overrides this with
+    # application/ld+json because the payload embeds @context.
+    def content_type
+      'application/json'
+    end
+
+    # Tenant headers for broker requests. NGSIv2 uses Fiware-Service /
+    # Fiware-ServicePath; NGSI-LD uses NGSILD-Tenant (no service path).
+    def tenant_headers
+      service = @template.fiware_service
+      return {} if service.blank?
+
+      if @template.ngsi_ld?
+        { 'NGSILD-Tenant' => service }
+      else
+        headers = { 'Fiware-Service' => service }
+        headers['Fiware-ServicePath'] = @template.fiware_servicepath if @template.fiware_servicepath.present?
+        headers
+      end
+    end
+
     private
 
     # Preserve an explicit versioned API path in the broker URL, with or

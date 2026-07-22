@@ -8,6 +8,22 @@ en:
   label_subscription_template_plural: "Subscription Templates"
   label_subscription_template_new: "New Subscription Template"
 
+  label_broker_connection: "FIWARE Broker Connection"
+  label_broker_connection_plural: "FIWARE Broker Connections"
+  label_broker_connection_new: "New broker connection"
+  label_broker_connection_manage: "Manage broker connections"
+  label_broker_connection_auth_mode_stored: "Stored token (server-side)"
+  label_broker_connection_auth_mode_browser: "Browser-supplied token"
+  label_broker_connection_token_stored: "A token is stored - leave blank to keep it"
+  field_broker_connection: "Broker connection"
+  field_broker_connection_standard: "NGSI standard"
+  field_broker_connection_url: "Broker URL"
+  field_broker_connection_auth_mode: "Authentication"
+  text_broker_connection_service_info: "Tenant name (Fiware-Service for NGSIv2, NGSILD-Tenant for NGSI-LD)."
+  text_broker_connection_context_info: "Default NGSI-LD @context; a subscription template can override it."
+  text_broker_connection_auth_mode_info: "Stored: the token is saved encrypted and broker calls run server-side. Browser: the token is entered in the browser on every publish and never stored."
+  text_broker_connection_token_info: "Stored encrypted (database_cipher_key). Leave blank to keep the current token. Not used in browser mode."
+
 
   gtt_fiware_settings_broker: "FIWARE Broker Settings"
   field_connect_via_proxy: "Connect via internal proxy"
@@ -144,3 +160,7 @@ en:
       valid_status: "%{value} is not a valid status"
       valid_geometry: "%{value} is not a valid geometry"
       valid_alteration_types: "%{value} is not a valid alteration type"
+    broker_connection:
+      invalid_url: "must be an http(s) URL"
+      invalid_service: "may only contain letters, digits and underscores (max 50 characters)"
+      invalid_service_path: "must be /-separated levels of letters, digits and underscores (max 10 levels)"

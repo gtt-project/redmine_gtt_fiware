@@ -15,6 +15,9 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
   before_create :ensure_webhook_secret
 
   belongs_to :project, optional: false
+  # Broker configuration (URL, standard, tenant headers, auth) lives on the
+  # connection since #67; the template holds the subscription itself.
+  belongs_to :broker_connection, optional: false
   belongs_to :tracker, optional: false
   belongs_to :issue_status, optional: false
   belongs_to :member, optional: false
@@ -22,7 +25,9 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
   belongs_to :issue_category, optional: true
   belongs_to :issue_priority, optional: true, class_name: 'IssuePriority', foreign_key: 'issue_priority_id'
 
-  STANDARDS = ['NGSIv2', 'NGSI-LD'].freeze
+  delegate :standard, :fiware_service, :fiware_servicepath, :ngsi_ld?, :stored_auth?,
+           to: :broker_connection, allow_nil: true
+
   STATUS = ['active', 'inactive', 'oneshot'].freeze
   GEOMETRIES = ['point', 'line', 'polygon', 'box'].freeze
   ALTERATION_TYPES = ['entityCreate', 'entityChange', 'entityUpdate', 'entityDelete'].freeze
@@ -38,19 +43,17 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
     'entityDelete' => 'entityDeleted'
   }.freeze
 
-  validates :standard, inclusion: { in: STANDARDS, message: I18n.t('model.subscription_template.valid_standard') }
   validates :status, inclusion: { in: STATUS, message: I18n.t('model.subscription_template.valid_status') }
   validates :expression_geometry, inclusion: { in: GEOMETRIES, message: I18n.t('model.subscription_template.valid_geometry') }, allow_blank: true
   validates :alteration_types, inclusion: { in: ALTERATION_TYPES, message: I18n.t('model.subscription_template.valid_alteration_types') }
 
   validates :name, presence: true
-  validates :broker_url, presence: true
   validates :subject, presence: true
   validates :description, presence: true
   validates :entities_string, presence: true
-  # NGSI-LD resolves the entity/attribute terms through @context, so a template
-  # for that standard must carry one. NGSIv2 has no context.
-  validates :context, presence: true, if: :ngsi_ld?
+  # NGSI-LD resolves the entity/attribute terms through @context, so an LD
+  # template must have one: its own or the connection's default.
+  validates :effective_context, presence: true, if: :ngsi_ld?
 
   validate :name_uniqueness
   validate :take_json_entities
@@ -66,8 +69,14 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
     SecureRandom.hex(WEBHOOK_SECRET_BYTES)
   end
 
-  def ngsi_ld?
-    standard.to_s.casecmp('NGSI-LD').zero?
+  def broker_url
+    broker_connection&.url
+  end
+
+  # The @context for this template's NGSI-LD subscription: the template's own
+  # value overrides the connection's default.
+  def effective_context
+    context.presence || broker_connection&.context
   end
 
   # The NGSI-LD notification triggers for this template's alteration types,

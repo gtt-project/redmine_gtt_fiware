@@ -1,12 +1,9 @@
-// Build the request headers
+// Build the request headers. Tenant headers are standard-aware (NGSI-LD uses
+// NGSILD-Tenant).
 var headers = new Headers();
 
-<% if @subscription_template.fiware_service.present? %>
-  headers.append('Fiware-Service', '<%= raw j(@subscription_template.fiware_service) %>');
-<% end %>
-
-<% if @subscription_template.fiware_servicepath.present? %>
-  headers.append('Fiware-ServicePath', '<%= raw j(@subscription_template.fiware_servicepath) %>');
+<% @subscription_request.tenant_headers.each do |name, value| %>
+  headers.append('<%= raw j(name) %>', '<%= raw j(value) %>');
 <% end %>
 
 var authToken = document.getElementById('subscription_auth_token').value;

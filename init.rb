@@ -24,6 +24,11 @@ Redmine::Plugin.register :redmine_gtt_fiware do
     partial: 'gtt_fiware/settings'
   )
 
+  # Broker connections are instance-level and admin-managed, like auth sources.
+  menu :admin_menu, :fiware_broker_connections,
+       { controller: 'broker_connections', action: 'index' },
+       caption: :label_broker_connection_plural
+
   # Project module configuration with permissions
   project_module :gtt_fiware do
     permission :manage_subscription_templates, {

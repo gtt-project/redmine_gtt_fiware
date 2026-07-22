@@ -181,7 +181,7 @@ class AttachmentFetcherTest < ActiveSupport::TestCase
   end
 
   def test_for_template_allows_the_broker_host_and_configured_hosts
-    template = SubscriptionTemplate.new(broker_url: 'https://broker.example.com:1026/v2')
+    template = SubscriptionTemplate.new(broker_connection: BrokerConnection.new(url: 'https://broker.example.com:1026/v2'))
     with_settings_hosts("cdn.example.net\nMedia.Example.org") do
       fetcher = RedmineGttFiware::AttachmentFetcher.for_template(template)
       hosts = fetcher.instance_variable_get(:@allowed_hosts)
@@ -190,7 +190,7 @@ class AttachmentFetcherTest < ActiveSupport::TestCase
   end
 
   def test_for_template_falls_back_to_default_content_types
-    template = SubscriptionTemplate.new(broker_url: 'https://broker.example.com')
+    template = SubscriptionTemplate.new(broker_connection: BrokerConnection.new(url: 'https://broker.example.com'))
     with_settings_hosts('') do
       fetcher = RedmineGttFiware::AttachmentFetcher.for_template(template)
       types = fetcher.instance_variable_get(:@allowed_content_types)
