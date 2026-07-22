@@ -110,7 +110,9 @@ module RedmineGttFiware
     end
 
     def vetted_address(host)
-      addresses = @resolver.getaddresses(host)
+      # DNS is case-insensitive, but Ruby 3.4's RFC 3986 URI parser
+      # preserves the host's case, so normalize before resolving.
+      addresses = @resolver.getaddresses(host.downcase)
       raise RejectedError, "could not resolve #{host}" if addresses.empty?
       ips = addresses.map { |address| IPAddr.new(address.to_s) }
       if ips.any? { |ip| blocked_address?(ip) }
