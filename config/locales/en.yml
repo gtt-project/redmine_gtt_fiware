@@ -109,8 +109,8 @@ en:
   link_to_unpublish: "Unpublish"
   link_to_unpublish_hint: "Unpublish subscription to broker"
   subscription_unpublished: "Subscription unpublished from broker"
-  subscription_unpublished_warning: "There was a problem unpublishing the subscription
-    from the broker"
+  subscription_unpublished_warning: "The subscription could not be removed from the
+    broker and is still active. Check the authorization token and try again."
 
   subscription_unauthorized_error: "Unauthorized to perform this action"
   general_action_error: "There was an error performing this action"

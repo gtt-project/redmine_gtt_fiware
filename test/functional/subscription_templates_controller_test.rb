@@ -72,6 +72,27 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     assert_includes response.body, "smart\\'city"
   end
 
+  # #35: the browser unpublish flow must only clear the local subscription id
+  # when the broker actually removed the subscription. The clear
+  # (clearSubscriptionId) must be gated behind a broker-success check, not run
+  # unconditionally, and a broker failure must notify the user.
+  def test_unpublish_clears_locally_only_on_broker_success
+    @template.update_column(:subscription_id, 'sub-1')
+    post :unpublish, params: { project_id: @project.id, id: @template.id }, xhr: true, format: :js
+    assert_response :success
+    body = response.body
+
+    # The clear is defined once and gated behind a broker-success check.
+    assert_includes body, 'function clearSubscriptionId()'
+    assert_includes body, 'if (response.ok || response.status === 404)'
+    # It is invoked exactly once (inside the success guard), never
+    # unconditionally in the failure or catch branches.
+    assert_equal 1, body.scan(/return clearSubscriptionId\(\);/).length
+    # Both the HTTP-failure branch and the network-error catch warn the user
+    # that the subscription is still active (the rendered en warning text).
+    assert_equal 2, body.scan(/could not be removed from the/).length
+  end
+
   def test_copy_escapes_the_json_payload
     get :copy, params: { project_id: @project.id, id: @template.id }, xhr: true, format: :js
     assert_response :success
