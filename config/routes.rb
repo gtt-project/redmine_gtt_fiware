@@ -27,6 +27,9 @@ scope 'projects/:project_id' do
       # stored subscription id), so they are POST, not GET.
       post :publish
       post :unpublish
+      # sync reconciles local state with the broker (#13): it may clear the
+      # stored subscription id or update the status, so it is POST too.
+      post :sync
       patch :update_subscription_id
     end
   end

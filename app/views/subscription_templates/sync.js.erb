@@ -1,0 +1,8 @@
+// Refresh the subscription template list with the reconciled state and show
+// the outcome. Runs via rails-ujs regardless of the proxy setting (the sync
+// broker call itself always happens server-side).
+var subscriptionTemplateList = document.getElementById('subscriptionTemplateList');
+if (subscriptionTemplateList) {
+  subscriptionTemplateList.innerHTML = '<%= raw j(render partial: 'subscription_templates/subscription_template', collection: @subscription_templates, as: :subscription_template) %>';
+}
+showNotification("<%= raw j(@sync_message) %>");

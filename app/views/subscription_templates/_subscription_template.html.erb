@@ -23,6 +23,8 @@
   </td>
   <td>
     <% if subscription_template.subscription_id.present? %>
+      <%= link_to sprite_icon('fiware-sync', l(:link_to_sync), :plugin => :redmine_gtt_fiware), sync_project_subscription_template_path(@project, subscription_template),
+          method: :post, remote: true, class: 'icon icon-reload', title: l(:link_to_sync_hint) %>
       <%= link_to sprite_icon('fiware-unpublish', l(:link_to_unpublish), :plugin => :redmine_gtt_fiware), unpublish_project_subscription_template_path(@project, subscription_template),
           method: :post, remote: true, class: 'icon icon-shared' %>
     <% else %>

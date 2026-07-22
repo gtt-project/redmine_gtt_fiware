@@ -120,6 +120,12 @@ ja:
     the broker"
 
   link_to_unpublish: "Unpublish"
+  link_to_sync: "同期"
+  link_to_sync_hint: "ブローカー上のサブスクリプションを確認し、ローカルの状態を更新します"
+  subscription_synced: "サブスクリプションをブローカーと同期しました"
+  subscription_sync_removed: "サブスクリプションはブローカーに存在しないため、保存されていたサブスクリプションIDを削除しました"
+  subscription_sync_no_subscription: "このテンプレートには同期する公開済みサブスクリプションがありません"
+  subscription_sync_error: "ブローカーに接続できず、サブスクリプションを同期できませんでした。認証トークンを確認して再試行してください。"
   link_to_unpublish_hint: "Unpublish subscription to broker"
   subscription_unpublished: "Subscription unpublished from broker"
   subscription_unpublished_warning: "ブローカーからサブスクリプションを削除できませんでした。

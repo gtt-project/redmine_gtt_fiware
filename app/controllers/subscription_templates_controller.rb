@@ -8,8 +8,8 @@ class SubscriptionTemplatesController < ApplicationController
   before_action :get_issue_statuses, only: [:new, :create, :edit, :update]
   before_action :get_issue_priorities, only: [:new, :create, :edit, :update]
   before_action :get_issue_categories, only: [:new, :create, :edit, :update]
-  before_action :find_subscription_template, only: [:edit, :update, :destroy, :copy, :publish, :unpublish, :update_subscription_id]
-  before_action :check_fiware_broker_auth_token, only: [:publish, :unpublish]
+  before_action :find_subscription_template, only: [:edit, :update, :destroy, :copy, :publish, :unpublish, :sync, :update_subscription_id]
+  before_action :check_fiware_broker_auth_token, only: [:publish, :unpublish, :sync]
 
   # set_subscription_id is the broker/tooling registration callback, a JSON API
   # endpoint authenticated by API key. accept_api_auth enables key auth, and
@@ -106,6 +106,26 @@ class SubscriptionTemplatesController < ApplicationController
     handle_publish_unpublish('unpublish', l(:subscription_unpublished), 'unpublish')
   end
 
+  # Reconciles local state with the broker (#13). Always runs server-side:
+  # 404 from the broker clears the stored subscription id (the subscription is
+  # gone, e.g. a oneshot fired or it expired and was purged); 200 updates the
+  # local status from the broker's. The auth token comes from the stored
+  # connection or, in browser/proxy mode, the request header.
+  def sync
+    @subscription_request = subscription_request
+    @sync_message =
+      if @subscription_template.subscription_id.blank?
+        l(:subscription_sync_no_subscription)
+      else
+        perform_sync
+      end
+
+    @subscription_templates = subscription_template_scope
+    respond_to do |format|
+      format.js { render 'sync' }
+    end
+  end
+
   private
 
   # js_template is the template basename (e.g. 'publish'); Rails resolves it
@@ -125,6 +145,70 @@ class SubscriptionTemplatesController < ApplicationController
         format.js { render js_template }
       end
     end
+  end
+
+  # Queries the broker for the template's subscription and reconciles local
+  # state. Returns the user-facing message. A 200 whose status the plugin
+  # cannot interpret is reported as an error, not a successful sync.
+  def perform_sync
+    response = fetch_remote_subscription
+    case response
+    when Net::HTTPNotFound
+      @subscription_template.update(subscription_id: nil)
+      l(:subscription_sync_removed)
+    when Net::HTTPSuccess
+      if apply_remote_status(JSON.parse(response.body))
+        l(:subscription_synced)
+      else
+        Rails.logger.error 'FIWARE broker sync: unrecognized subscription status in response'
+        l(:subscription_sync_error)
+      end
+    else
+      Rails.logger.error "FIWARE broker sync failed: #{response.code} #{response.message}"
+      l(:subscription_sync_error)
+    end
+  rescue JSON::ParserError
+    Rails.logger.error 'FIWARE broker sync returned an unparsable body'
+    l(:subscription_sync_error)
+  rescue StandardError => e
+    Rails.logger.error "Error syncing subscription: #{e.message}"
+    l(:subscription_sync_error)
+  end
+
+  def fetch_remote_subscription
+    uri = URI(@subscription_request.subscription_url)
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = (uri.scheme == 'https')
+
+    headers = {}
+    headers['Authorization'] = "Bearer #{@fiware_broker_auth_token}" if @fiware_broker_auth_token.present?
+    headers.merge!(@subscription_request.tenant_headers)
+    # request_uri keeps any query string and never yields an empty path.
+    http.request(Net::HTTP::Get.new(uri.request_uri, headers))
+  end
+
+  # Maps the broker's reported subscription state onto the local status.
+  # NGSIv2 reports status active/inactive/oneshot/expired/failed ('failed'
+  # means the last notification failed but the subscription is still active);
+  # NGSI-LD reports status active/paused/expired plus isActive. Returns the
+  # recognized status, or nil when the response carries none the plugin
+  # understands (the caller reports that as an error).
+  def apply_remote_status(subscription)
+    remote = subscription['status'].to_s
+    if remote.empty? && @subscription_template.ngsi_ld? && subscription.key?('isActive')
+      remote = subscription['isActive'] == false ? 'paused' : 'active'
+    end
+
+    normalized =
+      case remote
+      when 'active', 'inactive', 'oneshot' then remote
+      when 'failed' then 'active'
+      when 'paused', 'expired' then 'inactive'
+      end
+    return nil if normalized.nil?
+
+    @subscription_template.update(status: normalized) unless normalized == @subscription_template.status
+    normalized
   end
 
   # The broker call runs server-side when the proxy setting is on OR the

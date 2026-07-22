@@ -180,20 +180,116 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     assert_equal 'sub-777', @template.reload.subscription_id
   end
 
+  # --- sync (#13) -----------------------------------------------------------
+
+  def stub_broker_get(response)
+    Net::HTTP.any_instance.stubs(:request).returns(response)
+  end
+
+  def broker_json_response(body)
+    response = Net::HTTPOK.new('1.1', '200', 'OK')
+    response.stubs(:body).returns(body.to_json)
+    response
+  end
+
+  # The subscription is gone on the broker (e.g. a oneshot fired): sync clears
+  # the stored subscription id so the template shows as unpublished again.
+  def test_sync_clears_the_subscription_id_when_the_broker_returns_404
+    @template.update_column(:subscription_id, 'sub-1')
+    stub_broker_get(Net::HTTPNotFound.new('1.1', '404', 'Not Found'))
+
+    post :sync, params: { project_id: @project.id, id: @template.id }, xhr: true, format: :js
+    assert_response :success
+    assert_nil @template.reload.subscription_id
+  end
+
+  def test_sync_updates_the_local_status_from_the_broker
+    @template.update_columns(subscription_id: 'sub-1', status: 'active')
+    stub_broker_get(broker_json_response('status' => 'inactive'))
+
+    post :sync, params: { project_id: @project.id, id: @template.id }, xhr: true, format: :js
+    assert_response :success
+    assert_equal 'inactive', @template.reload.status
+  end
+
+  # NGSIv2 'failed' means the last notification failed but the subscription is
+  # still active; 'expired' means it is no longer firing.
+  def test_sync_maps_broker_statuses
+    @template.update_columns(subscription_id: 'sub-1', status: 'inactive')
+    stub_broker_get(broker_json_response('status' => 'failed'))
+    post :sync, params: { project_id: @project.id, id: @template.id }, xhr: true, format: :js
+    assert_equal 'active', @template.reload.status
+
+    stub_broker_get(broker_json_response('status' => 'expired'))
+    post :sync, params: { project_id: @project.id, id: @template.id }, xhr: true, format: :js
+    assert_equal 'inactive', @template.reload.status
+  end
+
+  # An NGSI-LD broker without a status field reports isActive.
+  def test_sync_uses_is_active_for_ngsi_ld
+    ld_connection = BrokerConnection.create!(
+      name: 'LD sync broker', standard: 'NGSI-LD', url: 'https://broker.example.com',
+      context: 'https://broker.example.com/ctx.jsonld', auth_mode: 'browser'
+    )
+    @template.update_columns(broker_connection_id: ld_connection.id, subscription_id: 'urn:sub:1', status: 'active')
+    stub_broker_get(broker_json_response('isActive' => false))
+
+    post :sync, params: { project_id: @project.id, id: @template.id }, xhr: true, format: :js
+    assert_equal 'inactive', @template.reload.status
+  end
+
+  # A 200 whose status the plugin cannot interpret must be reported as an
+  # error, not a successful sync.
+  def test_sync_reports_an_error_for_an_unrecognized_status
+    @template.update_columns(subscription_id: 'sub-1', status: 'active')
+    stub_broker_get(broker_json_response('status' => 'hibernating'))
+
+    post :sync, params: { project_id: @project.id, id: @template.id }, xhr: true, format: :js
+    assert_response :success
+    assert_equal 'active', @template.reload.status
+    assert_includes response.body, 'Could not query the broker'
+  end
+
+  def test_sync_keeps_state_and_reports_an_error_when_the_broker_fails
+    @template.update_columns(subscription_id: 'sub-1', status: 'active')
+    stub_broker_get(Net::HTTPUnauthorized.new('1.1', '401', 'Unauthorized'))
+
+    post :sync, params: { project_id: @project.id, id: @template.id }, xhr: true, format: :js
+    assert_response :success
+    assert_equal 'sub-1', @template.reload.subscription_id
+    assert_equal 'active', @template.status
+    assert_includes response.body, 'Could not query the broker'
+  end
+
+  def test_sync_uses_the_stored_token_server_side
+    stored_connection = BrokerConnection.create!(
+      name: 'Stored sync broker', standard: 'NGSIv2', url: 'https://broker.example.com',
+      auth_mode: 'stored', auth_token: 'sync-secret'
+    )
+    @template.update_columns(broker_connection_id: stored_connection.id, subscription_id: 'sub-1')
+
+    captured_request = nil
+    response = broker_json_response('status' => 'active')
+    Net::HTTP.any_instance.stubs(:request).with { |req| captured_request = req }.returns(response)
+
+    post :sync, params: { project_id: @project.id, id: @template.id }, xhr: true, format: :js
+    assert_response :success
+    assert_equal 'Bearer sync-secret', captured_request['Authorization']
+    assert_not_includes response.body, 'sync-secret'
+  end
+
   # State-changing endpoints must not be reachable via GET.
-  def test_publish_and_unpublish_are_post_only
-    assert_routing(
-      { method: 'post', path: "/projects/#{@project.id}/subscription_templates/#{@template.id}/publish" },
-      { controller: 'subscription_templates', action: 'publish', project_id: @project.id.to_s, id: @template.id.to_s }
-    )
-    assert_routing(
-      { method: 'post', path: "/projects/#{@project.id}/subscription_templates/#{@template.id}/unpublish" },
-      { controller: 'subscription_templates', action: 'unpublish', project_id: @project.id.to_s, id: @template.id.to_s }
-    )
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path(
-        "/projects/#{@project.id}/subscription_templates/#{@template.id}/publish", method: :get
+  def test_publish_unpublish_and_sync_are_post_only
+    %w[publish unpublish sync].each do |action|
+      assert_routing(
+        { method: 'post', path: "/projects/#{@project.id}/subscription_templates/#{@template.id}/#{action}" },
+        { controller: 'subscription_templates', action: action, project_id: @project.id.to_s, id: @template.id.to_s }
       )
+      assert_raises(ActionController::RoutingError, "#{action} must not be reachable via GET") do
+        Rails.application.routes.recognize_path(
+          "/projects/#{@project.id}/subscription_templates/#{@template.id}/#{action}", method: :get
+        )
+      end
     end
   end
 

@@ -123,6 +123,12 @@ en:
     the broker"
 
   link_to_unpublish: "Unpublish"
+  link_to_sync: "Synchronize"
+  link_to_sync_hint: "Check the subscription on the broker and update the local status"
+  subscription_synced: "Subscription synchronized with the broker"
+  subscription_sync_removed: "The subscription no longer exists on the broker; the stored subscription ID was cleared"
+  subscription_sync_no_subscription: "This template has no published subscription to synchronize"
+  subscription_sync_error: "Could not query the broker to synchronize the subscription. Check the authorization token and try again."
   link_to_unpublish_hint: "Unpublish subscription to broker"
   subscription_unpublished: "Subscription unpublished from broker"
   subscription_unpublished_warning: "The subscription could not be removed from the
