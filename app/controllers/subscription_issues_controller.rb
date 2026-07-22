@@ -1,7 +1,11 @@
-require 'uri'
-require 'rack'
+require 'json'
 
-# This controller handles the creation of issues from subscription templates.
+# Receives broker notifications and turns their entities into Redmine issues.
+#
+# Since #64 the broker does pub/sub only: it POSTs the raw NGSIv2/NGSI-LD
+# notification (entities under `data`) and this controller runs each entity
+# through NotificationProcessor, which applies the template's field mapping and
+# the create-vs-update dedup rule. All templating happens plugin-side.
 class SubscriptionIssuesController < ApplicationController
 
   # The notification endpoint is a machine callback authenticated solely by the
@@ -14,22 +18,67 @@ class SubscriptionIssuesController < ApplicationController
 
   WEBHOOK_SECRET_HEADER = 'X-Gtt-Webhook-Secret'.freeze
 
-  # Creates a new issue or updates an existing one based on the provided parameters.
+  # Processes every entity in the notification. Returns 200 with a summary when
+  # at least one issue was persisted, and 422 only when the whole batch failed
+  # validation (a permanent error the broker should not retry).
   def create
-    @issue = find_or_initialize_issue
-
-    if params[:attachments]
-      handle_attachments
+    entities = notification_entities
+    if entities == :invalid_json
+      render json: { error: 'Malformed JSON' }, status: :bad_request
+      return
+    end
+    if entities.empty?
+      render json: { error: 'No entities in notification' }, status: :unprocessable_entity
+      return
     end
 
-    if @issue.save
-      render json: @issue.as_json(include: [:status, :tracker, :author, :assigned_to, :attachments, :journals]), status: :ok
+    processor = RedmineGttFiware::NotificationProcessor.new(@subscription_template)
+    results = entities.map { |entity| processor.process(entity) }
+    saved = results.select(&:saved?)
+
+    if saved.empty?
+      render json: {
+        processed: results.size,
+        errors: results.flat_map { |r| r.issue.errors.full_messages }.uniq
+      }, status: :unprocessable_entity
     else
-      render json: { errors: @issue.errors.full_messages }, status: :unprocessable_entity
+      render json: {
+        processed: results.size,
+        created: saved.count(&:created?),
+        updated: saved.count { |r| !r.created? },
+        issues: saved.map { |r| r.issue.as_json(only: [:id, :subject, :fiware_entity]) }
+      }, status: :ok
     end
   end
 
   private
+
+  # Parses the broker notification body and returns the entity hashes to
+  # process. Reads the raw JSON body directly (not filtered params) so
+  # arbitrary entity attribute names survive untouched. Accepts the NGSIv2
+  # notification shape `{ "data": [ {entity}, ... ] }`, a bare entity array, or
+  # a single entity object; a well-formed body with none of these yields an
+  # empty list. Returns the :invalid_json sentinel for a malformed body so
+  # #create can answer 400 (bad request) rather than 422 (well-formed but
+  # unprocessable).
+  def notification_entities
+    body = JSON.parse(request.raw_post)
+
+    entities =
+      if body.is_a?(Hash) && body['data'].is_a?(Array)
+        body['data']
+      elsif body.is_a?(Array)
+        body
+      elsif body.is_a?(Hash) && body['id'].present?
+        [body]
+      else
+        []
+      end
+
+    entities.select { |entity| entity.is_a?(Hash) }
+  rescue JSON::ParserError
+    :invalid_json
+  end
 
   # Authenticates the notification on the template's webhook secret, then acts
   # as the template's configured member for the rest of the request.
@@ -60,98 +109,6 @@ class SubscriptionIssuesController < ApplicationController
     unless User.current.allowed_to?(:add_issues, @subscription_template.project)
       render json: { error: 'Not authorized to create issues' }, status: :forbidden
       return
-    end
-  end
-
-  # Finds an existing issue or initializes a new one.
-  def find_or_initialize_issue
-    existing_issue = Issue.where(fiware_entity: params["entity"], subscription_template_id: @subscription_template.id)
-                      .where("created_on >= ?", Time.now - @subscription_template.threshold_create.seconds)
-                      .order(created_on: :desc)
-                      .first
-
-    if existing_issue
-      handle_existing_issue(existing_issue)
-      existing_issue
-    else
-      handle_new_issue
-      @issue
-    end
-  end
-
-  # Handles an existing issue by initializing a journal and updating the geometry if necessary.
-  def handle_existing_issue(existing_issue)
-    note = existing_issue.init_journal(User.current, params["notes"])
-
-    if Redmine::Plugin.installed?(:redmine_gtt) && @subscription_template.project.module_enabled?('gtt') && params[:geometry]
-      begin
-        new_geom = RedmineGtt::Conversions.to_geom(params[:geometry].to_json)
-        if new_geom != existing_issue.geom
-          old_geom = existing_issue.geom
-          existing_issue.geom = new_geom
-          note.details.build(property: 'attr', prop_key: 'geom', old_value: old_geom, value: new_geom)
-        end
-      rescue => e
-        logger.warn "Failed to convert geometry data: #{e.message}"
-      end
-    end
-  end
-
-  # Handles a new issue by initializing it with the provided parameters and the subscription template.
-  def handle_new_issue
-    @issue = Issue.new()
-    @issue.project = @subscription_template.project
-    @issue.tracker = @subscription_template.tracker
-    @issue.subject = params[:subject]
-    @issue.description = params[:description]
-    @issue.is_private = @subscription_template.is_private
-    @issue.status = @subscription_template.issue_status
-    @issue.author = User.current
-    @issue.category = @subscription_template.issue_category
-    @issue.priority = @subscription_template.issue_priority
-    @issue.fixed_version = @subscription_template.version
-    @issue.fiware_entity = params["entity"]
-    @issue.subscription_template_id = @subscription_template.id
-
-    if Redmine::Plugin.installed?(:redmine_gtt) && @subscription_template.project.module_enabled?('gtt') && params[:geometry]
-      begin
-        @issue.geom = RedmineGtt::Conversions.to_geom(params[:geometry].to_json)
-      rescue => e
-        logger.warn "Failed to convert geometry data: #{e.message}"
-      end
-    end
-  end
-
-  # Handles attachments by downloading them and attaching them to the issue.
-  # Downloads go through AttachmentFetcher, which enforces the SSRF
-  # protections: https only, host allowlist, public addresses only, no
-  # redirects, timeouts, content-type allowlist and a size limit. The
-  # stored content type is the one the server responded with; a type
-  # claimed in the notification payload is not trusted. Rejected
-  # attachments are skipped and logged so one bad attachment does not
-  # fail the whole notification.
-  def handle_attachments
-    fetcher = RedmineGttFiware::AttachmentFetcher.for_template(@subscription_template)
-    existing_filenames = @issue.attachments.map { |a| a.filename }
-
-    params[:attachments].each do |attachment|
-      begin
-        filename = attachment['filename'].presence ||
-                   File.basename(URI.parse(attachment['url'].to_s).path.to_s)
-
-        next if filename.empty? || existing_filenames.include?(filename)
-
-        result = fetcher.fetch(attachment['url'])
-        description = attachment['description'] || ''
-        uploaded_file = Rack::Multipart::UploadedFile.new(
-          result.tempfile.path, result.content_type, true, filename: filename
-        )
-        @issue.attachments.build(file: uploaded_file, description: description, author: User.current)
-      rescue RedmineGttFiware::AttachmentFetcher::RejectedError => e
-        logger.warn "Rejected attachment download from #{attachment['url'].inspect}: #{e.message}"
-      rescue => e
-        logger.warn "Failed to attach file: #{e.message}"
-      end
     end
   end
 end
