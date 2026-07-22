@@ -64,9 +64,9 @@ echo "$filtered_subscriptions" | while read -r subscription; do
   # Extract the URL and append the subscription id
   url=$(echo "$subscription" | jq -r '(.notification.httpCustom.headers."X-Redmine-GTT-Subscription-Template-URL" + .id)')
 
-  # Execute a GET request to the URL
-  response=$(curl -s -X GET "$url" -H "X-Redmine-API-Key: $REDMINE_API_KEY")
+  # Execute a POST request to the URL (registration changes state)
+  response=$(curl -s -X POST "$url" -H "X-Redmine-API-Key: $REDMINE_API_KEY")
 
   # Print a log message
-  echo "GET request to $url completed with response: $response"
+  echo "POST request to $url completed with response: $response"
 done

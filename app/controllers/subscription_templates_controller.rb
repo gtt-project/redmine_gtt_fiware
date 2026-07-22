@@ -12,6 +12,10 @@ class SubscriptionTemplatesController < ApplicationController
   before_action :check_fiware_broker_auth_token, only: [:publish, :unpublish]
 
   accept_api_auth :set_subscription_id
+  # set_subscription_id is the broker/tooling registration callback: it is
+  # authenticated by API key (accept_api_auth), not a browser session, so the
+  # CSRF token check does not apply. Same pattern as SubscriptionIssuesController#create.
+  skip_before_action :verify_authenticity_token, only: [:set_subscription_id]
   before_action :authorize, except: [:set_subscription_id]
 
   helper_method :index_path

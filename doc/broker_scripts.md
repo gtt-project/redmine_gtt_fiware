@@ -12,7 +12,7 @@ help manage the FIWARE context broker.
 
 **Description:** This script registers all subscriptions from the context broker
 with a Redmine instance. It fetches all subscriptions, filters those with the
-`X-Redmine-GTT-Subscription-Template-URL` header, and makes a GET request to the
+`X-Redmine-GTT-Subscription-Template-URL` header, and makes a POST request to the
 URL specified in the header for each subscription.
 
 **Usage:**
