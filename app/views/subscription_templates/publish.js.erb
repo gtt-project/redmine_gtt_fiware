@@ -3,11 +3,11 @@ var headers = new Headers();
 headers.append('Content-Type', 'application/json');
 
 <% if @subscription_template.fiware_service.present? %>
-  headers.append('Fiware-Service', '<%= @subscription_template.fiware_service %>');
+  headers.append('Fiware-Service', '<%= raw j(@subscription_template.fiware_service) %>');
 <% end %>
 
 <% if @subscription_template.fiware_servicepath.present? %>
-  headers.append('Fiware-ServicePath', '<%= @subscription_template.fiware_servicepath %>');
+  headers.append('Fiware-ServicePath', '<%= raw j(@subscription_template.fiware_servicepath) %>');
 <% end %>
 
 var authToken = document.getElementById('subscription_auth_token').value;
@@ -19,18 +19,18 @@ if (authToken) {
 var requestOptions = {
   method: 'POST',
   headers: headers,
-  body: '<%= @json_payload.html_safe %>',
+  body: '<%= raw j(@json_payload) %>',
   redirect: 'follow'
 };
 
 // Send the POST request
-fetch('<%= @broker_url %>', requestOptions)
+fetch('<%= raw j(@broker_url) %>', requestOptions)
   .then(response => {
     if (!response.ok) {
       if (response.status === 401) {
-        throw new Error("<%= l(:subscription_unauthorized_error) %>");
+        throw new Error("<%= raw j(l(:subscription_unauthorized_error)) %>");
       } else {
-        throw new Error("<%= l(:subscription_published_error) %>");
+        throw new Error("<%= raw j(l(:subscription_published_error)) %>");
       }
     }
 
@@ -66,7 +66,7 @@ fetch('<%= @broker_url %>', requestOptions)
     subscriptionTemplateList.innerHTML = result;
 
     // Show success notification
-    showNotification("<%= l(:subscription_published) %>");
+    showNotification("<%= raw j(l(:subscription_published)) %>");
   })
   .catch(error => {
     console.log('error', error);

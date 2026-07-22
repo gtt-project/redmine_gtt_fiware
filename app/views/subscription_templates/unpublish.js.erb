@@ -2,11 +2,11 @@
 var headers = new Headers();
 
 <% if @subscription_template.fiware_service.present? %>
-  headers.append('Fiware-Service', '<%= @subscription_template.fiware_service %>');
+  headers.append('Fiware-Service', '<%= raw j(@subscription_template.fiware_service) %>');
 <% end %>
 
 <% if @subscription_template.fiware_servicepath.present? %>
-  headers.append('Fiware-ServicePath', '<%= @subscription_template.fiware_servicepath %>');
+  headers.append('Fiware-ServicePath', '<%= raw j(@subscription_template.fiware_servicepath) %>');
 <% end %>
 
 var authToken = document.getElementById('subscription_auth_token').value;
@@ -22,13 +22,13 @@ var deleteRequestOptions = {
 };
 
 // Send the DELETE request to the Orion broker
-fetch('<%= @broker_url %>', deleteRequestOptions)
+fetch('<%= raw j(@broker_url) %>', deleteRequestOptions)
   .then(response => {
     if (!response.ok) {
       console.warn('Warning: Network response was not ok');
-      showNotification("<%= l(:subscription_unpublished_warning) %>");
+      showNotification("<%= raw j(l(:subscription_unpublished_warning)) %>");
     } else {
-      showNotification("<%= l(:subscription_unpublished) %>");
+      showNotification("<%= raw j(l(:subscription_unpublished)) %>");
     }
 
     // Send the PATCH request to update the subscription_id
