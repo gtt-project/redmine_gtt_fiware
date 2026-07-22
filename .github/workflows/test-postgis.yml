@@ -118,10 +118,18 @@ jobs:
         env:
           RAILS_ENV: test
         working-directory: redmine
+        # Only run suites that exist; `rails test` raises LoadError on a
+        # missing directory (functional/integration get added as Phase 0
+        # progresses).
         run: |
-          bundle exec rails test plugins/${{ env.PLUGIN_NAME }}/test/unit
-          bundle exec rails test plugins/${{ env.PLUGIN_NAME }}/test/functional
-          bundle exec rails test plugins/${{ env.PLUGIN_NAME }}/test/integration
+          for suite in unit functional integration; do
+            dir="plugins/${{ env.PLUGIN_NAME }}/test/$suite"
+            if [ -d "$dir" ]; then
+              bundle exec rails test "$dir"
+            else
+              echo "Skipping $suite tests ($dir does not exist yet)"
+            fi
+          done
 
       - name: Run uninstall test
         env:
