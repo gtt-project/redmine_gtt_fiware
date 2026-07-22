@@ -10,6 +10,16 @@ module RedmineGttFiware
     # `notification.format` is `normalized` so entities arrive in
     # Property/Relationship/GeoProperty form, which Entity#from_ngsi_ld expects.
     class NgsiLd < SubscriptionRequest
+      # The template stores NGSIv2 geometry names (SubscriptionTemplate::
+      # GEOMETRIES); NGSI-LD geoQ.geometry takes GeoJSON type names. `box` has
+      # no NGSI-LD equivalent and passes through verbatim, so the broker
+      # rejects it with a clear error instead of the plugin guessing a shape.
+      GEOMETRY_TYPE_MAP = {
+        'point' => 'Point',
+        'line' => 'LineString',
+        'polygon' => 'Polygon'
+      }.freeze
+
       private
 
       # An explicit /ngsi-ld/v1-style path in the broker URL is preserved by
@@ -63,9 +73,10 @@ module RedmineGttFiware
                           @template.expression_geometry.present? &&
                           @template.expression_coords.present?
 
+        geometry = @template.expression_geometry
         {
           georel: @template.expression_georel,
-          geometry: @template.expression_geometry,
+          geometry: GEOMETRY_TYPE_MAP.fetch(geometry, geometry),
           coordinates: @template.expression_coords
         }
       end

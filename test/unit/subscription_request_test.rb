@@ -144,16 +144,32 @@ class SubscriptionRequestTest < ActiveSupport::TestCase
     assert_equal %w[entityCreated entityUpdated entityDeleted], p['notificationTrigger']
   end
 
+  # geoQ uses the `coordinates` key, and the stored NGSIv2 geometry name is
+  # mapped to the GeoJSON type name NGSI-LD expects.
   def test_ngsi_ld_builds_geo_q_with_coordinates_key
     p = payload('NGSI-LD',
                 expression_georel: 'near;maxDistance==2000',
-                expression_geometry: 'Point',
+                expression_geometry: 'point',
                 expression_coords: '[135,35]')
     geo_q = p['geoQ']
     assert_equal 'near;maxDistance==2000', geo_q['georel']
     assert_equal 'Point', geo_q['geometry']
     assert_equal '[135,35]', geo_q['coordinates']
     assert_nil geo_q['coords']
+  end
+
+  def test_ngsi_ld_maps_line_and_polygon_geometry_names
+    line = payload('NGSI-LD', expression_georel: 'intersects', expression_geometry: 'line', expression_coords: '[[0,0],[1,1]]')
+    assert_equal 'LineString', line.dig('geoQ', 'geometry')
+    polygon = payload('NGSI-LD', expression_georel: 'within', expression_geometry: 'polygon', expression_coords: '[[[0,0],[1,0],[1,1],[0,0]]]')
+    assert_equal 'Polygon', polygon.dig('geoQ', 'geometry')
+  end
+
+  # `box` has no NGSI-LD equivalent: it passes through verbatim so the broker
+  # rejects it with a clear error rather than the plugin guessing a shape.
+  def test_ngsi_ld_passes_unmappable_box_geometry_through
+    p = payload('NGSI-LD', expression_georel: 'within', expression_geometry: 'box', expression_coords: '[[0,0],[1,1]]')
+    assert_equal 'box', p.dig('geoQ', 'geometry')
   end
 
   def test_ngsi_ld_watched_attributes_from_attrs
