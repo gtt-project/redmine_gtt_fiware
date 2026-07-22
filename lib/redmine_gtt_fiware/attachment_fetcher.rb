@@ -50,6 +50,8 @@ module RedmineGttFiware
       224.0.0.0/3
       ::/128
       64:ff9b::/96
+      ff00::/8
+      2001:2::/48
     ].map { |cidr| IPAddr.new(cidr) }.freeze
 
     def self.for_template(template)
@@ -150,7 +152,8 @@ module RedmineGttFiware
     def process_response(response)
       code = response.code.to_i
       unless (200..299).cover?(code)
-        raise RejectedError, "unexpected HTTP response #{response.code} (redirects are not followed)"
+        detail = (300..399).cover?(code) ? ' (redirects are not followed)' : ''
+        raise RejectedError, "unexpected HTTP response #{response.code}#{detail}"
       end
       check_content_type!(response.content_type)
       check_declared_length!(response['Content-Length'])

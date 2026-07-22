@@ -110,6 +110,8 @@ class AttachmentFetcherTest < ActiveSupport::TestCase
       ::1
       fe80::1
       fc00::1
+      ff02::1
+      2001:2::1
       ::ffff:10.0.0.1
     ].each do |address|
       fetcher = build_fetcher(resolver: FakeResolver.new('broker.example.com' => [address]))
@@ -125,7 +127,16 @@ class AttachmentFetcherTest < ActiveSupport::TestCase
 
   def test_rejects_redirects
     fetcher = build_fetcher(transport: with_response(FakeResponse.new(code: '302')))
-    assert_rejected fetcher, 'https://broker.example.com/file.png', /redirects are not followed/
+    assert_rejected fetcher, 'https://broker.example.com/file.png', /302 \(redirects are not followed\)/
+  end
+
+  def test_rejects_non_redirect_errors_without_redirect_wording
+    fetcher = build_fetcher(transport: with_response(FakeResponse.new(code: '500')))
+    error = assert_raises(RedmineGttFiware::AttachmentFetcher::RejectedError) do
+      fetcher.fetch('https://broker.example.com/file.png')
+    end
+    assert_match(/unexpected HTTP response 500/, error.message)
+    assert_no_match(/redirects/, error.message)
   end
 
   def test_rejects_disallowed_content_types

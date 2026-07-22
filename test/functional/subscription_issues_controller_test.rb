@@ -93,6 +93,19 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
     assert_equal 0, Issue.order(id: :desc).first.attachments.count
   end
 
+  # Fake fetcher that returns a canned result without any network access.
+  # Stubbed in via the AttachmentFetcher.for_template factory (Mocha, which
+  # Redmine's own test harness loads) rather than any_instance.
+  class FakeFetcher
+    def initialize(result)
+      @result = result
+    end
+
+    def fetch(_url)
+      @result
+    end
+  end
+
   def test_create_attaches_allowed_attachments
     set_tmp_attachments_directory
     tempfile = Tempfile.new(['fetched', '.png'])
@@ -102,13 +115,14 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
     result = RedmineGttFiware::AttachmentFetcher::Result.new(
       tempfile: tempfile, content_type: 'image/png'
     )
-    RedmineGttFiware::AttachmentFetcher.any_instance.stubs(:fetch).returns(result)
+    RedmineGttFiware::AttachmentFetcher.stubs(:for_template).returns(FakeFetcher.new(result))
 
     assert_difference 'Issue.count', 1 do
       post :create, params: notification_params(
         attachments: [{ url: 'https://broker.example.com/photo.png', filename: 'photo.png' }]
       )
     end
+
     assert_response :success
     issue = Issue.order(id: :desc).first
     assert_equal 1, issue.attachments.count
