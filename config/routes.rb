@@ -20,6 +20,13 @@ resources :broker_connections, except: [:show]
 scope 'projects/:project_id' do
   resources :subscription_templates, only: %i(new create edit update destroy),
                             as: :project_subscription_templates do
+    collection do
+      # Live preview (#68): renders the issue templates against a sample
+      # entity fetched from the broker. Works for unsaved templates, hence a
+      # collection route. POST (it carries form state), CSRF-protected (the
+      # form JS sends the token header).
+      post :preview
+    end
     member do
       # copy is read-only (it prefills a curl command), so it stays GET.
       get :copy

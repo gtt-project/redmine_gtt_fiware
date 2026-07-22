@@ -187,5 +187,76 @@ document.addEventListener('DOMContentLoaded', function() {
 
   connectionSelect.addEventListener('change', applyStandard);
   applyStandard();
+
+  // --- live preview (#68) ---------------------------------------------------
+
+  function previewEntityType() {
+    var rows = document.getElementById('gtt-fiware-entity-rows');
+    if (rows && rows.style.display !== 'none') {
+      var input = rows.querySelector('.js-entity-type');
+      if (input && input.value.trim() !== '') { return input.value.trim(); }
+    }
+    var json = document.getElementById('subscription_template_entities_string');
+    if (json && json.value.trim() !== '') {
+      try {
+        var entities = JSON.parse(json.value);
+        if (Array.isArray(entities) && entities[0] && entities[0].type) { return entities[0].type; }
+      } catch (err) { /* fall through */ }
+    }
+    return '';
+  }
+
+  var previewButton = document.getElementById('gtt-fiware-preview-button');
+  if (previewButton) {
+    previewButton.addEventListener('click', function(e) {
+      e.preventDefault();
+      var out = document.getElementById('gtt-fiware-preview-result');
+      out.style.display = '';
+      out.textContent = previewButton.dataset.loading;
+
+      var field = function(id) {
+        var el = document.getElementById(id);
+        return el ? el.value : '';
+      };
+      var csrf = document.querySelector('meta[name="csrf-token"]');
+
+      fetch(previewButton.dataset.url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-CSRF-Token': csrf ? csrf.content : ''
+        },
+        body: JSON.stringify({
+          broker_connection_id: connectionSelect.value,
+          entity_type: previewEntityType(),
+          subject: field('subscription_template_subject'),
+          description: field('subscription_template_description'),
+          notes: field('subscription_template_notes')
+        })
+      }).then(function(response) {
+        return response.json().then(function(json) { return { ok: response.ok, json: json }; });
+      }).then(function(result) {
+        if (!result.ok) {
+          out.textContent = result.json.error || 'Error';
+          return;
+        }
+        out.innerHTML = '';
+        [result.json.subject, result.json.description, result.json.notes].forEach(function(text) {
+          if (!text) { return; }
+          var pre = document.createElement('pre');
+          pre.textContent = text;
+          out.appendChild(pre);
+        });
+        var em = document.createElement('em');
+        em.className = 'info';
+        em.textContent = previewButton.dataset.entityLabel + ' ' + result.json.entity_id +
+          (result.json.has_geometry ? ', ' + previewButton.dataset.geometryLabel : '');
+        out.appendChild(em);
+      }).catch(function() {
+        out.textContent = 'Error';
+      });
+    });
+  }
 });
 </script>
