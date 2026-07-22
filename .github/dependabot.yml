@@ -1,0 +1,14 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # Defer brand-new releases to reduce supply-chain risk from
+    # freshly published (potentially hijacked) action versions.
+    cooldown:
+      default-days: 8
+    groups:
+      github-actions:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]

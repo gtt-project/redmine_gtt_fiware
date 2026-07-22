@@ -71,7 +71,7 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
   end
 
   def set_default_notify_on_metadata_change
-    self.notify_on_metadata_change = true
+    self.notify_on_metadata_change = true if notify_on_metadata_change.nil?
   end
 
   def take_json_entities

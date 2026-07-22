@@ -1,0 +1,154 @@
+name: Test with PostGIS
+
+env:
+  PLUGIN_NAME: ${{ github.event.repository.name }}
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: redmine:${{ matrix.redmine_version }} ruby:${{ matrix.ruby_version }} postgis:${{ matrix.db_version }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Redmine >= 6 only (see init.rb requires_redmine). Each Redmine version
+        # is tested against the Ruby versions it supports, limited to Rubies
+        # still in upstream support:
+        #   6.0-stable -> 3.3
+        #   6.1-stable -> 3.3, 3.4
+        redmine_version: [6.0-stable, 6.1-stable]
+        ruby_version: ['3.3', '3.4']
+        # postgis/postgis tags spanning PG 15/17/18 and PostGIS 3.4/3.5/3.6
+        # (floor -> ceiling), matching the redmine_gtt matrix.
+        db_version: [15-3.4, 17-3.5, 18-3.6]
+        include:
+          - system_test: true
+            redmine_version: 6.1-stable
+            ruby_version: '3.4'
+        exclude:
+          # Redmine 6.0 supports Ruby up to 3.3 only.
+          - redmine_version: 6.0-stable
+            ruby_version: '3.4'
+
+    services:
+      postgres:
+        image: postgis/postgis:${{ matrix.db_version }}
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - name: Checkout Redmine
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          repository: redmine/redmine
+          ref: ${{ matrix.redmine_version }}
+          path: redmine
+
+      # redmine_gtt is a hard dependency: this plugin uses RedmineGtt::Conversions
+      # for geometry and relies on the `geom` column its migration adds to issues.
+      # It is checked out from `next` on purpose: that is redmine_gtt's
+      # integration branch, and this plugin must stay compatible with it.
+      # A CI break caused by a redmine_gtt change is a signal we want early,
+      # not noise to be pinned away.
+      - name: Checkout redmine_gtt (dependency)
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          repository: gtt-project/redmine_gtt
+          ref: next
+          path: redmine/plugins/redmine_gtt
+
+      - name: Checkout Plugin
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          path: redmine/plugins/${{ env.PLUGIN_NAME }}
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@a30dfa457ad68707b8b910ac3a244714b61c0626 # v1.320.0
+        with:
+          ruby-version: ${{ matrix.ruby_version }}
+
+      - name: Install native gem system libraries
+        # pg and rgeo-geos gems' headers need these.
+        run: |
+          sudo apt-get update --yes --quiet
+          sudo apt-get install --yes --quiet --no-install-recommends libpq-dev libgeos-dev
+
+      - name: Prepare Redmine source
+        working-directory: redmine
+        run: |
+          cat <<EOF > config/database.yml
+            test:
+              adapter: postgis
+              database: redmine
+              host: 127.0.0.1
+              username: postgres
+              password: postgres
+              encoding: utf8
+          EOF
+
+      - name: Install Ruby dependencies
+        working-directory: redmine
+        run: |
+          bundle config set --local without 'development'
+          bundle install --jobs=4 --retry=3
+
+      - name: Run Redmine rake tasks
+        env:
+          RAILS_ENV: test
+        working-directory: redmine
+        run: |
+          bundle exec rake generate_secret_token
+          bundle exec rake db:create db:migrate redmine:plugins:migrate
+
+      - name: Zeitwerk check
+        env:
+          RAILS_ENV: test
+        working-directory: redmine
+        run: |
+          if grep -q zeitwerk config/application.rb ; then
+            bundle exec rake zeitwerk:check
+          fi
+        shell: bash
+
+      - name: Run tests
+        env:
+          RAILS_ENV: test
+          # For system tests in the plugin
+          GOOGLE_CHROME_OPTS_ARGS: "headless,disable-gpu,no-sandbox,disable-dev-shm-usage"
+        working-directory: redmine
+        # Only run suites that exist; `rails test` raises LoadError on a
+        # missing directory (functional/integration/system get added as the
+        # revival progresses). System tests only run on the designated matrix
+        # cell, like in redmine_gtt.
+        run: |
+          suites="unit functional integration"
+          if [ "${{ matrix.system_test }}" = "true" ]; then
+            suites="$suites system"
+          fi
+          for suite in $suites; do
+            dir="plugins/${{ env.PLUGIN_NAME }}/test/$suite"
+            if [ -d "$dir" ]; then
+              bundle exec rails test "$dir"
+            else
+              echo "Skipping $suite tests ($dir does not exist yet)"
+            fi
+          done
+
+      - name: Run uninstall test
+        env:
+          RAILS_ENV: test
+        working-directory: redmine
+        run: bundle exec rake redmine:plugins:migrate NAME=${{ env.PLUGIN_NAME }} VERSION=0
