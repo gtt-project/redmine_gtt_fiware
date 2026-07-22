@@ -1,10 +1,16 @@
 <%
+  project_boundary_available = @project.module_enabled?('gtt') && @project.geom.present? &&
+                               @project.geojson.present? &&
+                               JSON.parse(@project.geojson.to_json).dig('geometry', 'type') == 'Polygon'
   # Geo area radio state: anywhere (no geo fields), boundary (project polygon,
-  # coveredBy) or custom georel/coords.
+  # coveredBy) or custom georel/coords. 'boundary' only when its radio is
+  # actually rendered; otherwise the stored fields show as a custom query.
   geo_mode =
     if @subscription_template.expression_georel.blank?
       'anywhere'
-    elsif @subscription_template.expression_georel == 'coveredBy' && @subscription_template.expression_geometry == 'polygon'
+    elsif project_boundary_available &&
+          @subscription_template.expression_georel == 'coveredBy' &&
+          @subscription_template.expression_geometry == 'polygon'
       'boundary'
     else
       'custom'
@@ -15,9 +21,6 @@
   rescue JSON::ParserError
     ''
   end
-  project_boundary_available = @project.module_enabled?('gtt') && @project.geom.present? &&
-                               @project.geojson.present? &&
-                               JSON.parse(@project.geojson.to_json).dig('geometry', 'type') == 'Polygon'
 %>
 
 <div class="box tabular">

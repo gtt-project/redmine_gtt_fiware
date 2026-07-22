@@ -41,7 +41,7 @@
             <option value="id" <%= 'selected' if entity.key?('id') %>><%= l(:label_entity_match_id) %></option>
           </select>
           <input type="text" class="js-entity-match-value" value="<%= entity['idPattern'] || entity['id'] %>" size="25" />
-          <a href="#" class="js-entity-remove icon-only icon-del" title="<%= l(:button_delete) %>"></a>
+          <a href="#" class="js-entity-remove icon-only icon-del" title="<%= l(:button_delete) %>" aria-label="<%= l(:button_delete) %>"></a>
         </span>
       <% end %>
       <a href="#" id="gtt-fiware-entity-add"><%= l(:label_entity_filter_add) %></a>
