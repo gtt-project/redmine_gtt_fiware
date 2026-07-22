@@ -1,0 +1,66 @@
+<%
+  project_boundary_available = @project.module_enabled?('gtt') && @project.geom.present? &&
+                               @project.geojson.present? &&
+                               JSON.parse(@project.geojson.to_json).dig('geometry', 'type') == 'Polygon'
+  # Geo area radio state: anywhere (no geo fields), boundary (project polygon,
+  # coveredBy) or custom georel/coords. 'boundary' only when its radio is
+  # actually rendered; otherwise the stored fields show as a custom query.
+  geo_mode =
+    if @subscription_template.expression_georel.blank?
+      'anywhere'
+    elsif project_boundary_available &&
+          @subscription_template.expression_georel == 'coveredBy' &&
+          @subscription_template.expression_geometry == 'polygon'
+      'boundary'
+    else
+      'custom'
+    end
+  attrs_list = begin
+    parsed = JSON.parse(@subscription_template.attrs.to_s)
+    parsed.is_a?(Array) ? parsed.join(', ') : ''
+  rescue JSON::ParserError
+    ''
+  end
+%>
+
+<div class="box tabular">
+  <%# Comma-separated watched attributes; serialized into the attrs JSON array. %>
+  <p>
+    <%= content_tag :label, l(:field_subscription_template_watched_attributes) %>
+    <input type="text" id="gtt-fiware-attrs-input" size="75" value="<%= attrs_list %>" placeholder="temperature, humidity" />
+    <em class="info"><%= l(:text_watched_attributes_info) %></em>
+  </p>
+  <%= f.hidden_field :attrs %>
+
+  <p><%= f.text_field :expression_query, size: 75, placeholder: l(:field_subscription_template_expression_query_placeholder) %></p>
+
+  <p>
+    <%= content_tag :label, l(:field_subscription_template_geo_area) %>
+    <label class="inline"><input type="radio" name="gtt_fiware_geo_mode" value="anywhere" <%= 'checked' if geo_mode == 'anywhere' %> /> <%= l(:label_geo_area_anywhere) %></label>
+    <% if project_boundary_available %>
+      <label class="inline"><input type="radio" name="gtt_fiware_geo_mode" value="boundary" <%= 'checked' if geo_mode == 'boundary' %> data-geom="<%= @project.geojson.to_json %>" /> <%= l(:label_geo_area_boundary) %></label>
+    <% end %>
+    <label class="inline"><input type="radio" name="gtt_fiware_geo_mode" value="custom" <%= 'checked' if geo_mode == 'custom' %> /> <%= l(:label_geo_area_custom) %></label>
+  </p>
+
+  <span id="gtt-fiware-geo-custom" <%= 'style=display:none;'.html_safe unless geo_mode == 'custom' %>>
+    <p><%= f.text_field :expression_georel, size: 75, placeholder: l(:field_subscription_template_expression_georel_placeholder) %></p>
+    <p class="min-width"><%= f.select :expression_geometry, SubscriptionTemplate::GEOMETRIES, include_blank: true %></p>
+    <p><%= f.text_field :expression_coords, size: 75, placeholder: l(:field_subscription_template_expression_coords_placeholder) %></p>
+  </span>
+  <% if geo_mode != 'custom' %>
+    <%# Keep the underlying fields submitted even when the custom block is hidden. %>
+  <% end %>
+
+  <p>
+    <%= content_tag :label, l(:field_subscription_template_alteration_types) %>
+    <% SubscriptionTemplate::ALTERATION_TYPES.each do |type| %>
+      <%= check_box_tag 'subscription_template[alteration_types][]', type,
+          @subscription_template.alteration_types&.include?(type), id: nil %>
+      <code class="js-alteration-label" data-v2="<%= type %>" data-ld="<%= SubscriptionTemplate::NGSI_LD_TRIGGER_MAP[type] %>"><%= type %></code>
+    <% end %>
+    <em class="info js-ngsi-ld-only" style="display: none;"><%= l(:text_alteration_types_ld_info) %></em>
+  </p>
+
+  <p class="js-ngsi-v2-only"><%= f.check_box :notify_on_metadata_change, default: true %></p>
+</div>

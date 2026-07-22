@@ -1,0 +1,64 @@
+<%
+  # Entity rows are pickerable when every stored entry is a flat hash of
+  # type + (idPattern | id). Anything else falls back to raw JSON editing.
+  entities = @subscription_template.entities.is_a?(Array) ? @subscription_template.entities : []
+  entities_pickerable = entities.all? do |e|
+    e.is_a?(Hash) && e['type'].present? && (e.keys - %w[type idPattern id]).empty? && e.keys.count { |k| %w[idPattern id].include?(k) } <= 1
+  end
+  entity_rows = entities_pickerable ? entities : []
+  entity_rows = [{ 'type' => '', 'idPattern' => '.*' }] if entity_rows.empty? && entities_pickerable
+%>
+
+<div class="box tabular">
+  <p><%= f.text_field :name, required: true, size: 75, placeholder: l(:field_subscription_template_name_placeholder) %></p>
+
+  <%# Broker URL, standard, tenant headers and auth live on the connection (#67).
+      data-standard/data-auth-mode drive the standard-aware toggles below. %>
+  <p class="min-width">
+    <%= f.select :broker_connection_id,
+                 options_for_select(
+                   BrokerConnection.sorted.map do |c|
+                     ["#{c.name} (#{c.standard})", c.id,
+                      { 'data-standard' => c.standard, 'data-auth-mode' => c.auth_mode }]
+                   end,
+                   @subscription_template.broker_connection_id
+                 ),
+                 { include_blank: true }, required: true, id: 'gtt-fiware-connection-select' %>
+    <% if User.current.admin? %>
+      <%= link_to l(:label_broker_connection_manage), broker_connections_path %>
+    <% end %>
+  </p>
+
+  <%# Structured entity picker (#66); serialized into entities_string on submit. %>
+  <p>
+    <%= content_tag :label, l(:field_subscription_template_entities) %>
+    <span id="gtt-fiware-entity-rows" <%= 'style=display:none;'.html_safe unless entities_pickerable %>>
+      <% entity_rows.each do |entity| %>
+        <span class="gtt-fiware-entity-row" style="display: block; margin-bottom: 4px;">
+          <input type="text" class="js-entity-type" value="<%= entity['type'] %>" placeholder="<%= l(:field_subscription_template_entity_type_placeholder) %>" size="25" />
+          <select class="js-entity-match-kind">
+            <option value="idPattern" <%= 'selected' if entity.key?('idPattern') || !entity.key?('id') %>><%= l(:label_entity_match_pattern) %></option>
+            <option value="id" <%= 'selected' if entity.key?('id') %>><%= l(:label_entity_match_id) %></option>
+          </select>
+          <input type="text" class="js-entity-match-value" value="<%= entity['idPattern'] || entity['id'] %>" size="25" />
+          <a href="#" class="js-entity-remove icon-only icon-del" title="<%= l(:button_delete) %>" aria-label="<%= l(:button_delete) %>"></a>
+        </span>
+      <% end %>
+      <a href="#" id="gtt-fiware-entity-add"><%= l(:label_entity_filter_add) %></a>
+    </span>
+    <a href="#" class="js-json-toggle" data-target="entities" style="font-size: 0.9em;"><%= l(:label_edit_as_json) %></a>
+  </p>
+  <p id="gtt-fiware-entities-json" <%= 'class=hidden'.html_safe if entities_pickerable %>>
+    <%= f.text_area :entities_string, rows: 4,
+          placeholder: JSON.pretty_generate(JSON.parse(l(:field_subscription_template_entities_string_placeholder))),
+          value: (@subscription_template.entities.presence ? JSON.pretty_generate(@subscription_template.entities) : '') %>
+  </p>
+
+  <p class="min-width">
+    <%= content_tag :label, l(:label_tracker) %>
+    <%= f.collection_select :tracker_id, @project.trackers, :id, :name %>
+  </p>
+
+  <p><%= f.text_field :subject, required: true, size: 75, placeholder: l(:field_subscription_template_subject_placeholder) %>
+    <em class="info"><%= t(:gtt_fiware_subscription_template_variable_hint).html_safe %></em></p>
+</div>

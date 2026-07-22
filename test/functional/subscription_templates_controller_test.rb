@@ -180,6 +180,88 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     assert_equal 'sub-777', @template.reload.subscription_id
   end
 
+  # --- form redesign (#66) ---------------------------------------------------
+
+  # The new-template form renders the happy path plus three collapsed sections
+  # and prefills defaults so the template is publishable without opening them.
+  def test_new_renders_progressive_disclosure_form_with_defaults
+    get :new, params: { project_id: @project.id }
+    assert_response :success
+    assert_select 'fieldset#gtt-fiware-section-filters.collapsible.collapsed'
+    assert_select 'fieldset#gtt-fiware-section-issue_details.collapsible.collapsed'
+    assert_select 'fieldset#gtt-fiware-section-subscription_options.collapsible.collapsed'
+    assert_select 'select#gtt-fiware-connection-select option[data-standard=?]', 'NGSIv2'
+    assert_select 'input[name=?][value=?]', 'subscription_template[subject]', '${type} ${id}'
+    assert_select 'textarea[name=?]', 'subscription_template[description]', text: /changed/
+    assert_select 'input[name=?]', 'publish_after_create'
+  end
+
+  # Sections with stored values are expanded on edit so nothing is hidden.
+  def test_edit_expands_sections_that_contain_values
+    @template.update_column(:expression_query, 'temperature>30')
+    get :edit, params: { project_id: @project.id, id: @template.id }
+    assert_response :success
+    assert_select 'fieldset#gtt-fiware-section-filters.collapsible:not(.collapsed)'
+    assert_select 'fieldset#gtt-fiware-section-issue_details.collapsible:not(.collapsed)'
+    assert_select 'fieldset#gtt-fiware-section-subscription_options.collapsible.collapsed'
+  end
+
+  def create_params(overrides = {})
+    {
+      project_id: @project.id,
+      subscription_template: {
+        broker_connection_id: @broker_connection.id,
+        status: 'active',
+        name: 'Created via form',
+        subject: '${type} ${id}',
+        description: 'Entity ${id} changed.',
+        entities_string: '[{"idPattern": ".*", "type": "TemperatureSensor"}]',
+        tracker_id: 1,
+        issue_status_id: 1,
+        issue_priority_id: IssuePriority.first.id,
+        member_id: 1
+      }.merge(overrides)
+    }
+  end
+
+  def test_create_saves_a_template
+    assert_difference 'SubscriptionTemplate.count', 1 do
+      post :create, params: create_params
+    end
+    assert_redirected_to settings_project_path(@project, tab: 'subscription_templates')
+    assert_equal 'Created via form', SubscriptionTemplate.order(id: :desc).first.name
+  end
+
+  # Create-and-publish (#66): with a stored-auth connection the subscription is
+  # published server-side right after the create.
+  def test_create_and_publish_publishes_with_a_stored_connection
+    stored_connection = BrokerConnection.create!(
+      name: 'Stored create broker', standard: 'NGSIv2', url: 'https://broker.example.com',
+      auth_mode: 'stored', auth_token: 'create-secret'
+    )
+    response_stub = Net::HTTPCreated.new('1.1', '201', 'Created')
+    response_stub['Location'] = '/v2/subscriptions/sub-created-1'
+    Net::HTTP.any_instance.stubs(:request).returns(response_stub)
+
+    assert_difference 'SubscriptionTemplate.count', 1 do
+      post :create, params: create_params(broker_connection_id: stored_connection.id).merge(publish_after_create: '1')
+    end
+    template = SubscriptionTemplate.order(id: :desc).first
+    assert_equal 'sub-created-1', template.subscription_id
+    assert_equal I18n.t(:subscription_published), flash[:notice]
+  end
+
+  # The form hides the button for browser-mode connections; a direct POST with
+  # the flag must not attempt a broker call.
+  def test_create_and_publish_refuses_a_browser_mode_connection
+    assert_difference 'SubscriptionTemplate.count', 1 do
+      post :create, params: create_params.merge(publish_after_create: '1')
+    end
+    template = SubscriptionTemplate.order(id: :desc).first
+    assert_nil template.subscription_id
+    assert_equal I18n.t(:subscription_unauthorized_error), flash[:error]
+  end
+
   # --- sync (#13) -----------------------------------------------------------
 
   def stub_broker_get(response)

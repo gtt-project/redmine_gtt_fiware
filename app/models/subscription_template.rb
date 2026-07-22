@@ -45,7 +45,12 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
 
   validates :status, inclusion: { in: STATUS, message: I18n.t('model.subscription_template.valid_status') }
   validates :expression_geometry, inclusion: { in: GEOMETRIES, message: I18n.t('model.subscription_template.valid_geometry') }, allow_blank: true
-  validates :alteration_types, inclusion: { in: ALTERATION_TYPES, message: I18n.t('model.subscription_template.valid_alteration_types') }
+  # allow_nil: a template saved with no alteration types stores nil (see
+  # serialize_alteration_types), which is valid persisted state - the
+  # builders simply omit the field. Without allow_nil every later validated
+  # update on such a template fails (new records are shielded only by the
+  # after_initialize default).
+  validates :alteration_types, inclusion: { in: ALTERATION_TYPES, message: I18n.t('model.subscription_template.valid_alteration_types') }, allow_nil: true
 
   validates :name, presence: true
   validates :subject, presence: true
