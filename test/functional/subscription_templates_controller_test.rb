@@ -238,6 +238,18 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     assert_equal 'inactive', @template.reload.status
   end
 
+  # A 200 whose status the plugin cannot interpret must be reported as an
+  # error, not a successful sync.
+  def test_sync_reports_an_error_for_an_unrecognized_status
+    @template.update_columns(subscription_id: 'sub-1', status: 'active')
+    stub_broker_get(broker_json_response('status' => 'hibernating'))
+
+    post :sync, params: { project_id: @project.id, id: @template.id }, xhr: true, format: :js
+    assert_response :success
+    assert_equal 'active', @template.reload.status
+    assert_includes response.body, 'Could not query the broker'
+  end
+
   def test_sync_keeps_state_and_reports_an_error_when_the_broker_fails
     @template.update_columns(subscription_id: 'sub-1', status: 'active')
     stub_broker_get(Net::HTTPUnauthorized.new('1.1', '401', 'Unauthorized'))
@@ -267,19 +279,17 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
   end
 
   # State-changing endpoints must not be reachable via GET.
-  def test_publish_and_unpublish_are_post_only
-    assert_routing(
-      { method: 'post', path: "/projects/#{@project.id}/subscription_templates/#{@template.id}/publish" },
-      { controller: 'subscription_templates', action: 'publish', project_id: @project.id.to_s, id: @template.id.to_s }
-    )
-    assert_routing(
-      { method: 'post', path: "/projects/#{@project.id}/subscription_templates/#{@template.id}/unpublish" },
-      { controller: 'subscription_templates', action: 'unpublish', project_id: @project.id.to_s, id: @template.id.to_s }
-    )
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path(
-        "/projects/#{@project.id}/subscription_templates/#{@template.id}/publish", method: :get
+  def test_publish_unpublish_and_sync_are_post_only
+    %w[publish unpublish sync].each do |action|
+      assert_routing(
+        { method: 'post', path: "/projects/#{@project.id}/subscription_templates/#{@template.id}/#{action}" },
+        { controller: 'subscription_templates', action: action, project_id: @project.id.to_s, id: @template.id.to_s }
       )
+      assert_raises(ActionController::RoutingError, "#{action} must not be reachable via GET") do
+        Rails.application.routes.recognize_path(
+          "/projects/#{@project.id}/subscription_templates/#{@template.id}/#{action}", method: :get
+        )
+      end
     end
   end
 

@@ -148,7 +148,8 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   # Queries the broker for the template's subscription and reconciles local
-  # state. Returns the user-facing message.
+  # state. Returns the user-facing message. A 200 whose status the plugin
+  # cannot interpret is reported as an error, not a successful sync.
   def perform_sync
     response = fetch_remote_subscription
     case response
@@ -156,8 +157,12 @@ class SubscriptionTemplatesController < ApplicationController
       @subscription_template.update(subscription_id: nil)
       l(:subscription_sync_removed)
     when Net::HTTPSuccess
-      apply_remote_status(JSON.parse(response.body))
-      l(:subscription_synced)
+      if apply_remote_status(JSON.parse(response.body))
+        l(:subscription_synced)
+      else
+        Rails.logger.error 'FIWARE broker sync: unrecognized subscription status in response'
+        l(:subscription_sync_error)
+      end
     else
       Rails.logger.error "FIWARE broker sync failed: #{response.code} #{response.message}"
       l(:subscription_sync_error)
@@ -178,16 +183,19 @@ class SubscriptionTemplatesController < ApplicationController
     headers = {}
     headers['Authorization'] = "Bearer #{@fiware_broker_auth_token}" if @fiware_broker_auth_token.present?
     headers.merge!(@subscription_request.tenant_headers)
-    http.request(Net::HTTP::Get.new(uri.path, headers))
+    # request_uri keeps any query string and never yields an empty path.
+    http.request(Net::HTTP::Get.new(uri.request_uri, headers))
   end
 
   # Maps the broker's reported subscription state onto the local status.
   # NGSIv2 reports status active/inactive/oneshot/expired/failed ('failed'
   # means the last notification failed but the subscription is still active);
-  # NGSI-LD reports status active/paused/expired plus isActive.
+  # NGSI-LD reports status active/paused/expired plus isActive. Returns the
+  # recognized status, or nil when the response carries none the plugin
+  # understands (the caller reports that as an error).
   def apply_remote_status(subscription)
     remote = subscription['status'].to_s
-    if remote.empty? && @subscription_template.ngsi_ld?
+    if remote.empty? && @subscription_template.ngsi_ld? && subscription.key?('isActive')
       remote = subscription['isActive'] == false ? 'paused' : 'active'
     end
 
@@ -197,9 +205,10 @@ class SubscriptionTemplatesController < ApplicationController
       when 'failed' then 'active'
       when 'paused', 'expired' then 'inactive'
       end
-    return if normalized.nil? || normalized == @subscription_template.status
+    return nil if normalized.nil?
 
-    @subscription_template.update(status: normalized)
+    @subscription_template.update(status: normalized) unless normalized == @subscription_template.status
+    normalized
   end
 
   # The broker call runs server-side when the proxy setting is on OR the
