@@ -24,6 +24,10 @@ var deleteRequestOptions = {
 var subscriptionTemplateList = document.getElementById('subscriptionTemplateList');
 
 // Clears the stored subscription id on the Redmine side and refreshes the list.
+// Errors here are handled locally (not re-thrown): by the time this runs the
+// broker has already removed the subscription, so a failure of the Redmine-side
+// PATCH or list refresh must NOT reach the outer catch, which reports a
+// broker-side failure. The promise always resolves.
 function clearSubscriptionId() {
   return fetch('<%= update_subscription_id_project_subscription_template_path(@project, @subscription_template) %>', {
     method: 'PATCH',
@@ -35,7 +39,13 @@ function clearSubscriptionId() {
   })
     .then(response => response.text())
     .then(result => {
-      subscriptionTemplateList.innerHTML = result;
+      if (subscriptionTemplateList) {
+        subscriptionTemplateList.innerHTML = result;
+      }
+    })
+    .catch(error => {
+      // Broker removal already succeeded; only the local update failed.
+      console.log('error updating subscription list', error);
     });
 }
 
