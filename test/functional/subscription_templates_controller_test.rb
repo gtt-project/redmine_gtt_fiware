@@ -19,11 +19,15 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
       status: 'active',
       name: 'Escaping test',
       broker_url: 'https://broker.example.com',
-      subject: "Sensor #{INJECTION}",
-      description: "Desc #{INJECTION}",
-      notes: "Note #{INJECTION}",
+      subject: 'Sensor ${id}',
+      description: 'A monitored value changed',
+      notes: 'Latest reading: ${attrs.temperature.value}',
       fiware_service: "smart'city",
-      entities_string: '[{"idPattern": ".*", "type": "TemperatureSensor"}]',
+      # Since #64 the mapped fields (subject/description/notes/geometry/
+      # attachments) are rendered plugin-side and never leave Redmine. The
+      # entities selector still travels to the broker in the payload, so the
+      # payload-escaping tests inject through it.
+      entities_string: %([{"idPattern": "#{INJECTION}", "type": "TemperatureSensor"}]),
       project_id: 1,
       tracker_id: 1,
       issue_status_id: 1,

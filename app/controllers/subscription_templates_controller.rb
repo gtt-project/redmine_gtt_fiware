@@ -144,25 +144,22 @@ class SubscriptionTemplatesController < ApplicationController
     @broker_url = broker_url.merge("#{version_path}subscriptions").to_s
     @entity_url = broker_url.merge("#{version_path}entities").to_s
 
+    # httpCustom carries only the callback URL and headers now (#64). The broker
+    # is pub/sub only: it POSTs the raw notification (entities under `data`) and
+    # the plugin renders all fields (subject/description/notes/geometry/
+    # attachments) itself in NotificationProcessor. No `json` templating block
+    # is sent, so no template expressions leave Redmine.
     http_custom = {
       url: URI.join(request.base_url, "/fiware/subscription_template/#{@subscription_template.id}/notification").to_s,
       headers: {
         "Content-Type" => "application/json",
         # Per-template webhook secret, NOT a Redmine API key: it authenticates
         # the notification and grants nothing beyond creating issues from this
-        # template (see #58). Rotated on every publish.
+        # template (see #58). Backfilled on publish, then stable.
         "X-Gtt-Webhook-Secret" => @subscription_template.webhook_secret,
         "X-Redmine-GTT-Subscription-Template-URL" => URI.join(request.base_url, "/fiware/subscription_template/#{@subscription_template.id}/registration/").to_s
       },
-      method: "POST",
-      json: {
-        entity: "#{@entity_url}/${id}?type=${type}",
-        subject: @subscription_template.subject.chomp,
-        description: @subscription_template.description.chomp,
-        attachments: @subscription_template.attachments,
-        notes: @subscription_template.notes.chomp,
-        geometry: @subscription_template.geometry
-      }
+      method: "POST"
     }
 
     @json_payload = {
