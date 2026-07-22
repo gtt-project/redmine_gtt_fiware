@@ -115,13 +115,16 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
     assert_not_nil issue.geom
 
     moved = { 'type' => 'geo:json', 'value' => { 'type' => 'Point', 'coordinates' => [136.0, 36.0] } }
+    original_geom = issue.geom
     assert_no_difference 'Issue.count' do
       post_notification(entities: [entity('location' => moved)])
     end
     assert_response :success
     issue.reload
+    assert_not_equal original_geom, issue.geom, 'the geometry must actually change'
     journal = issue.journals.order(:id).last
     assert_not_nil journal
+    assert journal.notes.blank?, 'no notes template configured, so the journal has no notes'
     assert journal.details.any? { |d| d.prop_key == 'geom' },
            'geometry change must be recorded as a journal detail'
   end
@@ -155,6 +158,9 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
     assert_response :success
     issue.reload
     assert_equal ['reading-30.png', 'reading-31.png'], issue.attachments.map(&:filename).sort
+    # No notes template configured: the update journals must carry no notes.
+    assert issue.journals.all? { |j| j.notes.blank? },
+           'no notes template configured, so update journals have no notes'
   ensure
     tempfile&.close!
   end
