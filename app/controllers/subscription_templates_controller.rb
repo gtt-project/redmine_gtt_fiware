@@ -87,18 +87,21 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def publish
-    handle_publish_unpublish('publish', l(:subscription_published), 'publish.js.erb')
+    handle_publish_unpublish('publish', l(:subscription_published), 'publish')
   end
 
   def unpublish
     broker_url = URI(@subscription_template.broker_url)
     version_path = broker_url.path.match(/\/v2\.\d+\//) ? broker_url.path : "/v2/"
     @broker_url = broker_url.merge("#{version_path}subscriptions/#{@subscription_template.subscription_id}").to_s
-    handle_publish_unpublish('unpublish', l(:subscription_unpublished), 'unpublish.js.erb')
+    handle_publish_unpublish('unpublish', l(:subscription_unpublished), 'unpublish')
   end
 
   private
 
+  # js_template is the template basename (e.g. 'publish'); Rails resolves it
+  # to <name>.js.erb for the js format. Passing the full 'publish.js.erb'
+  # filename here makes Rails look for publish.js.erb.js and 404.
   def handle_publish_unpublish(action, success_message, js_template)
     prepare_payload if action == 'publish'
 

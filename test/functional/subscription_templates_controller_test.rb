@@ -34,14 +34,14 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
   end
 
   def test_publish_escapes_the_json_payload
-    get :publish, params: { project_id: @project.id, id: @template.id }, format: 'js'
+    get :publish, params: { project_id: @project.id, id: @template.id }, xhr: true, format: :js
     assert_response :success
     assert_not_includes response.body, INJECTION
     assert_includes response.body, ESCAPED_INJECTION
   end
 
   def test_publish_escapes_the_fiware_service_header
-    get :publish, params: { project_id: @project.id, id: @template.id }, format: 'js'
+    get :publish, params: { project_id: @project.id, id: @template.id }, xhr: true, format: :js
     assert_response :success
     assert_not_includes response.body, "'smart'city'"
     assert_includes response.body, "smart\\'city"
@@ -49,14 +49,14 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
 
   def test_unpublish_escapes_the_fiware_service_header
     @template.update_column(:subscription_id, 'sub-1')
-    get :unpublish, params: { project_id: @project.id, id: @template.id }, format: 'js'
+    get :unpublish, params: { project_id: @project.id, id: @template.id }, xhr: true, format: :js
     assert_response :success
     assert_not_includes response.body, "'smart'city'"
     assert_includes response.body, "smart\\'city"
   end
 
   def test_copy_escapes_the_json_payload
-    get :copy, params: { project_id: @project.id, id: @template.id }, format: 'js'
+    get :copy, params: { project_id: @project.id, id: @template.id }, xhr: true, format: :js
     assert_response :success
     assert_not_includes response.body, INJECTION
     assert_includes response.body, ESCAPED_INJECTION
