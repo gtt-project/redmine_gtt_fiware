@@ -83,7 +83,7 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     assert_routing(
       { method: 'post', path: "/fiware/subscription_template/#{@template.id}/registration/sub-42" },
       { controller: 'subscription_templates', action: 'set_subscription_id',
-        subscription_template_id: @template.id.to_s, subscription_id: 'sub-42' }
+        subscription_template_id: @template.id.to_s, subscription_id: 'sub-42', format: 'json' }
     )
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
@@ -100,7 +100,8 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     jsmith = User.find(2)
     with_settings rest_api_enabled: '1' do
       post :set_subscription_id, params: {
-        subscription_template_id: @template.id, subscription_id: 'urn:sub:123', key: jsmith.api_key
+        subscription_template_id: @template.id, subscription_id: 'urn:sub:123',
+        key: jsmith.api_key, format: :json
       }
     end
     assert_response :success

@@ -34,8 +34,12 @@ end
 scope 'fiware/subscription_template/:subscription_template_id' do
   post 'notification', to: 'subscription_issues#create'
   # Registration is a state-changing callback (it stores the broker-assigned
-  # subscription id), so it is POST, not GET.
-  post 'registration/:subscription_id', to: 'subscription_templates#set_subscription_id'
+  # subscription id), so it is POST, not GET. It is a JSON API endpoint
+  # (format: 'json'): it is authenticated by API key via accept_api_auth, and
+  # Redmine exempts api_request? requests from the CSRF token check in its own
+  # verify_authenticity_token, so no forgery-protection skip is needed here.
+  post 'registration/:subscription_id', to: 'subscription_templates#set_subscription_id',
+       defaults: { format: 'json' }
 end
 
 # Define a route for FIWARE broker subscription templates
