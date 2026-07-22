@@ -97,12 +97,19 @@ class SubscriptionTemplateTest < ActiveSupport::TestCase
     assert_equal 64, template.webhook_secret.length # SecureRandom.hex(32)
   end
 
-  def test_rotate_webhook_secret_changes_and_persists_it
+  def test_ensure_webhook_secret_keeps_an_existing_secret
     template = SubscriptionTemplate.create!(valid_attributes)
     original = template.webhook_secret
-    template.rotate_webhook_secret!
-    assert_not_equal original, template.webhook_secret
-    assert_equal template.webhook_secret, template.reload.webhook_secret
+    template.ensure_webhook_secret!
+    assert_equal original, template.reload.webhook_secret
+  end
+
+  def test_ensure_webhook_secret_backfills_a_blank_secret
+    template = SubscriptionTemplate.create!(valid_attributes)
+    template.update_column(:webhook_secret, nil)
+    template.ensure_webhook_secret!
+    assert_not_nil template.reload.webhook_secret
+    assert_equal 64, template.webhook_secret.length
   end
 
   def test_valid_webhook_secret_matches_only_the_stored_secret

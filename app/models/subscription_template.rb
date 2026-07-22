@@ -52,9 +52,15 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
     SecureRandom.hex(WEBHOOK_SECRET_BYTES)
   end
 
-  # Assign a fresh secret and persist it. Called on each (re)publish so the
-  # credential the broker holds is rotated every time the subscription is sent.
-  def rotate_webhook_secret!
+  # Persist a secret only if the template does not already have one (e.g. a
+  # template created before the webhook_secret column existed). The secret is
+  # otherwise stable for the life of the template: it must not change while a
+  # subscription is live on the broker, or the broker would keep sending a
+  # secret the plugin no longer accepts. Backfilling a blank secret is safe
+  # because nothing on the broker relies on the previous (absent) value.
+  def ensure_webhook_secret!
+    return if webhook_secret.present?
+
     update_column(:webhook_secret, self.class.generate_webhook_secret)
   end
 

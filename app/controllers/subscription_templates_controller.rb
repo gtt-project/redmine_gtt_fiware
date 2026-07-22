@@ -93,9 +93,10 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def publish
-    # Rotate the webhook secret so each publish sends the broker a fresh
-    # credential; prepare_payload (below) then embeds the new value.
-    @subscription_template.rotate_webhook_secret!
+    # Ensure the template has a webhook secret (backfills a blank one); the
+    # secret is stable for the life of the template so the broker and plugin
+    # never disagree on it. prepare_payload (below) embeds it.
+    @subscription_template.ensure_webhook_secret!
     handle_publish_unpublish('publish', l(:subscription_published), 'publish')
   end
 

@@ -50,11 +50,13 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     assert_not_includes response.body, 'X-Redmine-API-Key'
   end
 
-  def test_publish_rotates_the_webhook_secret
+  # The secret is stable across publishes: it must not change while a
+  # subscription may be live on the broker (see the #81 follow-up).
+  def test_publish_keeps_the_webhook_secret_stable
     original = @template.webhook_secret
     post :publish, params: { project_id: @project.id, id: @template.id }, xhr: true, format: :js
     assert_response :success
-    assert_not_equal original, @template.reload.webhook_secret
+    assert_equal original, @template.reload.webhook_secret
   end
 
   def test_publish_escapes_the_fiware_service_header

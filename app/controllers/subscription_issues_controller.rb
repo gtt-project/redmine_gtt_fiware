@@ -47,8 +47,15 @@ class SubscriptionIssuesController < ApplicationController
     end
 
     # Act as the configured member. The issue is authored by this user and all
-    # downstream permission checks (visibility, custom fields) use it.
-    User.current = @subscription_template.member.user
+    # downstream permission checks (visibility, custom fields) use it. The
+    # member or its user may have been removed since the template was created,
+    # so guard against a nil user instead of raising a 500.
+    member_user = @subscription_template.member&.user
+    unless member_user
+      render json: { error: 'Not authorized to create issues' }, status: :forbidden
+      return
+    end
+    User.current = member_user
 
     unless User.current.allowed_to?(:add_issues, @subscription_template.project)
       render json: { error: 'Not authorized to create issues' }, status: :forbidden

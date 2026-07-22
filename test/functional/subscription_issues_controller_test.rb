@@ -85,6 +85,19 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
     assert_response :forbidden
   end
 
+  # A valid secret whose member's user no longer exists must yield a controlled
+  # 403, not a 500 (#81 follow-up).
+  def test_create_handles_a_member_without_a_user
+    member = @template.member
+    member.stubs(:user).returns(nil)
+    # The controller loads its own template instance, so stub member there too.
+    SubscriptionTemplate.any_instance.stubs(:member).returns(member)
+    assert_no_difference 'Issue.count' do
+      post_notification
+    end
+    assert_response :forbidden
+  end
+
   def test_create_skips_attachments_with_non_https_urls
     assert_difference 'Issue.count', 1 do
       post_notification(notification_params(
