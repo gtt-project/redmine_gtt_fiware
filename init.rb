@@ -32,7 +32,7 @@ Redmine::Plugin.register :redmine_gtt_fiware do
   # Project module configuration with permissions
   project_module :gtt_fiware do
     permission :manage_subscription_templates, {
-      subscription_templates: %i( new edit update create destroy copy publish unpublish update_subscription_id set_subscription_id),
+      subscription_templates: %i( new edit update create destroy copy publish unpublish sync update_subscription_id set_subscription_id),
       projects: %i( manage_subscription_templates )
     }, require: :member
   end

@@ -121,6 +121,12 @@ de:
   field_subscription_template_description: 'Beschreibung'
   label_gtt_fiware: 'FIWARE'
   link_to_unpublish: 'Aufheben'
+  link_to_sync: 'Synchronisieren'
+  link_to_sync_hint: 'Die Subscription beim Broker abfragen und den lokalen Status aktualisieren'
+  subscription_synced: 'Die Subscription wurde mit dem Broker synchronisiert'
+  subscription_sync_removed: 'Die Subscription existiert nicht mehr beim Broker; die gespeicherte Subscription-ID wurde entfernt'
+  subscription_sync_no_subscription: 'Diese Vorlage hat keine veröffentlichte Subscription zum Synchronisieren'
+  subscription_sync_error: 'Der Broker konnte nicht abgefragt werden. Prüfen Sie den Autorisierungstoken und versuchen Sie es erneut.'
   field_subscription_template_comment: 'Anmerkung'
   subscription_published_error: 'Es gab ein Problem bei der Übertragung der Subscription
     an den Broker'

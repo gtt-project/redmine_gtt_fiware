@@ -13,6 +13,10 @@
       <path d="M16 19h6"/>
       <path d="M19 16v6"/>
     </symbol>
+    <symbol viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" id="icon--fiware-sync">
+      <path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"/>
+      <path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/>
+    </symbol>
     <symbol viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" id="icon--fiware-unpublish">
       <path d="M9 15l6 -6"/>
       <path d="M11 6l.463 -.536a5 5 0 1 1 7.071 7.072l-.534 .464"/>
