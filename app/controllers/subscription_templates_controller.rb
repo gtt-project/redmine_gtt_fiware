@@ -11,6 +11,12 @@ class SubscriptionTemplatesController < ApplicationController
   before_action :find_subscription_template, only: [:edit, :update, :destroy, :copy, :publish, :unpublish, :update_subscription_id]
   before_action :check_fiware_broker_auth_token, only: [:publish, :unpublish]
 
+  # set_subscription_id is the broker/tooling registration callback, a JSON API
+  # endpoint authenticated by API key. accept_api_auth enables key auth, and
+  # Redmine skips the CSRF token check for api_request? (json/xml) requests, so
+  # no manual verify_authenticity_token skip is needed. The state-changing
+  # browser actions (publish/unpublish) keep full CSRF protection via the
+  # rails-ujs token.
   accept_api_auth :set_subscription_id
   before_action :authorize, except: [:set_subscription_id]
 
