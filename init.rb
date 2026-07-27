@@ -24,10 +24,15 @@ Redmine::Plugin.register :redmine_gtt_fiware do
     partial: 'gtt_fiware/settings'
   )
 
-  # Broker connections are instance-level and admin-managed, like auth sources.
+  # Broker connections are instance-level and admin-managed, like auth sources
+  # (which is also why they reuse core's server-authentication icon). The :icon
+  # and matching :html class are both required for the admin menu item to
+  # render its sprite icon, exactly as core's own admin_menu items do.
   menu :admin_menu, :fiware_broker_connections,
        { controller: 'broker_connections', action: 'index' },
-       caption: :label_broker_connection_plural
+       caption: :label_broker_connection_plural,
+       icon: 'server-authentication',
+       html: { class: 'icon icon-server-authentication' }
 
   # Project module configuration with permissions
   project_module :gtt_fiware do
