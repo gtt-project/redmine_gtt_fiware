@@ -24,10 +24,16 @@ Redmine::Plugin.register :redmine_gtt_fiware do
     partial: 'gtt_fiware/settings'
   )
 
-  # Broker connections are instance-level and admin-managed, like auth sources.
+  # Broker connections are instance-level and admin-managed. The :icon (with
+  # :plugin, so it resolves from this plugin's own sprite rather than core's)
+  # and the matching :html class are both required for the admin menu item to
+  # render its sprite icon, exactly as core's own admin_menu items do.
   menu :admin_menu, :fiware_broker_connections,
        { controller: 'broker_connections', action: 'index' },
-       caption: :label_broker_connection_plural
+       caption: :label_broker_connection_plural,
+       icon: 'cloud-data-connection',
+       plugin: :redmine_gtt_fiware,
+       html: { class: 'icon icon-cloud-data-connection' }
 
   # Project module configuration with permissions
   project_module :gtt_fiware do
