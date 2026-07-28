@@ -10,11 +10,21 @@ var command = "curl -i -X POST '<%= raw j(@broker_url) %>' \\\n" +
                 "--data-binary '" + prettifiedJson + "'";
 
 // Same connection-defined token header scheme as publish.js.erb (#99).
-var authToken = document.getElementById('subscription_auth_token').value;
+// The token box only exists for browser/proxied connections; for a stored
+// connection the token stays on the server, so the copied command carries a
+// <token> placeholder instead of the secret.
+var tokenBox = document.getElementById('subscription_auth_token');
+var authToken = tokenBox ? tokenBox.value : '';
 if (authToken) {
   command += " \\\n-H '<%= raw j(@subscription_template.broker_connection.token_header_name) %>: " +
              "<%= raw j(@subscription_template.broker_connection.token_value_prefix) %>" + authToken + "'";
 }
+<% if @subscription_template.broker_connection.stored_auth? && @subscription_template.broker_connection.auth_token.present? %>
+else {
+  command += " \\\n-H '<%= raw j(@subscription_template.broker_connection.token_header_name) %>: " +
+             "<%= raw j(@subscription_template.broker_connection.token_value_prefix) %><token>'";
+}
+<% end %>
 
 console.log(command);
 

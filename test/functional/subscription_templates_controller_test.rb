@@ -116,6 +116,29 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     assert_includes response.body, ESCAPED_INJECTION
   end
 
+  # For a stored connection there is no browser token box: the copied curl
+  # command carries a <token> placeholder in the connection's token header,
+  # and the decrypted token itself never reaches the browser.
+  def test_copy_with_stored_connection_uses_a_placeholder_not_the_token
+    stored_connection = BrokerConnection.create!(
+      name: 'Stored copy broker',
+      standard: 'NGSIv2',
+      url: 'https://broker.example.com',
+      auth_mode: 'stored',
+      auth_token: 'server-secret-token',
+      token_header: 'X-Api-Key'
+    )
+    @template.update_column(:broker_connection_id, stored_connection.id)
+
+    get :copy, params: { project_id: @project.id, id: @template.id }, xhr: true, format: :js
+    assert_response :success
+    assert_includes response.body, 'X-Api-Key'
+    assert_includes response.body, '<token>'
+    assert_not_includes response.body, 'server-secret-token'
+    # The null-guard: the script must not assume the token box exists.
+    assert_includes response.body, "tokenBox ? tokenBox.value : ''"
+  end
+
   # Publishing an NGSI-LD template builds the LD subscription (#63): the broker
   # URL uses the /ngsi-ld/v1/ prefix and the payload carries the LD shape
   # (@context, notification.endpoint.receiverInfo, notificationTrigger).
@@ -220,6 +243,16 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     assert_select 'input[name=?][value=?]', 'subscription_template[subject]', '${type} ${id}'
     assert_select 'textarea[name=?]', 'subscription_template[description]', text: /changed/
     assert_select 'input[name=?]', 'publish_after_create'
+    # The status select must carry this id or the LD oneshot toggle in
+    # _form_script silently no-ops (id/required belong in html_options).
+    assert_select 'select#gtt-fiware-status-select'
+    # One blank starter row each: the add links clone the last row, so with
+    # zero rows they would silently do nothing.
+    assert_select 'span.gtt-fiware-entity-row', 1
+    assert_select 'span.gtt-fiware-attachment-row', 1
+    # Redmine 6 icons are SVG sprites; a bare icon-del anchor renders 0x0.
+    assert_select 'a.js-entity-remove svg'
+    assert_select 'a.js-attachment-remove svg'
   end
 
   # Sections with stored values are expanded on edit so nothing is hidden.
