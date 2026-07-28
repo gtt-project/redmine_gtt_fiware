@@ -57,6 +57,10 @@ class BrokerConnection < (defined?(ApplicationRecord) == 'constant' ? Applicatio
   validates :throttling, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
   validates :fiware_service, format: { with: SERVICE_PATTERN, message: I18n.t('model.broker_connection.invalid_service') }, allow_blank: true
   validates :fiware_servicepath, format: { with: SERVICE_PATH_PATTERN, message: I18n.t('model.broker_connection.invalid_service_path') }, allow_blank: true
+  # Typing "Authorization" must mean the same as leaving the field blank
+  # (Authorization: Bearer), not a raw token in the Authorization header --
+  # otherwise the two spellings of the default silently differ.
+  before_validation :normalize_token_header
   validates :token_header, format: { with: HEADER_NAME_PATTERN, message: I18n.t('model.broker_connection.invalid_token_header') }, allow_blank: true
   validate :url_must_be_http
 
@@ -114,6 +118,11 @@ class BrokerConnection < (defined?(ApplicationRecord) == 'constant' ? Applicatio
   end
 
   private
+
+  def normalize_token_header
+    self.token_header = token_header.to_s.strip.presence
+    self.token_header = nil if token_header&.casecmp('authorization')&.zero?
+  end
 
   def url_must_be_http
     return if url.blank?

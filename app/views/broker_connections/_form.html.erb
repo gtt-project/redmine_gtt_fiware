@@ -29,7 +29,7 @@
   <p><%= f.number_field :throttling, min: 0, step: 1, label: :field_broker_connection_throttling %>
     <em class="info"><%= l(:text_broker_connection_throttling_info, default_value: BrokerConnection::DEFAULT_THROTTLING) %></em></p>
   <p><%= f.text_field :token_header, size: 30, label: :field_broker_connection_token_header,
-        placeholder: 'Authorization' %>
+        placeholder: 'X-Api-Key' %>
     <em class="info"><%= l(:text_broker_connection_token_header_info) %></em></p>
   <p><%= f.password_field :auth_token, size: 60, value: '', label: :field_subscription_auth_token,
         placeholder: (@broker_connection.read_attribute(:auth_token).present? ? l(:label_broker_connection_token_stored) : l(:field_subscription_auth_token_placeholder)) %>

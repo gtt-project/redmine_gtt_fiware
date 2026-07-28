@@ -42,6 +42,17 @@ class BrokerConnectionTest < ActiveSupport::TestCase
     assert_nil connection(token_header: 'X-Api-Key').token_header_pair('')
   end
 
+  # Typing "Authorization" must behave exactly like leaving the field blank
+  # (Bearer scheme), not send the raw token in the Authorization header.
+  def test_token_header_authorization_normalizes_to_blank
+    ['Authorization', 'authorization', '  Authorization  '].each do |value|
+      subject = connection(token_header: value)
+      subject.valid?
+      assert_nil subject.token_header
+      assert_equal ['Authorization', 'Bearer secret'], subject.token_header_pair('secret')
+    end
+  end
+
   def test_token_header_must_be_a_valid_header_name
     assert connection(token_header: 'X-Api-Key').valid?
     assert connection(token_header: '').valid?
