@@ -44,6 +44,10 @@ class BrokerConnection < (defined?(ApplicationRecord) == 'constant' ? Applicatio
   SERVICE_PATTERN = /\A[A-Za-z0-9_]{1,50}\z/
   SERVICE_PATH_PATTERN = %r{\A/[A-Za-z0-9_]{1,50}(?:/[A-Za-z0-9_]{1,50}){0,9}\z}
 
+  # RFC 7230 header field-name (token) characters only, so a configured
+  # token_header can never inject additional headers (#99).
+  HEADER_NAME_PATTERN = /\A[!#$%&'*+\-.^_`|~0-9A-Za-z]+\z/
+
   has_many :subscription_templates, foreign_key: 'broker_connection_id', dependent: :restrict_with_error
 
   validates :name, presence: true, uniqueness: true
@@ -53,6 +57,7 @@ class BrokerConnection < (defined?(ApplicationRecord) == 'constant' ? Applicatio
   validates :throttling, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
   validates :fiware_service, format: { with: SERVICE_PATTERN, message: I18n.t('model.broker_connection.invalid_service') }, allow_blank: true
   validates :fiware_servicepath, format: { with: SERVICE_PATH_PATTERN, message: I18n.t('model.broker_connection.invalid_service_path') }, allow_blank: true
+  validates :token_header, format: { with: HEADER_NAME_PATTERN, message: I18n.t('model.broker_connection.invalid_token_header') }, allow_blank: true
   validate :url_must_be_http
 
   scope :sorted, -> { order(:name) }
@@ -83,6 +88,29 @@ class BrokerConnection < (defined?(ApplicationRecord) == 'constant' ? Applicatio
 
   def ngsi_ld?
     standard.to_s.casecmp('NGSI-LD').zero?
+  end
+
+  # How the broker expects its token (#99). Blank token_header keeps the
+  # Authorization: Bearer scheme; any other value names the header the raw
+  # token is sent in (X-Api-Key, X-Auth-Token, ...).
+  def token_header_name
+    token_header.presence || 'Authorization'
+  end
+
+  # 'Bearer ' when the token goes into Authorization, '' otherwise. Exposed
+  # separately from token_header_pair because the browser-mode views prepend
+  # it to a token that only exists client-side.
+  def token_value_prefix
+    token_header.present? ? '' : 'Bearer '
+  end
+
+  # [header_name, header_value] for the given token, or nil when it is blank.
+  # Every broker call (stored, proxied, preview, sync) builds its auth header
+  # through this so the scheme cannot drift between call sites.
+  def token_header_pair(token)
+    return nil if token.blank?
+
+    [token_header_name, "#{token_value_prefix}#{token}"]
   end
 
   private

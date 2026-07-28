@@ -24,6 +24,8 @@ ja:
   field_broker_connection_url: "ブローカーURL"
   field_broker_connection_auth_mode: "認証"
   field_broker_connection_throttling: "スロットリング（秒）"
+  field_broker_connection_token_header: "トークンヘッダー"
+  text_broker_connection_token_header_info: "トークンを送信するHTTPヘッダー。空欄の場合は「Authorization: Bearer <トークン>」で送信し、他のヘッダー（例：X-Api-Key）の場合はトークンをそのまま送信します。"
   field_subscription_template_throttling: "スロットリング（秒）"
   text_subscription_template_throttling_info: "このサブスクリプションについて接続のスロットリングを上書きします。空欄の場合は接続の値を継承します。"
   text_broker_connection_service_info: "テナント名（NGSIv2はFiware-Service、NGSI-LDはNGSILD-Tenant）。"
@@ -209,3 +211,4 @@ ja:
       invalid_url: "はhttp(s)のURLである必要があります"
       invalid_service: "は英数字とアンダースコアのみ使用できます（最大50文字）"
       invalid_service_path: "は英数字とアンダースコアを/で区切った形式である必要があります（最大10階層）"
+      invalid_token_header: "は有効なHTTPヘッダー名である必要があります"

@@ -180,6 +180,32 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     assert_equal 'sub-777', @template.reload.subscription_id
   end
 
+  # A connection with a custom token header (#99) sends the raw token in that
+  # header instead of Authorization: Bearer (API-key brokers like GeonicDB).
+  def test_publish_uses_the_connection_token_header
+    api_key_connection = BrokerConnection.create!(
+      name: 'API key broker',
+      standard: 'NGSI-LD',
+      url: 'https://broker.example.com',
+      auth_mode: 'stored',
+      auth_token: 'the-api-key',
+      token_header: 'X-Api-Key'
+    )
+    @template.update_column(:broker_connection_id, api_key_connection.id)
+
+    captured_request = nil
+    response_stub = Net::HTTPCreated.new('1.1', '201', 'Created')
+    response_stub['Location'] = '/ngsi-ld/v1/subscriptions/sub-key-1'
+    Net::HTTP.any_instance.stubs(:request).with { |req| captured_request = req }.returns(response_stub)
+
+    post :publish, params: { project_id: @project.id, id: @template.id }, xhr: true
+    assert_response :success
+
+    assert_not_nil captured_request
+    assert_equal 'the-api-key', captured_request['X-Api-Key']
+    assert_nil captured_request['Authorization']
+  end
+
   # --- form redesign (#66) ---------------------------------------------------
 
   # The new-template form renders the happy path plus three collapsed sections
