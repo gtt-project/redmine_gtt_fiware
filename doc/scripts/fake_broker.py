@@ -10,7 +10,7 @@ Usage (any container runtime; the port must be reachable both by the Redmine
 server for stored/relayed mode and by the operator's browser for browser mode):
 
     podman run -d --name fakebroker --network <redmine-network> -p 9999:9999 \
-      -v $(pwd)/fake_broker.py:/srv/broker.py:ro \
+      -v $(pwd)/plugins/redmine_gtt_fiware/doc/scripts/fake_broker.py:/srv/broker.py:ro \
       docker.io/library/python:3-alpine python /srv/broker.py
 
     podman logs fakebroker        # the request log
@@ -53,7 +53,12 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_POST(self):
-        self.rfile.read(int(self.headers.get('Content-Length', 0)))
+        # A malformed Content-Length must not crash the verification server.
+        try:
+            length = int(self.headers.get('Content-Length', 0))
+        except (TypeError, ValueError):
+            length = 0
+        self.rfile.read(length)
         self._log()
         Handler.counter += 1
         self.send_response(201)
