@@ -43,7 +43,30 @@ class BrokerConnectionTest < ActiveSupport::TestCase
 
   def test_auth_mode_must_be_known
     assert connection(auth_mode: 'browser').valid?
+    assert connection(auth_mode: 'proxied').valid?
     assert_not connection(auth_mode: 'keychain').valid?
+  end
+
+  # #95: 'stored' and 'proxied' both call the broker from the server; only
+  # 'browser' goes straight from the browser. 'proxied' and 'browser' both
+  # need a token typed in the browser.
+  def test_transport_predicates_per_mode
+    { 'stored'  => { server_side: true,  browser_token: false },
+      'proxied' => { server_side: true,  browser_token: true },
+      'browser' => { server_side: false, browser_token: true } }.each do |mode, want|
+      c = connection(auth_mode: mode)
+      assert_equal want[:server_side], c.server_side?, "server_side? for #{mode}"
+      assert_equal want[:browser_token], c.browser_token?, "browser_token? for #{mode}"
+    end
+    assert connection(auth_mode: 'stored').stored_auth?
+    assert_not connection(auth_mode: 'proxied').stored_auth?
+  end
+
+  def test_throttling_must_be_a_non_negative_integer
+    assert connection(throttling: nil).valid?
+    assert connection(throttling: 0).valid?
+    assert connection(throttling: 30).valid?
+    assert_not connection(throttling: -1).valid?
   end
 
   # #37: tenant header values are validated so publishing does not fail with

@@ -44,6 +44,7 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
   }.freeze
 
   validates :status, inclusion: { in: STATUS, message: I18n.t('model.subscription_template.valid_status') }
+  validates :throttling, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
   validates :expression_geometry, inclusion: { in: GEOMETRIES, message: I18n.t('model.subscription_template.valid_geometry') }, allow_blank: true
   # allow_nil: a template saved with no alteration types stores nil (see
   # serialize_alteration_types), which is valid persisted state - the
@@ -82,6 +83,16 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
   # value overrides the connection's default.
   def effective_context
     context.presence || broker_connection&.context
+  end
+
+  # Minimum interval between notifications for this subscription (#95). Same
+  # precedence as the context: template overrides the connection default.
+  # 0 is a meaningful value (no throttling), so test for nil, not presence.
+  def effective_throttling
+    return throttling unless throttling.nil?
+    return broker_connection.throttling unless broker_connection&.throttling.nil?
+
+    BrokerConnection::DEFAULT_THROTTLING
   end
 
   # The NGSI-LD notification triggers for this template's alteration types,

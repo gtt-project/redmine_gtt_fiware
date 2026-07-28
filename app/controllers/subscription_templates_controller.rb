@@ -310,12 +310,11 @@ class SubscriptionTemplatesController < ApplicationController
     normalized
   end
 
-  # The broker call runs server-side when the proxy setting is on OR the
-  # template's connection stores its token (#67): a stored token must never
-  # reach the browser.
+  # Whether the broker call runs on the server is now a property of the
+  # connection (#95): 'stored' and 'proxied' both run server-side, 'browser'
+  # calls the broker straight from the browser.
   def server_side_broker_call?
-    Setting.plugin_redmine_gtt_fiware['connect_via_proxy'] ||
-      @subscription_template.broker_connection&.stored_auth?
+    @subscription_template.broker_connection&.server_side?
   end
 
   def render_subscription_templates(message)
@@ -343,7 +342,7 @@ class SubscriptionTemplatesController < ApplicationController
     RedmineGttFiware::SubscriptionRequest.build(
       @subscription_template,
       base_url: request.base_url,
-      throttling: Setting.plugin_redmine_gtt_fiware['fiware_broker_subscription_throttling'].to_i
+      throttling: @subscription_template.effective_throttling
     )
   end
 
@@ -381,7 +380,7 @@ class SubscriptionTemplatesController < ApplicationController
 
   def subscription_template_params
     params[:subscription_template][:alteration_types] ||= []
-    params.require(:subscription_template).permit(:broker_connection_id, :subscription_id, :name, :expires, :status, :context, :entities_string, :attrs, :expression_query, :expression_georel, :expression_geometry, :expression_coords, :notify_on_metadata_change, :subject, :description, :attachments_string, :is_private, :project_id, :tracker_id, :version_id, :issue_status_id, :issue_category_id, :issue_priority_id, :member_id, :comment, :threshold_create, :threshold_create_hours, :notes, :geometry, :geometry_string, alteration_types: [])
+    params.require(:subscription_template).permit(:broker_connection_id, :subscription_id, :name, :expires, :status, :throttling, :context, :entities_string, :attrs, :expression_query, :expression_georel, :expression_geometry, :expression_coords, :notify_on_metadata_change, :subject, :description, :attachments_string, :is_private, :project_id, :tracker_id, :version_id, :issue_status_id, :issue_category_id, :issue_priority_id, :member_id, :comment, :threshold_create, :threshold_create_hours, :notes, :geometry, :geometry_string, alteration_types: [])
   end
 
   # Stored connections supply their encrypted token server-side; browser-mode

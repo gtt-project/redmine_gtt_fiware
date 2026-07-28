@@ -262,6 +262,51 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     assert_equal I18n.t(:subscription_unauthorized_error), flash[:error]
   end
 
+  # --- transport modes and throttling (#95) ----------------------------------
+
+  # 'proxied': the token is typed in the browser and sent as a header, but the
+  # server makes the broker call (previously the global connect_via_proxy).
+  def test_publish_proxied_relays_the_browser_token_server_side
+    proxied = BrokerConnection.create!(
+      name: 'Proxied broker', standard: 'NGSIv2', url: 'https://broker.example.com',
+      auth_mode: 'proxied'
+    )
+    @template.update_column(:broker_connection_id, proxied.id)
+
+    captured = nil
+    created = Net::HTTPCreated.new('1.1', '201', 'Created')
+    created['Location'] = '/v2/subscriptions/sub-proxied'
+    Net::HTTP.any_instance.stubs(:request).with { |req| captured = req }.returns(created)
+
+    @request.headers['FIWARE-Broker-Auth-Token'] = 'typed-in-the-browser'
+    post :publish, params: { project_id: @project.id, id: @template.id }, xhr: true
+
+    assert_response :success
+    assert_not_nil captured, 'proxied mode must call the broker from the server'
+    assert_equal 'Bearer typed-in-the-browser', captured['Authorization']
+    assert_equal 'sub-proxied', @template.reload.subscription_id
+  end
+
+  # 'browser' keeps the client-side flow: the server renders JS, no server-side
+  # broker call.
+  def test_publish_browser_mode_renders_the_js_flow
+    Net::HTTP.any_instance.stubs(:request).raises('the server must not call the broker in browser mode')
+    post :publish, params: { project_id: @project.id, id: @template.id }, xhr: true, format: :js
+    assert_response :success
+    assert_includes response.body, 'fetch('
+  end
+
+  # Throttling comes from the template, else the connection, else the default.
+  def test_publish_payload_uses_the_effective_throttling
+    @broker_connection.update_column(:throttling, 42)
+    post :publish, params: { project_id: @project.id, id: @template.id }, xhr: true, format: :js
+    assert_includes response.body, '\"throttling\":42'
+
+    @template.update_column(:throttling, 7)
+    post :publish, params: { project_id: @project.id, id: @template.id }, xhr: true, format: :js
+    assert_includes response.body, '\"throttling\":7'
+  end
+
   # --- live preview (#68) ----------------------------------------------------
 
   def preview_params(overrides = {})

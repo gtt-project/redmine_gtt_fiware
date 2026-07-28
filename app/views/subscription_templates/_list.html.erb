@@ -1,12 +1,17 @@
 <% if subscription_templates.any? %>
-  <div class="box tabular">
-    <p class="min-width">
-      <%= content_tag :label, l(:field_subscription_auth_token) %>
-      <%= text_field_tag :subscription_auth_token, "", :size => 60, :placeholder => l(:field_subscription_auth_token_placeholder) %>
-      <%= button_tag l(:button_connect_via_proxy_text), type: 'button', id: 'connect_via_proxy_status' %>
-      <br><small><i><%= l(:field_subscription_auth_token_hint).html_safe %></i></small>
-    </p>
-  </div>
+  <%# The token box is only useful for connections whose token is typed in the
+      browser (proxied / browser). A list of purely stored-auth templates needs
+      no token at all, so it is hidden then (#95). %>
+  <% needs_browser_token = subscription_templates.any? { |t| t.broker_connection&.browser_token? } %>
+  <% if needs_browser_token %>
+    <div class="box tabular">
+      <p class="min-width">
+        <%= content_tag :label, l(:field_subscription_auth_token) %>
+        <%= text_field_tag :subscription_auth_token, "", :size => 60, :placeholder => l(:field_subscription_auth_token_placeholder) %>
+        <br><small><i><%= l(:field_subscription_auth_token_hint).html_safe %></i></small>
+      </p>
+    </div>
+  <% end %>
 
   <table class="list subscription_templates">
     <thead>
@@ -27,7 +32,7 @@
     </tbody>
   </table>
 
-  <% if Setting.plugin_redmine_gtt_fiware['connect_via_proxy'] %>
+  <% if needs_browser_token %>
   <script>
     document.addEventListener("DOMContentLoaded", function() {
       if (Rails) {
@@ -58,7 +63,6 @@
         });
       }
 
-      document.getElementById('connect_via_proxy_status').style.backgroundColor = '#d3ffc6';
     });
   </script>
   <% end %>
