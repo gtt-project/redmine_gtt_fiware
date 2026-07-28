@@ -28,6 +28,9 @@ development) or [FIWARE-Big-Bang](https://github.com/lets-fiware/FIWARE-Big-Bang
 ## Tools and Utilities
 
 - [FIWARE Broker Scripts](broker_scripts.md)
+- [Release Verification](release_verification.md) — pre-release checks beyond
+  the automated suite: auth mode drill against a fake broker, real broker
+  round trips for both NGSI standards
 
 ## Reference
 
