@@ -10,8 +10,8 @@ en:
 
   label_broker_connection: "FIWARE Connection"
   label_broker_connection_plural: "FIWARE Connections"
-  label_broker_connection_new: "New FIWARE connection"
-  label_broker_connection_manage: "Manage FIWARE connections"
+  label_broker_connection_new: "New FIWARE Connection"
+  label_broker_connection_manage: "Manage FIWARE Connections"
   label_broker_connection_auth_mode_stored: "Stored token (server-side)"
   label_broker_connection_auth_mode_browser: "Browser-supplied token"
   label_broker_connection_token_stored: "A token is stored - leave blank to keep it"
