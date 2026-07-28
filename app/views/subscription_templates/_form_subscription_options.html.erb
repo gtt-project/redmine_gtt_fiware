@@ -1,5 +1,8 @@
 <div class="box tabular">
-  <p class="min-width"><%= f.select :status, SubscriptionTemplate::STATUS, required: true, id: 'gtt-fiware-status-select' %>
+  <%# required/id must be in html_options (4th arg) -- in the 3rd (options)
+      hash Rails silently drops them, the select gets the default id, and the
+      LD oneshot toggle in _form_script never finds it. %>
+  <p class="min-width"><%= f.select :status, SubscriptionTemplate::STATUS, {}, required: true, id: 'gtt-fiware-status-select' %>
     <em class="info js-ngsi-ld-only" style="display: none;"><%= l(:text_status_oneshot_ld_info) %></em></p>
 
   <p>

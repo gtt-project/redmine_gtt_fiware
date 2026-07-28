@@ -15,6 +15,10 @@
     a.is_a?(Hash) && (a.keys - %w[url filename description]).empty?
   end
   attachment_rows = attachments_pickerable ? attachments : []
+  # A blank starter row, like the entity picker: the add link clones the last
+  # row, so with zero rows it would silently do nothing. Rows with a blank URL
+  # are skipped on serialization.
+  attachment_rows = [{}] if attachment_rows.empty? && attachments_pickerable
 %>
 
 <div class="box tabular">
@@ -43,7 +47,8 @@
           <input type="text" class="js-attachment-url" value="<%= attachment['url'] %>" placeholder="https://example.com/photo.jpg" size="35" />
           <input type="text" class="js-attachment-filename" value="<%= attachment['filename'] %>" placeholder="photo-${id}.jpg" size="20" />
           <input type="text" class="js-attachment-description" value="<%= attachment['description'] %>" placeholder="<%= l(:field_description) %>" size="20" />
-          <a href="#" class="js-attachment-remove icon-only icon-del" title="<%= l(:button_delete) %>" aria-label="<%= l(:button_delete) %>"></a>
+          <%# Redmine 6 icons are SVG sprites; a bare icon-del anchor renders 0x0. %>
+          <a href="#" class="js-attachment-remove icon-only icon-del" title="<%= l(:button_delete) %>" aria-label="<%= l(:button_delete) %>"><%= sprite_icon('del') %></a>
         </span>
       <% end %>
       <a href="#" id="gtt-fiware-attachment-add"><%= l(:label_attachment_template_add) %></a>

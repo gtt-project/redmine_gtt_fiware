@@ -1,12 +1,12 @@
 en:
   project_module_gtt_fiware: "GTT FIWARE"
-  permission_manage_subscription_templates: "Manage Subscription Templates"
+  permission_manage_subscription_templates: "Manage Subscriptions"
 
   label_gtt_fiware: "FIWARE"
   label_gtt_fiware_plural: "FIWARE"
-  label_subscription_template: "Subscription Template"
-  label_subscription_template_plural: "Subscription Templates"
-  label_subscription_template_new: "New Subscription Template"
+  label_subscription_template: "Subscription"
+  label_subscription_template_plural: "Subscriptions"
+  label_subscription_template_new: "New Subscription"
 
   label_broker_connection: "FIWARE Connection"
   label_broker_connection_plural: "FIWARE Connections"
