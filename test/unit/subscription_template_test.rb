@@ -102,6 +102,15 @@ class SubscriptionTemplateTest < ActiveSupport::TestCase
     assert_equal 0, template.effective_throttling
   end
 
+  def test_throttling_must_be_a_non_negative_integer
+    assert SubscriptionTemplate.new(valid_attributes(throttling: nil)).valid?
+    assert SubscriptionTemplate.new(valid_attributes(throttling: 0)).valid?
+    assert SubscriptionTemplate.new(valid_attributes(throttling: 60)).valid?
+    invalid = SubscriptionTemplate.new(valid_attributes(throttling: -5))
+    assert_not invalid.valid?
+    assert invalid.errors[:throttling].present?
+  end
+
   def test_ld_template_requires_an_effective_context
     ld_connection = BrokerConnection.create!(
       name: 'LD broker no context', standard: 'NGSI-LD', url: 'https://ld.example.com', auth_mode: 'browser'

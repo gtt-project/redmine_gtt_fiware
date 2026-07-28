@@ -20,7 +20,7 @@ de:
   text_broker_connection_context_info: 'Standard-@context für NGSI-LD; eine Subscription-Vorlage kann ihn überschreiben.'
   text_broker_connection_auth_mode_info: 'Gespeichert: Der Token wird hier verschlüsselt gespeichert und der Server ruft den Broker auf. Über den Server: Der Token wird bei jeder Veröffentlichung im Browser eingegeben, der Aufruf läuft über den Server. Browser: Der Browser ruft den Broker direkt auf (erfordert einen aus dem Browser erreichbaren Broker mit CORS).'
   text_broker_connection_throttling_info: 'Mindestabstand zwischen Benachrichtigungen in Sekunden, für die Subscriptions dieser Verbindung, sofern eine Vorlage ihn nicht überschreibt. Leer bedeutet %{default_value}.'
-  text_broker_connection_token_info: 'Verschlüsselt gespeichert (database_cipher_key). Leer lassen, um den aktuellen Token zu behalten. Im Browser-Modus nicht verwendet.'
+  text_broker_connection_token_info: 'Verschlüsselt gespeichert (database_cipher_key). Leer lassen, um den aktuellen Token zu behalten. Wird nur im Modus "Gespeichert" verwendet; die Modi "Über den Server" und "Browser" nehmen den Token aus dem Browser.'
   gtt_fiware:
     tracker_not_found: 'Status nicht gefunden'
     version_not_found: 'Version nicht gefunden'

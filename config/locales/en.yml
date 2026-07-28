@@ -27,7 +27,7 @@ en:
   text_broker_connection_context_info: "Default NGSI-LD @context; a subscription template can override it."
   text_broker_connection_auth_mode_info: "Stored: the token is saved encrypted here and the server calls the broker. Relayed: the token is entered in the browser on every publish and the server makes the call. Browser: the browser calls the broker directly (needs a broker reachable from the browser, with CORS)."
   text_broker_connection_throttling_info: "Minimum seconds between notifications, used by this connection's subscriptions unless a template overrides it. Blank uses %{default_value}."
-  text_broker_connection_token_info: "Stored encrypted (database_cipher_key). Leave blank to keep the current token. Not used in browser mode."
+  text_broker_connection_token_info: "Stored encrypted (database_cipher_key). Leave blank to keep the current token. Only used in stored mode; the relayed and browser modes take the token from the browser."
 
 
   gtt_fiware_settings_broker: "FIWARE Settings"

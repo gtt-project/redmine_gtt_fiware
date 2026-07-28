@@ -27,7 +27,7 @@ ja:
   text_broker_connection_context_info: "NGSI-LDの既定の@context。サブスクリプションテンプレートで上書きできます。"
   text_broker_connection_auth_mode_info: "保存：トークンを暗号化して保存し、サーバーがブローカーを呼び出します。サーバー経由：公開のたびにブラウザーでトークンを入力し、サーバーが呼び出します。ブラウザー：ブラウザーが直接ブローカーを呼び出します（ブラウザーから到達でき、CORSが有効なブローカーが必要）。"
   text_broker_connection_throttling_info: "通知の最小間隔（秒）。この接続のサブスクリプションで使用されます（テンプレートで上書き可能）。空欄の場合は%{default_value}。"
-  text_broker_connection_token_info: "暗号化して保存されます（database_cipher_key）。現在のトークンを変更しない場合は空欄のままにしてください。ブラウザーモードでは使用されません。"
+  text_broker_connection_token_info: "暗号化して保存されます（database_cipher_key）。現在のトークンを変更しない場合は空欄のままにしてください。保存モードでのみ使用され、サーバー経由モードとブラウザーモードではブラウザーで入力したトークンを使用します。"
 
 
   gtt_fiware_settings_broker: "FIWARE設定"
