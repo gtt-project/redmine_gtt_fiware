@@ -1,4 +1,22 @@
 /**************************************************************/
+/*                  Plugin settings page
+/**************************************************************/
+
+/* Core wraps the settings partial in a single box, so the section headings
+   are the only separation between groups. Give them room to breathe. */
+#settings.plugin-redmine_gtt_fiware h3 {
+  margin-top: 1.8em;
+  padding-top: 1em;
+  border-top: 1px solid #ddd;
+}
+
+#settings.plugin-redmine_gtt_fiware h3:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+/**************************************************************/
 /*                  Subscription Templates table
 /**************************************************************/
 
