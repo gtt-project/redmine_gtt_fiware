@@ -65,9 +65,10 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def update_subscription_id
-    @subscription_template = find_subscription_template
-    # presence: browser-mode unpublish PATCHes an empty string; store nil so a
-    # cleared subscription looks the same regardless of which mode cleared it.
+    # @subscription_template is loaded by the find_subscription_template
+    # before_action. presence: browser-mode unpublish PATCHes an empty string;
+    # store nil so a cleared subscription looks the same regardless of which
+    # mode cleared it.
     @subscription_template.update(subscription_id: params[:subscription_id].presence)
 
     @subscription_templates = subscription_template_scope
