@@ -4,6 +4,11 @@ require 'uri'
 class SubscriptionTemplatesController < ApplicationController
   layout 'base'
 
+  # See the note in SubscriptionIssuesController: Redmine relies on Rails'
+  # default forgery protection, which static analysis cannot see. Declaring it
+  # explicitly changes no behaviour (CodeQL rb/csrf-protection-not-enabled).
+  protect_from_forgery with: :exception
+
   before_action :find_project_by_project_id, except: [:index, :set_subscription_id]
   before_action :get_issue_statuses, only: [:new, :create, :edit, :update]
   before_action :get_issue_priorities, only: [:new, :create, :edit, :update]

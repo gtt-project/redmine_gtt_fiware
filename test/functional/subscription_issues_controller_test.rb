@@ -51,6 +51,19 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
     post :create, params: { subscription_template_id: template_id }, body: { data: entities }.to_json
   end
 
+  # The notification route must carry format: 'json'. That is what makes
+  # Redmine treat it as an api_request? and exempt it from the CSRF token check
+  # (core's verify_authenticity_token), instead of the controller skipping
+  # forgery protection itself. Forgery protection is disabled in the test
+  # environment, so only this routing assertion pins the production behaviour.
+  def test_notification_route_is_a_json_api_endpoint
+    assert_routing(
+      { method: 'post', path: "/fiware/subscription_template/#{@template.id}/notification" },
+      { controller: 'subscription_issues', action: 'create',
+        subscription_template_id: @template.id.to_s, format: 'json' }
+    )
+  end
+
   def test_create_rejects_a_missing_secret
     assert_no_difference 'Issue.count' do
       post_notification(secret: nil)
