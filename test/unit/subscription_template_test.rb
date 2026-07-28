@@ -152,6 +152,17 @@ class SubscriptionTemplateTest < ActiveSupport::TestCase
     assert template.errors[:entities_string].present?
   end
 
+  # Blank input is the presence validation's job: exactly one error, and no
+  # TypeError from JSON.parse(nil).
+  def test_blank_entities_string_reports_presence_only
+    ['', nil].each do |blank|
+      template = SubscriptionTemplate.new(valid_attributes(entities_string: blank))
+      template.entities = nil
+      assert_not template.valid?
+      assert_equal 1, template.errors[:entities_string].size, "#{blank.inspect} must add exactly one error"
+    end
+  end
+
   # Parsable JSON with the wrong shape must fail validation too: the
   # subscription builders expect a non-empty array of entity objects.
   def test_entities_string_must_be_a_non_empty_array_of_objects
