@@ -3,7 +3,10 @@
 
 # Define route for creating issues with a notification template
 scope 'fiware/subscription_template/:subscription_template_id' do
-  post 'notification', to: 'subscription_issues#create'
+  # format: 'json' is what makes Redmine treat this as an api_request? and
+  # therefore exempt it from the CSRF token check, instead of the endpoint
+  # skipping verify_authenticity_token itself (#61 established this pattern).
+  post 'notification', to: 'subscription_issues#create', defaults: { format: 'json' }
   # Registration is a state-changing callback (it stores the broker-assigned
   # subscription id), so it is POST, not GET. It is a JSON API endpoint
   # (format: 'json'): it is authenticated by API key via accept_api_auth, and

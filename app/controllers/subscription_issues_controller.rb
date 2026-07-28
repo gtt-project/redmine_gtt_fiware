@@ -8,11 +8,19 @@ require 'json'
 # the create-vs-update dedup rule. All templating happens plugin-side.
 class SubscriptionIssuesController < ApplicationController
 
+  # Redmine's ApplicationController inherits Rails' default forgery protection
+  # rather than calling protect_from_forgery itself, so static analysis cannot
+  # see it. Declaring it here changes no behaviour and keeps the protection
+  # visible (CodeQL rb/csrf-protection-not-enabled).
+  protect_from_forgery with: :exception
+
   # The notification endpoint is a machine callback authenticated solely by the
   # template's webhook secret (see #58), not by a Redmine session or API key.
-  # Skip the CSRF token check and the global login requirement, then
-  # authenticate on the secret and act as the template's configured member.
-  skip_before_action :verify_authenticity_token, only: [:create]
+  #
+  # It is routed as a JSON API endpoint (defaults: { format: 'json' }), and
+  # Redmine's own verify_authenticity_token exempts api_request? (json/xml)
+  # requests, so no CSRF skip is needed here. The global login requirement is
+  # still skipped: the request carries no session.
   skip_before_action :check_if_login_required, only: [:create]
   before_action :authenticate_webhook, only: [:create]
 
