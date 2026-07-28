@@ -324,6 +324,19 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     assert_equal I18n.t(:subscription_unauthorized_error), flash[:error]
   end
 
+  # Browser-mode publish/unpublish report the broker-assigned id back through
+  # this action; an empty value (unpublish) must store nil, not '', so a
+  # cleared subscription looks the same regardless of which mode cleared it.
+  def test_update_subscription_id_sets_and_clears
+    patch :update_subscription_id, params: { project_id: @project.id, id: @template.id, subscription_id: 'sub-42' }, xhr: true
+    assert_response :success
+    assert_equal 'sub-42', @template.reload.subscription_id
+
+    patch :update_subscription_id, params: { project_id: @project.id, id: @template.id, subscription_id: '' }, xhr: true
+    assert_response :success
+    assert_nil @template.reload.subscription_id
+  end
+
   # --- transport modes and throttling (#95) ----------------------------------
 
   # 'proxied': the token is typed in the browser and sent as a header, but the
