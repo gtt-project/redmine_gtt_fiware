@@ -31,6 +31,17 @@ class BrokerConnectionsControllerTest < ActionController::TestCase
     assert_select 'td.name', text: 'City broker'
   end
 
+  # The form labels only render through labelled_form_for, and the
+  # standard-specific fields (Fiware-ServicePath is NGSIv2-only, @context is
+  # NGSI-LD-only) carry the js-ngsi-* hooks the toggle script relies on.
+  def test_new_form_has_labels_and_standard_toggle_hooks
+    get :new
+    assert_response :success
+    assert_select 'label[for=?]', 'broker_connection_name'
+    assert_select 'p.js-ngsi-v2-only input#broker_connection_fiware_servicepath'
+    assert_select 'p.js-ngsi-ld-only input#broker_connection_context'
+  end
+
   def test_create_persists_and_ciphers_the_token
     assert_difference 'BrokerConnection.count', 1 do
       post :create, params: { broker_connection: connection_params }
