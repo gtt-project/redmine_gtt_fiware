@@ -25,7 +25,7 @@ en:
   text_broker_connection_token_info: "Stored encrypted (database_cipher_key). Leave blank to keep the current token. Not used in browser mode."
 
 
-  gtt_fiware_settings_broker: "FIWARE Broker Settings"
+  gtt_fiware_settings_broker: "FIWARE Settings"
   field_connect_via_proxy: "Connect via internal proxy"
   button_connect_via_proxy_text: "PROXY"
   field_fiware_broker_subscription_throttling: "Subscription Throttling"

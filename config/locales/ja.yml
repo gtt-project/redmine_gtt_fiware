@@ -25,7 +25,7 @@ ja:
   text_broker_connection_token_info: "暗号化して保存されます（database_cipher_key）。現在のトークンを変更しない場合は空欄のままにしてください。ブラウザーモードでは使用されません。"
 
 
-  gtt_fiware_settings_broker: "FIWARE Broker Settings"
+  gtt_fiware_settings_broker: "FIWARE設定"
   field_connect_via_proxy: "Connect via internal proxy"
   button_connect_via_proxy_text: "PROXY"
   field_fiware_broker_subscription_throttling: "Subscription Throttling"

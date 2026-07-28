@@ -47,7 +47,7 @@ de:
       invalid_service: 'darf nur Buchstaben, Ziffern und Unterstriche enthalten (max. 50 Zeichen)'
       invalid_service_path: 'muss aus /-getrennten Ebenen aus Buchstaben, Ziffern und Unterstrichen bestehen (max. 10 Ebenen)'
   field_subscription_template_fiware_servicepath: 'FIWARE Service Path'
-  gtt_fiware_settings_broker: 'FIWARE Broker-Einstellungen'
+  gtt_fiware_settings_broker: 'FIWARE-Einstellungen'
   subscription_published: 'Die Subscription wurde an den Broker übermittelt'
   field_subscription_template_expression_geometry: 'Geometry'
   link_to_copy: 'Zwischenablage'
