@@ -7,9 +7,12 @@ headers.append('Content-Type', '<%= raw j(@subscription_request.content_type) %>
   headers.append('<%= raw j(name) %>', '<%= raw j(value) %>');
 <% end %>
 
+// The token header scheme is the connection's (#99): Authorization with a
+// Bearer prefix by default, or a raw token in a custom header (X-Api-Key...).
 var authToken = document.getElementById('subscription_auth_token').value;
 if (authToken) {
-  headers.append('Authorization', 'Bearer ' + authToken);
+  headers.append('<%= raw j(@subscription_template.broker_connection.token_header_name) %>',
+                 '<%= raw j(@subscription_template.broker_connection.token_value_prefix) %>' + authToken);
 }
 
 // Build the request options

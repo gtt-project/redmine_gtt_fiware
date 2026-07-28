@@ -185,7 +185,9 @@ class SubscriptionTemplatesController < ApplicationController
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = (uri.scheme == 'https')
     headers = { 'Accept' => 'application/json' }
-    headers['Authorization'] = "Bearer #{connection.auth_token}" if connection.stored_auth? && connection.auth_token.present?
+    if connection.stored_auth? && (pair = connection.token_header_pair(connection.auth_token))
+      headers[pair.first] = pair.last
+    end
     headers.merge!(request_builder.tenant_headers)
     response = http.request(Net::HTTP::Get.new(uri.request_uri, headers))
 
@@ -285,7 +287,9 @@ class SubscriptionTemplatesController < ApplicationController
     http.use_ssl = (uri.scheme == 'https')
 
     headers = {}
-    headers['Authorization'] = "Bearer #{@fiware_broker_auth_token}" if @fiware_broker_auth_token.present?
+    if (pair = @subscription_template.broker_connection.token_header_pair(@fiware_broker_auth_token))
+      headers[pair.first] = pair.last
+    end
     headers.merge!(@subscription_request.tenant_headers)
     # request_uri keeps any query string and never yields an empty path.
     http.request(Net::HTTP::Get.new(uri.request_uri, headers))
@@ -414,7 +418,9 @@ class SubscriptionTemplatesController < ApplicationController
     http.use_ssl = (uri.scheme == 'https')
 
     headers = {}
-    headers['Authorization'] = "Bearer #{@fiware_broker_auth_token}" if @fiware_broker_auth_token.present?
+    if (pair = @subscription_template.broker_connection.token_header_pair(@fiware_broker_auth_token))
+      headers[pair.first] = pair.last
+    end
     headers['Content-Type'] = @subscription_request.content_type if action == 'publish'
     headers.merge!(@subscription_request.tenant_headers)
 

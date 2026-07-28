@@ -26,6 +26,40 @@ class BrokerConnectionTest < ActiveSupport::TestCase
     assert connection(standard: 'NGSIv2').valid?
   end
 
+  # The token header scheme (#99): blank keeps Authorization: Bearer, any
+  # other header carries the raw token (API-key gateways such as GeonicDB).
+  def test_token_header_pair_defaults_to_authorization_bearer
+    assert_equal ['Authorization', 'Bearer secret'], connection.token_header_pair('secret')
+  end
+
+  def test_token_header_pair_sends_the_raw_token_in_a_custom_header
+    assert_equal ['X-Api-Key', 'secret'],
+                 connection(token_header: 'X-Api-Key').token_header_pair('secret')
+  end
+
+  def test_token_header_pair_is_nil_without_a_token
+    assert_nil connection.token_header_pair(nil)
+    assert_nil connection(token_header: 'X-Api-Key').token_header_pair('')
+  end
+
+  # Typing "Authorization" must behave exactly like leaving the field blank
+  # (Bearer scheme), not send the raw token in the Authorization header.
+  def test_token_header_authorization_normalizes_to_blank
+    ['Authorization', 'authorization', '  Authorization  '].each do |value|
+      subject = connection(token_header: value)
+      subject.valid?
+      assert_nil subject.token_header
+      assert_equal ['Authorization', 'Bearer secret'], subject.token_header_pair('secret')
+    end
+  end
+
+  def test_token_header_must_be_a_valid_header_name
+    assert connection(token_header: 'X-Api-Key').valid?
+    assert connection(token_header: '').valid?
+    assert_not connection(token_header: 'X-Api-Key: injected').valid?
+    assert_not connection(token_header: "Evil\nHeader").valid?
+  end
+
   def test_name_must_be_unique
     connection.save!
     duplicate = connection

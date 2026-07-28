@@ -65,7 +65,7 @@ class BrokerConnectionsController < ApplicationController
   def broker_connection_params
     permitted = params.require(:broker_connection)
                       .permit(:name, :standard, :url, :fiware_service, :fiware_servicepath,
-                              :context, :auth_mode, :auth_token, :throttling)
+                              :context, :auth_mode, :auth_token, :token_header, :throttling)
     # A blank token on edit means "keep the stored token"; the form never
     # renders the current one.
     permitted.delete(:auth_token) if permitted[:auth_token].blank?

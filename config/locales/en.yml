@@ -24,6 +24,8 @@ en:
   field_broker_connection_url: "Broker URL"
   field_broker_connection_auth_mode: "Authentication"
   field_broker_connection_throttling: "Throttling (s)"
+  field_broker_connection_token_header: "Token header"
+  text_broker_connection_token_header_info: "HTTP header the token is sent in. Blank sends \"Authorization: Bearer <token>\"; any other header (e.g. X-Api-Key) sends the token as-is."
   field_subscription_template_throttling: "Throttling (s)"
   text_subscription_template_throttling_info: "Overrides the connection's throttling for this subscription. Blank inherits it."
   text_broker_connection_service_info: "Tenant name (Fiware-Service for NGSIv2, NGSILD-Tenant for NGSI-LD)."
@@ -213,3 +215,4 @@ en:
       invalid_url: "must be an http(s) URL"
       invalid_service: "may only contain letters, digits and underscores (max 50 characters)"
       invalid_service_path: "must be /-separated levels of letters, digits and underscores (max 10 levels)"
+      invalid_token_header: "must be a valid HTTP header name"

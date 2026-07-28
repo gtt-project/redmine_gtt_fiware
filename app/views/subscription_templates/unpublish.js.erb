@@ -8,7 +8,9 @@ var headers = new Headers();
 
 var authToken = document.getElementById('subscription_auth_token').value;
 if (authToken) {
-  headers.append('Authorization', 'Bearer ' + authToken);
+  // Same connection-defined token header scheme as publish.js.erb (#99).
+  headers.append('<%= raw j(@subscription_template.broker_connection.token_header_name) %>',
+                 '<%= raw j(@subscription_template.broker_connection.token_value_prefix) %>' + authToken);
 }
 
 // Build the request options for the DELETE request
