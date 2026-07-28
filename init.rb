@@ -16,8 +16,6 @@ Redmine::Plugin.register :redmine_gtt_fiware do
   # Plugin settings with default values and partial view for settings
   settings(
     default: {
-      'connect_via_proxy' => false,
-      'fiware_broker_subscription_throttling' => '10',
       'attachment_download_hosts' => '',
       'attachment_download_content_types' => "image/jpeg\nimage/png\nimage/gif\nimage/webp\napplication/pdf\ntext/plain\ntext/csv\napplication/json",
     },

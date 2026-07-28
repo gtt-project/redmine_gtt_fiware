@@ -86,6 +86,22 @@ class SubscriptionTemplateTest < ActiveSupport::TestCase
     assert_equal 'https://example.test/override.jsonld', template.effective_context
   end
 
+  # #95: template overrides connection, connection overrides the default.
+  # 0 means "no throttling" and must not be treated as unset.
+  def test_effective_throttling_precedence
+    template = SubscriptionTemplate.new(valid_attributes)
+    assert_equal BrokerConnection::DEFAULT_THROTTLING, template.effective_throttling
+
+    template.broker_connection.throttling = 30
+    assert_equal 30, template.effective_throttling
+
+    template.throttling = 5
+    assert_equal 5, template.effective_throttling
+
+    template.throttling = 0
+    assert_equal 0, template.effective_throttling
+  end
+
   def test_ld_template_requires_an_effective_context
     ld_connection = BrokerConnection.create!(
       name: 'LD broker no context', standard: 'NGSI-LD', url: 'https://ld.example.com', auth_mode: 'browser'

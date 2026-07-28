@@ -1,19 +1,8 @@
 <%# Redmine's settings/plugin.html.erb already wraps this partial in
     <div class="box tabular settings">, so adding our own box here would draw a
-    second border around every group. Section headings alone are enough. %>
-<h3><%= l(:gtt_fiware_settings_broker) %></h3>
-
-<p>
-  <%= content_tag(:label, l(:field_connect_via_proxy)) %>
-  <%= check_box_tag 'settings[connect_via_proxy]', 1, Setting.plugin_redmine_gtt_fiware['connect_via_proxy'] %>
-</p>
-
-<p>
-  <%= content_tag(:label, l(:field_fiware_broker_subscription_throttling)) %>
-  <%= number_field_tag 'settings[fiware_broker_subscription_throttling]',
-    @settings['fiware_broker_subscription_throttling'], :min => 0, :step => 1 %>
-</p>
-
+    second border around every group. Section headings alone are enough.
+    Transport and throttling moved onto the connection/template (#95); only
+    genuinely instance-wide settings belong here. %>
 <h3><%= l(:gtt_fiware_settings_attachment_download) %></h3>
 
 <p>

@@ -16,7 +16,20 @@ class BrokerConnection < (defined?(ApplicationRecord) == 'constant' ? Applicatio
   self.table_name = 'fiware_broker_connections'
 
   STANDARDS = ['NGSIv2', 'NGSI-LD'].freeze
-  AUTH_MODES = ['stored', 'browser'].freeze
+
+  # How this broker is reached, and where its token comes from (#95):
+  #
+  #   stored  - token stored encrypted here, broker called from the server
+  #   proxied - token entered in the browser per request, server relays the call
+  #   browser - token entered in the browser, browser calls the broker directly
+  #
+  # Whether the browser can reach a broker at all (private network, firewall,
+  # CORS) is a property of that broker, which is why this lives here and not
+  # in the plugin settings.
+  AUTH_MODES = ['stored', 'proxied', 'browser'].freeze
+
+  # Used when neither the template nor the connection sets one.
+  DEFAULT_THROTTLING = 10
 
   # Fiware-Service is a tenant name: alphanumerics and underscore, max 50
   # chars (Orion spec). Fiware-ServicePath is up to 10 `/`-separated levels of
@@ -31,6 +44,7 @@ class BrokerConnection < (defined?(ApplicationRecord) == 'constant' ? Applicatio
   validates :url, presence: true
   validates :standard, inclusion: { in: STANDARDS, message: I18n.t('model.subscription_template.valid_standard') }
   validates :auth_mode, inclusion: { in: AUTH_MODES }
+  validates :throttling, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
   validates :fiware_service, format: { with: SERVICE_PATTERN, message: I18n.t('model.broker_connection.invalid_service') }, allow_blank: true
   validates :fiware_servicepath, format: { with: SERVICE_PATH_PATTERN, message: I18n.t('model.broker_connection.invalid_service_path') }, allow_blank: true
   validate :url_must_be_http
@@ -47,6 +61,18 @@ class BrokerConnection < (defined?(ApplicationRecord) == 'constant' ? Applicatio
 
   def stored_auth?
     auth_mode == 'stored'
+  end
+
+  # The broker call runs on the server for both stored and proxied; only
+  # 'browser' talks to the broker straight from the browser.
+  def server_side?
+    ['stored', 'proxied'].include?(auth_mode)
+  end
+
+  # Modes that need the user to supply a token in the browser (the token box
+  # on the subscription template list).
+  def browser_token?
+    ['proxied', 'browser'].include?(auth_mode)
   end
 
   def ngsi_ld?
