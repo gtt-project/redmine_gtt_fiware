@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // --- row add/remove ----------------------------------------------------
 
-  function wireRowContainer(containerId, addId, rowClass) {
+  function wireRowContainer(containerId, addId, rowClass, prototypeId) {
     var container = document.getElementById(containerId);
     if (!container) { return; }
     container.addEventListener('click', function(e) {
@@ -116,17 +116,17 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       if (e.target.closest('#' + addId)) {
         e.preventDefault();
-        var rows = container.querySelectorAll('.' + rowClass);
-        var template = rows[rows.length - 1];
-        if (!template) { return; }
-        var clone = template.cloneNode(true);
-        clone.querySelectorAll('input').forEach(function(input) { input.value = ''; });
+        // Clone the inert <template> prototype, not an existing row: cloning
+        // the last row broke as soon as every row had been removed.
+        var prototype = document.getElementById(prototypeId);
+        if (!prototype) { return; }
+        var clone = prototype.content.firstElementChild.cloneNode(true);
         container.insertBefore(clone, document.getElementById(addId));
       }
     });
   }
-  wireRowContainer('gtt-fiware-entity-rows', 'gtt-fiware-entity-add', 'gtt-fiware-entity-row');
-  wireRowContainer('gtt-fiware-attachment-rows', 'gtt-fiware-attachment-add', 'gtt-fiware-attachment-row');
+  wireRowContainer('gtt-fiware-entity-rows', 'gtt-fiware-entity-add', 'gtt-fiware-entity-row', 'gtt-fiware-entity-prototype');
+  wireRowContainer('gtt-fiware-attachment-rows', 'gtt-fiware-attachment-add', 'gtt-fiware-attachment-row', 'gtt-fiware-attachment-prototype');
 
   document.querySelectorAll('.js-json-toggle').forEach(function(link) {
     link.addEventListener('click', function(e) {

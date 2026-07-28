@@ -152,6 +152,79 @@ class SubscriptionTemplateTest < ActiveSupport::TestCase
     assert template.errors[:entities_string].present?
   end
 
+  # Parsable JSON with the wrong shape must fail validation too: the
+  # subscription builders expect a non-empty array of entity objects.
+  def test_entities_string_must_be_a_non_empty_array_of_objects
+    ['{}', '[]', '[1, 2]', '"TemperatureSensor"', '[{"type": "X"}, "y"]'].each do |bad|
+      template = SubscriptionTemplate.new(valid_attributes(entities_string: bad))
+      assert_not template.valid?, "#{bad.inspect} must be rejected"
+      assert template.errors[:entities_string].present?
+    end
+  end
+
+  def test_entities_string_accepts_id_and_id_pattern_entries
+    good = '[{"type": "RoadDamage", "idPattern": ".*"}, {"type": "RoadDamage", "id": "urn:x"}]'
+    template = SubscriptionTemplate.new(valid_attributes(entities_string: good))
+    assert template.valid?
+    assert_equal 2, template.entities.size
+  end
+
+  # 'null' is what the picker serializes with no rows: it clears the stored
+  # attachments instead of failing validation.
+  def test_attachments_string_null_clears_attachments
+    # reload: the just-created instance carries alteration_types in its
+    # serialized (before_save) form, which would fail revalidation.
+    template = SubscriptionTemplate.create!(
+      valid_attributes(attachments_string: '[{"url": "https://example.com/a.jpg"}]')
+    ).reload
+    assert_equal 1, template.attachments.size
+
+    template.attachments_string = 'null'
+    assert template.valid?
+    template.save!
+    assert_nil template.reload.attachments
+  end
+
+  def test_attachments_string_must_be_an_array_of_objects
+    ['not json', '{}', '[1]', '"https://example.com/a.jpg"', '[{"url": "x"}, 5]'].each do |bad|
+      template = SubscriptionTemplate.new(valid_attributes(attachments_string: bad))
+      assert_not template.valid?, "#{bad.inspect} must be rejected"
+      assert template.errors[:attachments_string].present?
+    end
+  end
+
+  def test_attachments_string_accepts_an_array_of_objects
+    template = SubscriptionTemplate.new(
+      valid_attributes(attachments_string: '[{"url": "https://example.com/a.jpg", "filename": "a-${id}.jpg"}]')
+    )
+    assert template.valid?
+    assert_equal 'a-${id}.jpg', template.attachments.first['filename']
+  end
+
+  # geometry_string stays free-form JSON: "${location}" (a string template),
+  # a GeoJSON object and 'null' (clear) are all legitimate values.
+  def test_geometry_string_accepts_template_geojson_and_null
+    ['"${location}"', '{"type": "Point", "coordinates": [1, 2]}', 'null'].each do |good|
+      template = SubscriptionTemplate.new(valid_attributes(geometry_string: good))
+      assert template.valid?, "#{good.inspect} must be accepted"
+    end
+    template = SubscriptionTemplate.new(valid_attributes(geometry_string: '{not json'))
+    assert_not template.valid?
+    assert template.errors[:geometry_string].present?
+  end
+
+  def test_attrs_must_be_a_json_array_of_strings
+    ['["temperature", "humidity"]', '', nil].each do |good|
+      template = SubscriptionTemplate.new(valid_attributes(attrs: good))
+      assert template.valid?, "#{good.inspect} must be accepted"
+    end
+    ['[1]', '"temperature"', '{"a": 1}', 'not json'].each do |bad|
+      template = SubscriptionTemplate.new(valid_attributes(attrs: bad))
+      assert_not template.valid?, "#{bad.inspect} must be rejected"
+      assert template.errors[:attrs].present?
+    end
+  end
+
   def test_name_is_unique_within_project
     SubscriptionTemplate.create!(valid_attributes)
     duplicate = SubscriptionTemplate.new(valid_attributes)

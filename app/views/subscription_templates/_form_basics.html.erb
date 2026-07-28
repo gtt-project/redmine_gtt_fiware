@@ -34,18 +34,12 @@
     <%= content_tag :label, l(:field_subscription_template_entities) %>
     <span id="gtt-fiware-entity-rows" <%= 'style=display:none;'.html_safe unless entities_pickerable %>>
       <% entity_rows.each do |entity| %>
-        <span class="gtt-fiware-entity-row" style="display: block; margin-bottom: 4px;">
-          <input type="text" class="js-entity-type" value="<%= entity['type'] %>" placeholder="<%= l(:field_subscription_template_entity_type_placeholder) %>" size="25" />
-          <select class="js-entity-match-kind">
-            <option value="idPattern" <%= 'selected' if entity.key?('idPattern') || !entity.key?('id') %>><%= l(:label_entity_match_pattern) %></option>
-            <option value="id" <%= 'selected' if entity.key?('id') %>><%= l(:label_entity_match_id) %></option>
-          </select>
-          <input type="text" class="js-entity-match-value" value="<%= entity['idPattern'] || entity['id'] %>" size="25" />
-          <%# Redmine 6 icons are SVG sprites; a bare icon-del anchor renders 0x0. %>
-          <a href="#" class="js-entity-remove icon-only icon-del" title="<%= l(:button_delete) %>" aria-label="<%= l(:button_delete) %>"><%= sprite_icon('del') %></a>
-        </span>
+        <%= render 'entity_row', entity: entity %>
       <% end %>
       <a href="#" id="gtt-fiware-entity-add"><%= l(:label_entity_filter_add) %></a>
+      <%# Inert prototype the add link clones; independent of existing rows,
+          so adding works again after the last row was removed. %>
+      <template id="gtt-fiware-entity-prototype"><%= render 'entity_row', entity: { 'type' => '', 'idPattern' => '.*' } %></template>
     </span>
     <a href="#" class="js-json-toggle" data-target="entities" style="font-size: 0.9em;"><%= l(:label_edit_as_json) %></a>
   </p>

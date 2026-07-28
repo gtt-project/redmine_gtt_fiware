@@ -246,10 +246,13 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     # The status select must carry this id or the LD oneshot toggle in
     # _form_script silently no-ops (id/required belong in html_options).
     assert_select 'select#gtt-fiware-status-select'
-    # One blank starter row each: the add links clone the last row, so with
-    # zero rows they would silently do nothing.
-    assert_select 'span.gtt-fiware-entity-row', 1
-    assert_select 'span.gtt-fiware-attachment-row', 1
+    # One blank starter row each, plus one row inside each picker's inert
+    # <template> prototype -- the add link clones the prototype, so adding
+    # must keep working after every visible row has been removed.
+    assert_select 'span.gtt-fiware-entity-row', 2
+    assert_select 'span.gtt-fiware-attachment-row', 2
+    assert_select 'template#gtt-fiware-entity-prototype span.gtt-fiware-entity-row', 1
+    assert_select 'template#gtt-fiware-attachment-prototype span.gtt-fiware-attachment-row', 1
     # Redmine 6 icons are SVG sprites; a bare icon-del anchor renders 0x0.
     assert_select 'a.js-entity-remove svg'
     assert_select 'a.js-attachment-remove svg'
