@@ -160,8 +160,21 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
     self.notify_on_metadata_change = true if notify_on_metadata_change.nil?
   end
 
+  # Parsable JSON is not enough: the subscription builders and the form's
+  # structured picker both expect an array of entity objects, so '{}' or
+  # '[1]' must fail validation here instead of breaking publish later.
+  # Blank input is left to the presence validation (one error, and no
+  # TypeError from JSON.parse(nil)); to_s keeps a stray non-string writer
+  # value on the graceful rescue path instead of raising.
   def take_json_entities
-    self.entities = JSON.parse(entities_string)
+    return if entities_string.blank?
+
+    parsed = JSON.parse(entities_string.to_s)
+    unless parsed.is_a?(Array) && parsed.any? && parsed.all? { |e| e.is_a?(Hash) }
+      errors.add :entities_string, I18n.t('model.subscription_template.must_be_valid_array_of_objects')
+      return
+    end
+    self.entities = parsed
   rescue JSON::ParserError
     errors.add :entities_string, I18n.t(:error_invalid_json)
   end
@@ -174,10 +187,23 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
     errors.add :geometry_string, I18n.t(:error_invalid_json)
   end
 
+  # 'null' (from the picker with no rows) clears the stored attachments; any
+  # other value must be an array of attachment objects -- a parsable but
+  # wrong-shaped value ('{}', '[1]') previously slipped through validation
+  # and broke the picker and the download step downstream.
   def take_json_attachments
     return if attachments_string.blank?
 
-    self.attachments = JSON.parse(attachments_string)
+    parsed = JSON.parse(attachments_string.to_s)
+    if parsed.nil?
+      self.attachments = nil
+      return
+    end
+    unless parsed.is_a?(Array) && parsed.all? { |a| a.is_a?(Hash) }
+      errors.add :attachments_string, I18n.t('model.subscription_template.must_be_valid_array_of_objects')
+      return
+    end
+    self.attachments = parsed
   rescue JSON::ParserError
     errors.add :attachments_string, I18n.t('model.subscription_template.must_be_valid_array_of_objects')
   end
