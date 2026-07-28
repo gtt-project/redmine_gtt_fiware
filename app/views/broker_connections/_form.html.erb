@@ -16,7 +16,11 @@
   <p class="min-width"><%= f.select :auth_mode,
         BrokerConnection::AUTH_MODES.map { |mode| [l(:"label_broker_connection_auth_mode_#{mode}"), mode] },
         label: :field_broker_connection_auth_mode %>
-    <em class="info"><%= l(:text_broker_connection_auth_mode_info) %></em></p>
+    <em class="info"><%= safe_join(
+      BrokerConnection::AUTH_MODES.map { |mode|
+        content_tag(:strong, "#{l(:"label_broker_connection_auth_mode_#{mode}_short")}: ") +
+          l(:"text_broker_connection_auth_mode_#{mode}_info")
+      }, tag.br) %></em></p>
   <p><%= f.number_field :throttling, min: 0, step: 1, label: :field_broker_connection_throttling %>
     <em class="info"><%= l(:text_broker_connection_throttling_info, default_value: BrokerConnection::DEFAULT_THROTTLING) %></em></p>
   <p><%= f.password_field :auth_token, size: 60, value: '', label: :field_subscription_auth_token,
