@@ -1,6 +1,9 @@
 <h2><%= link_to l(:label_broker_connection_plural), broker_connections_path %> &#187; <%= l(:label_broker_connection_new) %></h2>
 
-<%= form_for @broker_connection, url: broker_connections_path do |f| %>
+<%# labelled_form_for, not form_for: the label: options in the form partial
+    are a Redmine::Views::LabelledFormBuilder feature; the plain Rails builder
+    ignores them silently and renders no labels at all. %>
+<%= labelled_form_for @broker_connection, url: broker_connections_path do |f| %>
   <%= render partial: 'form', locals: { f: f } %>
   <%= submit_tag l(:button_create) %>
 <% end %>

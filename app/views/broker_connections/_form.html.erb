@@ -8,18 +8,45 @@
   <p><%= f.text_field :fiware_service, size: 60, label: :field_subscription_template_fiware_service,
         placeholder: l(:field_subscription_template_fiware_service_placeholder) %>
     <em class="info"><%= l(:text_broker_connection_service_info) %></em></p>
-  <p><%= f.text_field :fiware_servicepath, size: 60, label: :field_subscription_template_fiware_servicepath,
+<%# Standard-specific fields (same js-ngsi-* convention as the template form,
+    #66): Fiware-ServicePath is an NGSIv2 header with no NGSI-LD equivalent,
+    and @context only exists in NGSI-LD. Hidden values are kept, not cleared,
+    so switching the standard back does not lose input; the request builders
+    ignore the field that does not apply to their standard either way. %>
+  <p class="js-ngsi-v2-only"><%= f.text_field :fiware_servicepath, size: 60, label: :field_subscription_template_fiware_servicepath,
         placeholder: l(:field_subscription_template_fiware_servicepath_placeholder) %></p>
-  <p><%= f.text_field :context, size: 60, label: :field_subscription_template_context,
+  <p class="js-ngsi-ld-only"><%= f.text_field :context, size: 60, label: :field_subscription_template_context,
         placeholder: l(:field_subscription_template_context_placeholder) %>
     <em class="info"><%= l(:text_broker_connection_context_info) %></em></p>
   <p class="min-width"><%= f.select :auth_mode,
         BrokerConnection::AUTH_MODES.map { |mode| [l(:"label_broker_connection_auth_mode_#{mode}"), mode] },
         label: :field_broker_connection_auth_mode %>
-    <em class="info"><%= l(:text_broker_connection_auth_mode_info) %></em></p>
+    <em class="info"><%= safe_join(
+      BrokerConnection::AUTH_MODES.map { |mode|
+        content_tag(:strong, "#{l(:"label_broker_connection_auth_mode_#{mode}_short")}: ") +
+          l(:"text_broker_connection_auth_mode_#{mode}_info")
+      }, tag.br) %></em></p>
   <p><%= f.number_field :throttling, min: 0, step: 1, label: :field_broker_connection_throttling %>
     <em class="info"><%= l(:text_broker_connection_throttling_info, default_value: BrokerConnection::DEFAULT_THROTTLING) %></em></p>
   <p><%= f.password_field :auth_token, size: 60, value: '', label: :field_subscription_auth_token,
         placeholder: (@broker_connection.read_attribute(:auth_token).present? ? l(:label_broker_connection_token_stored) : l(:field_subscription_auth_token_placeholder)) %>
     <em class="info"><%= l(:text_broker_connection_token_info) %></em></p>
 </div>
+
+<%= javascript_tag do %>
+(function() {
+  var standardSelect = document.getElementById('broker_connection_standard');
+  if (!standardSelect) return;
+  function applyStandard() {
+    var isLd = standardSelect.value === 'NGSI-LD';
+    document.querySelectorAll('.js-ngsi-v2-only').forEach(function(el) {
+      el.style.display = isLd ? 'none' : '';
+    });
+    document.querySelectorAll('.js-ngsi-ld-only').forEach(function(el) {
+      el.style.display = isLd ? '' : 'none';
+    });
+  }
+  standardSelect.addEventListener('change', applyStandard);
+  applyStandard();
+})();
+<% end %>

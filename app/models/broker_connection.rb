@@ -31,6 +31,12 @@ class BrokerConnection < (defined?(ApplicationRecord) == 'constant' ? Applicatio
   # Used when neither the template nor the connection sets one.
   DEFAULT_THROTTLING = 10
 
+  # New connections start at the default so the form shows the value that will
+  # actually apply. Records loaded from the database keep their stored value,
+  # including nil, for which SubscriptionTemplate#effective_throttling still
+  # falls back to DEFAULT_THROTTLING.
+  attribute :throttling, :integer, default: DEFAULT_THROTTLING
+
   # Fiware-Service is a tenant name: alphanumerics and underscore, max 50
   # chars (Orion spec). Fiware-ServicePath is up to 10 `/`-separated levels of
   # the same alphabet. Invalid values fail at publish time with opaque broker
