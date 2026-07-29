@@ -324,6 +324,30 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     assert_equal I18n.t(:subscription_unauthorized_error), flash[:error]
   end
 
+  # The broker calls back on the configured canonical host (#101): the
+  # publishing admin's request host (localhost, an internal proxy name) is
+  # frequently not broker-reachable, so Setting.host_name + Setting.protocol
+  # win, exactly like core's notification email links.
+  def test_publish_builds_callback_urls_from_the_configured_host_name
+    with_settings host_name: 'redmine.public.example', protocol: 'https' do
+      post :publish, params: { project_id: @project.id, id: @template.id }, xhr: true
+      assert_response :success
+      assert_includes response.body,
+                      "https://redmine.public.example/fiware/subscription_template/#{@template.id}/notification"
+      assert_not_includes response.body, 'test.host'
+    end
+  end
+
+  # An unconfigured host name keeps the previous request-based behaviour.
+  def test_publish_falls_back_to_the_request_host_without_a_host_name
+    with_settings host_name: '' do
+      post :publish, params: { project_id: @project.id, id: @template.id }, xhr: true
+      assert_response :success
+      assert_includes response.body,
+                      "http://test.host/fiware/subscription_template/#{@template.id}/notification"
+    end
+  end
+
   # Browser-mode publish/unpublish report the broker-assigned id back through
   # this action; an empty value (unpublish) must store nil, not '', so a
   # cleared subscription looks the same regardless of which mode cleared it.
