@@ -11,7 +11,7 @@ other organizations' queries.
 
 ## Awareness when an issue is created
 
-Each subscription template has a **Federation** policy (Subscription options):
+Each subscription has a **Federation** policy (Subscription options):
 
 - **Off** (default): no federation behaviour.
 - **Annotate**: the issue is created as usual, and a note lists the other
@@ -30,14 +30,14 @@ It shows only what each organization chose to publish.
 
 ## Status updates from other organizations
 
-A subscription template with **Federation watch** enabled observes other
+A subscription with **Federation watch** enabled observes other
 organizations' work orders instead of creating issues: when a foreign work
 order changes status, a note is added to the local issues that refer to the
 same entity ("the work order by nexco-east is now Closed").
 
-To set one up: create a template on an NGSI-LD connection, check *Federation
+To set one up: create a subscription on an NGSI-LD connection, check *Federation
 watch*, set the entity filter to type `Issue` and the watched attributes to
-`status`, then publish it. The template's own entities never trigger notes
+`status`, then publish it. The subscription's own entities never trigger notes
 (they are recognized by the instance identifier in their ids), and an
 unchanged status is not repeated.
 

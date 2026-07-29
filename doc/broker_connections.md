@@ -3,13 +3,13 @@
 Administration → FIWARE Connections.
 
 A connection describes one context broker: URL, NGSI standard, tenant,
-authentication. Subscription templates and issue emission both use
+authentication. Subscriptions and issue emission both use
 connections, so broker details are entered once and reused.
 
 ## Fields
 
-- **Name**: how the connection appears in template forms.
-- **NGSI standard**: `NGSIv2` or `NGSI-LD`. The template form adapts to the
+- **Name**: how the connection appears in subscription forms.
+- **NGSI standard**: `NGSIv2` or `NGSI-LD`. The subscription form adapts to the
   selected standard (for example, `@context` only applies to NGSI-LD,
   `Fiware-ServicePath` only to NGSIv2).
 - **Broker URL**: the broker's base URL. A URL that already contains a
@@ -19,7 +19,7 @@ connections, so broker details are entered once and reused.
   `NGSILD-Tenant` (NGSI-LD).
 - **FIWARE Service Path**: NGSIv2 only.
 - **NGSI-LD Context**: the default `@context` for subscriptions on this
-  connection; a template can override it.
+  connection; a subscription can override it.
 - **Authentication**: where the broker token comes from.
   - *Stored*: the token is saved encrypted in the database and the server
     calls the broker. Required for issue emission and federation queries,
@@ -32,7 +32,7 @@ connections, so broker details are entered once and reused.
   header name (for example `X-Api-Key`) sends the token as is, which is what
   API-key gateways expect.
 - **Throttling (s)**: minimum seconds between notifications for this
-  connection's subscriptions. A template can override it.
+  connection's subscriptions. A subscription can override it.
 
 ## Issue Emission section
 

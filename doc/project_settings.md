@@ -28,7 +28,7 @@ settings. It lists the project's subscriptions and offers:
   - **Synchronize**: fetches the subscription's state from the broker and
     updates the local status (for example when it was removed or expired on
     the broker side).
-  - **Delete**: removes the template in Redmine.
+  - **Delete**: removes the subscription in Redmine.
 
 The table shows each subscription's connection details (NGSI standard, broker
 URL), the issue defaults (status, tracker) and the subscription status

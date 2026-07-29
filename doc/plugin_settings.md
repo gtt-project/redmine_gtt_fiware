@@ -19,7 +19,7 @@ on [FIWARE Connections](broker_connections.md) since version 3.0.
 Attachments referenced in broker notifications are downloaded over HTTPS only,
 from an allowlist of hosts.
 
-- **Additional allowed hosts**: one host per line. The subscription template's
+- **Additional allowed hosts**: one host per line. The subscription's
   broker host is always allowed.
 - **Allowed content types**: one content type per line; wildcards like
   `image/*` are supported. Leave blank for the default list (common image

@@ -2,7 +2,7 @@
 
 A subscription tells a context broker which entity changes to send to Redmine,
 and how to turn each notification into an issue. Subscriptions are managed per
-project: Settings → FIWARE → **New Subscription**.
+project: project → Settings → FIWARE → **New Subscription**.
 
 The form shows the essential fields first; everything else lives in three
 collapsible sections. A new subscription is publishable with just the visible
