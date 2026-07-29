@@ -1,0 +1,20 @@
+<%# Foreign work orders for the same source entity (#70, 4b). Shows only
+    what each organization chose to publish. %>
+<div class="gtt-fiware-federation-panel">
+  <h4><%= l(:label_federation_siblings) %></h4>
+  <ul>
+    <% @siblings.each do |sibling| %>
+      <li>
+        <strong><%= sibling.org %></strong>
+        <span><%= [sibling.subtype, sibling.status_label || sibling.status].select(&:present?).join(', ') %></span>
+        <% if sibling.source.present? %>
+          <%# source is boundary-validated to http(s) in FederationSiblings. %>
+          <%= link_to sibling.title.presence || sibling.source, sibling.source,
+                      class: 'external', rel: 'noopener noreferrer' %>
+        <% elsif sibling.title.present? %>
+          <span><%= sibling.title %></span>
+        <% end %>
+      </li>
+    <% end %>
+  </ul>
+</div>

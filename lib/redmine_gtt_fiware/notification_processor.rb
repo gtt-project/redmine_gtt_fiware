@@ -17,14 +17,20 @@ module RedmineGttFiware
   # issue is authored by that user and geometry/attachment work runs as them.
   class NotificationProcessor
     # Result of processing one entity. `saved` reflects Issue#save; on false the
-    # issue carries validation errors for the caller to surface.
-    Result = Struct.new(:issue, :created, :saved, keyword_init: true) do
+    # issue carries validation errors for the caller to surface. `suppressed`
+    # marks the federation policy skipping creation (#70): deliberate,
+    # successful handling with no issue - not a failure.
+    Result = Struct.new(:issue, :created, :saved, :suppressed, keyword_init: true) do
       def created?
         created
       end
 
       def saved?
         saved
+      end
+
+      def suppressed?
+        suppressed == true
       end
     end
 
@@ -62,10 +68,47 @@ module RedmineGttFiware
     end
 
     def process_create(entity)
+      # Federation awareness (#70, 4a): who else already works on this entity?
+      siblings = federation_siblings(entity)
+      if @template.federation_policy == 'suppress' && siblings.any?(&:open?)
+        @logger.info "[FIWARE] Suppressed issue creation for #{entity.id}: open sibling " \
+                     "work orders exist (#{siblings.select(&:open?).map(&:urn).join(', ')})"
+        return Result.new(issue: nil, created: false, saved: false, suppressed: true)
+      end
+
       issue = build_issue(entity)
       apply_new_geometry(issue, entity)
       build_attachments(issue, entity)
-      Result.new(issue: issue, created: true, saved: issue.save)
+      result = Result.new(issue: issue, created: true, saved: issue.save)
+      annotate_with_siblings(issue, siblings) if result.saved? && siblings.any?
+      result
+    end
+
+    # The sibling note is a journal entry rather than part of the rendered
+    # description: template output stays clean and the annotation carries its
+    # own timestamp. reload first: geometry/journal callbacks touch the row
+    # right after create, so a second save on the stale in-memory object
+    # would raise StaleObjectError.
+    def annotate_with_siblings(issue, siblings)
+      lines = siblings.map do |s|
+        detail = [s.subtype, s.status_label || s.status].compact.join(', ')
+        link = s.source.presence || s.urn
+        "* #{s.org} (#{detail}): #{link}"
+      end
+      issue.reload
+      issue.init_journal(User.current, "#{I18n.t(:text_federation_siblings_note)}\n\n#{lines.join("\n")}")
+      issue.save
+    end
+
+    # Only when the policy asks for it, and never fatally: sibling lookup
+    # failures degrade to "no siblings" inside FederationSiblings. NGSI-LD
+    # only - a v2 connection has no /ngsi-ld/v1/entities to ask.
+    def federation_siblings(entity)
+      return [] if @template.federation_policy == 'off'
+      return [] if entity.id.blank?
+      return [] unless @template.broker_connection&.ngsi_ld?
+
+      FederationSiblings.new(@template.broker_connection).for_entity(entity.id)
     end
 
     def process_update(issue, entity)

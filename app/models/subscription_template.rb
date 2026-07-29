@@ -29,6 +29,10 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
            to: :broker_connection, allow_nil: true
 
   STATUS = ['active', 'inactive', 'oneshot'].freeze
+
+  # Federation awareness at creation time (#70, 4a): what to do when another
+  # organization's Issue entity already refers to the notifying entity.
+  FEDERATION_POLICIES = ['off', 'annotate', 'suppress'].freeze
   GEOMETRIES = ['point', 'line', 'polygon', 'box'].freeze
   ALTERATION_TYPES = ['entityCreate', 'entityChange', 'entityUpdate', 'entityDelete'].freeze
 
@@ -44,6 +48,7 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
   }.freeze
 
   validates :status, inclusion: { in: STATUS, message: I18n.t('model.subscription_template.valid_status') }
+  validates :federation_policy, inclusion: { in: FEDERATION_POLICIES }
   validates :throttling, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
   validates :expression_geometry, inclusion: { in: GEOMETRIES, message: I18n.t('model.subscription_template.valid_geometry') }, allow_blank: true
   # allow_nil: a template saved with no alteration types stores nil (see

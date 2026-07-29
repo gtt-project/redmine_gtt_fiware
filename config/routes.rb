@@ -24,6 +24,10 @@ resources :broker_connections, except: [:show]
 # ingestion and consumers read the schema from it.
 get 'fiware/context.jsonld', to: 'fiware_contexts#show', format: false
 
+# Issue-page federation panel (#70, 4b): other organizations' work orders
+# for the same source entity, fetched asynchronously.
+get 'fiware/issues/:id/federation', to: 'federation#show'
+
 # Define a route for FIWARE broker subscription templates
 scope 'projects/:project_id' do
   resources :subscription_templates, only: %i(new create edit update destroy),

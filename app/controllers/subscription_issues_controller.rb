@@ -43,17 +43,23 @@ class SubscriptionIssuesController < ApplicationController
     processor = RedmineGttFiware::NotificationProcessor.new(@subscription_template)
     results = entities.map { |entity| processor.process(entity) }
     saved = results.select(&:saved?)
+    suppressed = results.count(&:suppressed?)
+    failed = results.reject { |r| r.saved? || r.suppressed? }
 
-    if saved.empty?
+    # Federation suppression (#70) is deliberate, successful handling: a
+    # batch of only-suppressed entities must be a 200, or the broker retries.
+    if saved.empty? && failed.any?
       render json: {
         processed: results.size,
-        errors: results.flat_map { |r| r.issue.errors.full_messages }.uniq
+        suppressed: suppressed,
+        errors: failed.flat_map { |r| r.issue.errors.full_messages }.uniq
       }, status: :unprocessable_entity
     else
       render json: {
         processed: results.size,
         created: saved.count(&:created?),
         updated: saved.count { |r| !r.created? },
+        suppressed: suppressed,
         issues: saved.map { |r| r.issue.as_json(only: [:id, :subject, :fiware_entity]) }
       }, status: :ok
     end

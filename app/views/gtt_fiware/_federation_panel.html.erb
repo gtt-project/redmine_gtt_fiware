@@ -1,0 +1,17 @@
+<%# Async placeholder for the federation panel (#70, 4b): the sibling query
+    talks to the broker, so it must never delay the issue page. Rendered only
+    for issues that came from a broker via an NGSI-LD connection. %>
+<% connection = issue.subscription_template&.broker_connection if issue&.fiware_entity.present? %>
+<% if connection&.ngsi_ld? %>
+  <div id="gtt-fiware-federation" data-url="<%= url_for(controller: 'federation', action: 'show', id: issue.id) %>"></div>
+  <%= javascript_tag do %>
+    (function() {
+      var panel = document.getElementById('gtt-fiware-federation');
+      if (!panel) return;
+      fetch(panel.dataset.url, { headers: { 'Accept': 'text/html' } })
+        .then(function(response) { return response.ok && response.status !== 204 ? response.text() : ''; })
+        .then(function(html) { if (html.trim() !== '') panel.innerHTML = html; })
+        .catch(function() { /* awareness only - never surface an error here */ });
+    })();
+  <% end %>
+<% end %>
