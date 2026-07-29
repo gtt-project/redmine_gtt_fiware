@@ -227,4 +227,5 @@ en:
       invalid_token_header: "must be a valid HTTP header name"
     emission_mapping:
       invalid_subtype: "must be a JSON-LD term: letters and digits, starting with a letter"
+      reserved_subtype: "is a reserved vocabulary term and cannot be used as a subtype"
       connection_not_ngsi_ld: "issue emission requires an NGSI-LD connection"

@@ -41,7 +41,10 @@ module RedmineGttFiware
       CORE_TERMS.each { |term| terms[term] = "gttfiware:#{term}" }
       # refersTo points at another entity, so it expands as an IRI, not a string.
       terms['refersTo'] = { '@id' => 'gttfiware:refersTo', '@type' => '@id' }
-      subtypes.each_key { |subtype| terms[subtype] = "inst:#{subtype}" }
+      # Validation rejects reserved subtype names (EmissionMapping); the skip
+      # is defense in depth for pre-validation rows, so a stray subtype can
+      # never shadow a core term or prefix in the published document.
+      subtypes.each_key { |subtype| terms[subtype] = "inst:#{subtype}" unless terms.key?(subtype) }
       terms
     end
 
@@ -54,7 +57,7 @@ module RedmineGttFiware
           '@id' => "inst:#{subtype}",
           '@type' => 'rdfs:Class',
           'rdfs:subClassOf' => { '@id' => 'gttfiware:Issue' },
-          'rdfs:label' => "#{subtype} (tracker: #{tracker_names.sort.join(', ')})"
+          'rdfs:label' => "#{subtype} (tracker: #{tracker_names.uniq.sort.join(', ')})"
         }
       end
     end

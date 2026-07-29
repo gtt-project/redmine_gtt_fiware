@@ -61,6 +61,7 @@ de:
       invalid_token_header: 'muss ein gültiger HTTP-Header-Name sein'
     emission_mapping:
       invalid_subtype: 'muss ein JSON-LD-Term sein: Buchstaben und Ziffern, beginnend mit einem Buchstaben'
+      reserved_subtype: 'ist ein reservierter Vokabular-Term und kann nicht als Subtyp verwendet werden'
       connection_not_ngsi_ld: 'Ticket-Übertragung erfordert eine NGSI-LD-Verbindung'
   field_subscription_template_fiware_servicepath: 'FIWARE Service Path'
   gtt_fiware_settings_broker: 'FIWARE-Einstellungen'
