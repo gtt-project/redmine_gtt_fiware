@@ -4,6 +4,7 @@ module RedmineGttFiware
     def self.apply
       Tracker.class_eval do
         has_many :subscription_templates, dependent: :delete_all
+        has_many :emission_mappings, dependent: :delete_all
       end
     end
 

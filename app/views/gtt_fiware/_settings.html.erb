@@ -3,6 +3,15 @@
     second border around every group. Section headings alone are enough.
     Transport and throttling moved onto the connection/template (#95); only
     genuinely instance-wide settings belong here. %>
+<h3><%= l(:gtt_fiware_settings_emission) %></h3>
+
+<p>
+  <%= content_tag(:label, l(:field_fiware_instance_id)) %>
+  <%= text_field_tag 'settings[fiware_instance_id]',
+    @settings['fiware_instance_id'], size: 30, placeholder: 'city-shibuya' %>
+  <em class="info"><%= l(:text_fiware_instance_id_info) %></em>
+</p>
+
 <h3><%= l(:gtt_fiware_settings_attachment_download) %></h3>
 
 <p>

@@ -49,6 +49,7 @@ class BrokerConnection < (defined?(ApplicationRecord) == 'constant' ? Applicatio
   HEADER_NAME_PATTERN = /\A[!#$%&'*+\-.^_`|~0-9A-Za-z]+\z/
 
   has_many :subscription_templates, foreign_key: 'broker_connection_id', dependent: :restrict_with_error
+  has_many :emission_mappings, foreign_key: 'broker_connection_id', dependent: :delete_all
 
   validates :name, presence: true, uniqueness: true
   validates :url, presence: true
