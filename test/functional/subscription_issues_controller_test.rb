@@ -419,6 +419,20 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
     assert journal.notes.blank?, 'movement inside the fence must not produce a note'
   end
 
+  # A position exactly on the boundary counts as inside (the Area filter's
+  # coveredBy is boundary-inclusive), so an entity resting on the edge does
+  # not flap between enter and leave.
+  def test_update_treats_the_boundary_itself_as_inside
+    with_fence
+    post_notification(entities: [entity('location' => geo_point(5, 5))])
+    post_notification(entities: [entity('location' => geo_point(10, 5))]) # on the edge
+    journal = Issue.order(id: :desc).first.journals.order(:id).last
+    assert journal.notes.blank?, 'the boundary itself must not read as a leave'
+
+    post_notification(entities: [entity('location' => geo_point(20, 20))])
+    assert_equal I18n.t(:text_geofence_left), Issue.order(id: :desc).first.journals.order(:id).last.notes
+  end
+
   def test_update_stays_quiet_when_the_flag_is_off
     with_fence
     @template.update_columns(geofence_notes: false)

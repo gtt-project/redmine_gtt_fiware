@@ -253,10 +253,15 @@ module RedmineGttFiware
     # Point-in-polygon against the fence; non-point geometries are reduced
     # to their centroid. Cast to the fence's factory so mixed factories
     # (fresh conversion vs. database round trip) still compare.
+    #
+    # intersects? (not contains?) so a position exactly on the boundary
+    # counts as inside: that matches the boundary-inclusive coveredBy
+    # relationship the Area filter uses, and stops a point resting on the
+    # edge from flapping between enter and leave.
     def fence_contains?(fence, geom)
       geom = RGeo::Feature.cast(geom, factory: fence.factory) || geom
       point = geom.geometry_type == RGeo::Feature::Point ? geom : geom.centroid
-      fence.contains?(point)
+      fence.intersects?(point)
     end
 
     # Renders the template's geometry against the entity and converts the
