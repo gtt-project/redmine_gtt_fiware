@@ -1,0 +1,9 @@
+<%# The issue's NGSI-LD representation (#4), offered like any other export
+    format. Shown only when the instance has an identifier to mint entity ids
+    with, which is also what FiwareEntitiesController requires. %>
+<% if RedmineGttFiware::Emitter.instance_id.present? %>
+<%=
+  Redmine::Views::OtherFormatsBuilder.new(self).link_to('NGSI-LD',
+      url: { controller: 'fiware_entities', action: 'show', id: @issue.id, format: nil })
+%>
+<% end %>

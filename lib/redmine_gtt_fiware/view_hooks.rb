@@ -8,7 +8,8 @@ module RedmineGttFiware
     # Federation panel (#70, 4b) below the issue description.
     render_on :view_issues_show_description_bottom, partial: 'gtt_fiware/federation_panel'
 
-    # Link to the issue's NGSI-LD representation (#4).
-    render_on :view_issues_show_description_bottom, partial: 'gtt_fiware/entity_link'
+    # The link to the issue's NGSI-LD representation (#4) is not a hook: it
+    # belongs in the core "Also available in" list, which has no hook, so it
+    # is a Deface override (app/overrides/issues/show.rb).
   end
 end

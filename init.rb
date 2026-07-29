@@ -53,6 +53,15 @@ Redmine::Plugin.register :redmine_gtt_fiware do
   end
 end
 
+# Deface overrides are not autoloaded (they define no constants), so they are
+# required here and hidden from Zeitwerk, the same way redmine_gtt does it.
+# Resolved from __dir__ rather than Rails.root, so the directory this plugin
+# happens to be installed under does not matter.
+Dir.glob(File.join(__dir__, 'app', 'overrides', '**', '*.rb')).each do |path|
+  Rails.autoloaders.main.ignore(path)
+  require path
+end
+
 Rails.application.config.after_initialize do
   RedmineGttFiware.setup
 end

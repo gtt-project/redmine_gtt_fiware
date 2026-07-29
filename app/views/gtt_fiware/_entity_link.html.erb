@@ -1,8 +1,0 @@
-<%# Link to the issue's NGSI-LD representation (#4). Shown when the instance
-    has an identifier to mint entity ids with. %>
-<% if RedmineGttFiware::Emitter.instance_id.present? %>
-  <p class="other-formats">
-    <%= l(:label_fiware_entity_link) %>:
-    <span><%= link_to 'NGSI-LD', url_for(controller: 'fiware_entities', action: 'show', id: issue.id) %></span>
-  </p>
-<% end %>

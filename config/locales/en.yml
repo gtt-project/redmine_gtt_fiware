@@ -57,7 +57,6 @@ en:
   field_federation_watch: "Federation watch"
   text_federation_watch_info: "This subscription watches other organizations' work orders instead of creating issues: foreign status changes are added as notes to local issues that refer to the same entity. Set the entity filter to type Issue and the watched attributes to status."
   text_federation_status_note: "Federation update: the work order by %{org} is now %{status} (%{urn})"
-  label_fiware_entity_link: "Also available as"
   gtt_fiware_settings_emission: "Issue Emission"
   field_fiware_instance_id: "Instance identifier"
   text_fiware_instance_id_info: "Letters, digits, hyphen and underscore. Becomes part of every emitted entity id (urn:ngsi-ld:Issue:redmine:<instance>:<issue>). Emission stays off while blank; changing it later re-identifies every emitted entity."
