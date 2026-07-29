@@ -206,6 +206,72 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
     assert_response :success
   end
 
+  # --- federation watch (#70, 4c) --------------------------------------------
+
+  def watch_setup
+    use_ld_connection
+    @template.update_column(:federation_watch, true)
+    @local_issue = Issue.find(1)
+    @local_issue.update_columns(fiware_entity: 'urn:ngsi-ld:RoadDamage:001',
+                                project_id: @template.project_id)
+  end
+
+  def foreign_work_order(status: 'closed', id: 'urn:ngsi-ld:Issue:redmine:nexco-east:7')
+    {
+      'id' => id, 'type' => 'Issue',
+      'status' => { 'type' => 'Property', 'value' => status },
+      'statusLabel' => { 'type' => 'Property', 'value' => 'Closed' },
+      'refersTo' => { 'type' => 'Relationship', 'object' => 'urn:ngsi-ld:RoadDamage:001' }
+    }
+  end
+
+  def test_watch_journals_foreign_status_onto_correlated_issues
+    watch_setup
+    assert_no_difference 'Issue.count' do
+      post_notification(entities: [foreign_work_order])
+    end
+    assert_response :success
+    assert_equal 1, JSON.parse(response.body)['federated']
+    note = @local_issue.journals.last.notes
+    assert_includes note, 'nexco-east'
+    assert_includes note, 'Closed'
+  end
+
+  # One note per state: the same status arriving again adds nothing.
+  def test_watch_does_not_repeat_unchanged_status
+    watch_setup
+    post_notification(entities: [foreign_work_order])
+    assert_no_difference 'Journal.count' do
+      post_notification(entities: [foreign_work_order])
+    end
+    assert_response :success
+    assert_equal 0, JSON.parse(response.body)['federated']
+  end
+
+  # The 4c echo guard: our own emitted work orders come back through a watch
+  # subscription on the same tenant and must be ignored.
+  def test_watch_ignores_own_emissions
+    watch_setup
+    with_settings plugin_redmine_gtt_fiware: { 'fiware_instance_id' => 'city-shibuya' } do
+      assert_no_difference 'Journal.count' do
+        post_notification(entities: [foreign_work_order(id: 'urn:ngsi-ld:Issue:redmine:city-shibuya:9')])
+      end
+    end
+    assert_response :success
+    assert_equal 0, JSON.parse(response.body)['federated']
+  end
+
+  # A watch-only batch with nothing to annotate is still successful handling.
+  def test_watch_without_correlated_issues_is_a_200
+    watch_setup
+    @local_issue.update_columns(fiware_entity: nil)
+    assert_no_difference 'Issue.count' do
+      post_notification(entities: [foreign_work_order])
+    end
+    assert_response :success
+    assert_equal 0, JSON.parse(response.body)['federated']
+  end
+
   # Two notifications for the same entity within the threshold_create window
   # update the first issue instead of creating a duplicate (#47).
   def test_create_updates_a_recent_issue_instead_of_duplicating

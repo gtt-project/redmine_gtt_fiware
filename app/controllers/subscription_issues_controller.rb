@@ -44,10 +44,12 @@ class SubscriptionIssuesController < ApplicationController
     results = entities.map { |entity| processor.process(entity) }
     saved = results.select(&:saved?)
     suppressed = results.count(&:suppressed?)
-    failed = results.reject { |r| r.saved? || r.suppressed? }
+    federated = results.select(&:federated?).sum(&:federated)
+    failed = results.reject { |r| r.saved? || r.suppressed? || r.federated? }
 
-    # Federation suppression (#70) is deliberate, successful handling: a
-    # batch of only-suppressed entities must be a 200, or the broker retries.
+    # Federation suppression and watch handling (#70) are deliberate,
+    # successful outcomes: a batch of only those must be a 200, or the
+    # broker retries.
     if saved.empty? && failed.any?
       render json: {
         processed: results.size,
@@ -60,6 +62,7 @@ class SubscriptionIssuesController < ApplicationController
         created: saved.count(&:created?),
         updated: saved.count { |r| !r.created? },
         suppressed: suppressed,
+        federated: federated,
         issues: saved.map { |r| r.issue.as_json(only: [:id, :subject, :fiware_entity]) }
       }, status: :ok
     end
