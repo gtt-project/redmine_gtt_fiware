@@ -10,7 +10,6 @@ class SubscriptionTemplatesController < ApplicationController
   protect_from_forgery with: :exception
 
   before_action :find_project_by_project_id, except: [:index, :set_subscription_id]
-  before_action :get_issue_statuses, only: [:new, :create, :edit, :update]
   before_action :get_issue_priorities, only: [:new, :create, :edit, :update]
   before_action :get_issue_categories, only: [:new, :create, :edit, :update]
   before_action :find_subscription_template, only: [:edit, :update, :destroy, :copy, :publish, :unpublish, :sync, :update_subscription_id]
@@ -25,7 +24,7 @@ class SubscriptionTemplatesController < ApplicationController
   accept_api_auth :set_subscription_id
   before_action :authorize, except: [:set_subscription_id]
 
-  helper_method :index_path
+  helper_method :index_path, :form_issue_statuses
 
   def index
     @subscription_templates = subscription_template_scope
@@ -43,6 +42,16 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def edit; end
+
+  # The statuses a new issue can take for a tracker/member pair (#103): the
+  # same workflow data the regular issue form uses. Fetched by the form when
+  # the tracker or the "Sent from user" member changes.
+  def allowed_statuses
+    tracker = @project.trackers.find_by(id: params[:tracker_id])
+    member = @project.members.find_by(id: params[:member_id])
+    statuses = allowed_issue_statuses(tracker: tracker, member: member)
+    render json: statuses.map { |s| { id: s.id, name: s.name } }
+  end
 
   def create
     r = RedmineGttFiware::SaveSubscriptionTemplate.(subscription_template_params, project: @project)
@@ -389,8 +398,36 @@ class SubscriptionTemplatesController < ApplicationController
     SubscriptionTemplate.where(project_id: @project.id).order(name: :asc)
   end
 
-  def get_issue_statuses
-    @issue_statuses = IssueStatus.all.sorted
+  # The status list the form renders initially (#103): workflow-allowed for
+  # the template's tracker and member, falling back to the full list when the
+  # pair is not known yet. Lazy (helper_method) because @subscription_template
+  # is built inside the actions, after before_actions ran.
+  def form_issue_statuses
+    @form_issue_statuses ||= allowed_issue_statuses(
+      tracker: @subscription_template&.tracker || @project.trackers.first,
+      member: @subscription_template&.member,
+      current_status: @subscription_template&.issue_status
+    )
+  end
+
+  # Mirrors the regular issue form: a new issue authored by the member's user
+  # can start at the tracker default and take the workflow's new-issue
+  # transitions for the member's roles. Falls back to the full sorted list
+  # when the tracker or a User principal is missing (e.g. group members), and
+  # keeps a stored status in the list so an edit never silently drops it.
+  def allowed_issue_statuses(tracker:, member:, current_status: nil)
+    user = member&.principal
+    statuses =
+      if tracker && user.is_a?(User)
+        issue = Issue.new(project: @project, tracker: tracker)
+        issue.author = user
+        allowed = issue.new_statuses_allowed_to(user, true)
+        allowed.presence || IssueStatus.sorted.to_a
+      else
+        IssueStatus.sorted.to_a
+      end
+    statuses |= [current_status] if current_status
+    statuses
   end
 
   def get_issue_categories

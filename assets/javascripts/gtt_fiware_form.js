@@ -219,6 +219,66 @@
     connectionSelect.addEventListener('change', applyStandard);
     applyStandard();
 
+    // --- tracker-driven issue details (#103) ----------------------------------
+    // Core fields the selected tracker disables are hidden, and the issue
+    // status select is refetched for the tracker/member pair so it offers
+    // the same statuses the regular issue form would.
+
+    var trackerSelect = document.getElementById('subscription_template_tracker_id');
+    var memberSelect = document.getElementById('subscription_template_member_id');
+    var issueStatusSelect = document.getElementById('subscription_template_issue_status_id');
+
+    function applyTrackerFields() {
+      if (!trackerSelect || !trackerSelect.dataset.disabledFields) { return; }
+      var disabled = JSON.parse(trackerSelect.dataset.disabledFields)[trackerSelect.value] || [];
+      document.querySelectorAll('.js-issue-core-field').forEach(function(p) {
+        p.style.display = disabled.indexOf(p.dataset.field) === -1 ? '' : 'none';
+      });
+    }
+
+    function refreshIssueStatuses() {
+      if (!issueStatusSelect || !issueStatusSelect.dataset.statusesUrl) { return; }
+      var url = issueStatusSelect.dataset.statusesUrl +
+        '?tracker_id=' + encodeURIComponent(trackerSelect ? trackerSelect.value : '') +
+        '&member_id=' + encodeURIComponent(memberSelect ? memberSelect.value : '');
+      fetch(url, { headers: { 'Accept': 'application/json' } })
+        .then(function(response) { return response.json(); })
+        .then(function(statuses) {
+          var current = issueStatusSelect.value;
+          var currentText = issueStatusSelect.selectedOptions[0] ?
+            issueStatusSelect.selectedOptions[0].textContent : '';
+          issueStatusSelect.innerHTML = '';
+          statuses.forEach(function(status) {
+            var option = document.createElement('option');
+            option.value = String(status.id);
+            option.textContent = status.name;
+            issueStatusSelect.appendChild(option);
+          });
+          // Keep the previous choice even when the new pair would not offer
+          // it: silently changing a stored value is worse than showing it.
+          if (current && !issueStatusSelect.querySelector('option[value="' + current + '"]')) {
+            var keep = document.createElement('option');
+            keep.value = current;
+            keep.textContent = currentText;
+            issueStatusSelect.appendChild(keep);
+          }
+          if (current) { issueStatusSelect.value = current; }
+          if (issueStatusSelect.selectedIndex === -1) { issueStatusSelect.selectedIndex = 0; }
+        })
+        .catch(function() { /* keep the current list when the lookup fails */ });
+    }
+
+    if (trackerSelect) {
+      trackerSelect.addEventListener('change', function() {
+        applyTrackerFields();
+        refreshIssueStatuses();
+      });
+      applyTrackerFields();
+    }
+    if (memberSelect) {
+      memberSelect.addEventListener('change', refreshIssueStatuses);
+    }
+
     // --- live preview (#68) ---------------------------------------------------
 
     function previewEntityType() {
