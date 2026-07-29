@@ -1,5 +1,9 @@
-<%# One collapsible advanced section (core fieldset.collapsible idiom). %>
-<fieldset class="collapsible <%= 'collapsed' unless expanded %>" id="gtt-fiware-section-<%= section %>">
+<%# One collapsible advanced section (core fieldset.collapsible idiom).
+    data-wizard-step assigns the section to a step of the guided flow (#102);
+    outside wizard mode the attribute is inert. %>
+<% wizard_step = { 'filters' => 2, 'issue_details' => 3, 'subscription_options' => 4 }[section] %>
+<fieldset class="collapsible <%= 'collapsed' unless expanded %>" id="gtt-fiware-section-<%= section %>"
+          data-wizard-step="<%= wizard_step %>">
   <legend onclick="toggleFieldset(this);" class="icon icon-<%= expanded ? 'expanded' : 'collapsed' %>">
     <%= sprite_icon(expanded ? 'angle-down' : 'angle-right', rtl: !expanded) %>
     <%= label %>

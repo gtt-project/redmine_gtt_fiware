@@ -81,3 +81,28 @@ fieldset.js-tracker-custom-fields {
   margin: 0;
   padding: 0;
 }
+
+/* Guided subscription creation (#102): the step list above the form. */
+.gtt-fiware-wizard-steps {
+  list-style: none;
+  margin: 0 0 4px 0;
+  padding: 0;
+}
+
+.gtt-fiware-wizard-steps li {
+  display: inline-block;
+  padding: 4px 10px;
+  margin-right: 4px;
+  border-radius: 3px;
+  background: rgba(127, 127, 127, 0.12);
+  color: inherit;
+}
+
+.gtt-fiware-wizard-steps li.active {
+  background: rgba(127, 127, 127, 0.28);
+  font-weight: bold;
+}
+
+.gtt-fiware-wizard-help {
+  margin-top: 0;
+}

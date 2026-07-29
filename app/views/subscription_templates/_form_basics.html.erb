@@ -10,11 +10,11 @@
 %>
 
 <div class="box tabular">
-  <p><%= f.text_field :name, required: true, size: 75, placeholder: l(:field_subscription_template_name_placeholder) %></p>
+  <p data-wizard-step="1"><%= f.text_field :name, required: true, size: 75, placeholder: l(:field_subscription_template_name_placeholder) %></p>
 
   <%# Broker URL, standard, tenant headers and auth live on the connection (#67).
       data-standard/data-auth-mode drive the standard-aware toggles below. %>
-  <p class="min-width">
+  <p class="min-width" data-wizard-step="1">
     <%= f.select :broker_connection_id,
                  options_for_select(
                    BrokerConnection.sorted.map do |c|
@@ -30,7 +30,7 @@
   </p>
 
   <%# Structured entity picker (#66); serialized into entities_string on submit. %>
-  <p>
+  <p data-wizard-step="2">
     <%= content_tag :label, l(:field_subscription_template_entities) %>
     <span id="gtt-fiware-entity-rows" <%= 'style=display:none;'.html_safe unless entities_pickerable %>>
       <% entity_rows.each do |entity| %>
@@ -43,13 +43,13 @@
     </span>
     <a href="#" class="js-json-toggle" data-target="entities" style="font-size: 0.9em;"><%= l(:label_edit_as_json) %></a>
   </p>
-  <p id="gtt-fiware-entities-json" <%= 'class=hidden'.html_safe if entities_pickerable %>>
+  <p id="gtt-fiware-entities-json" data-wizard-step="2" <%= 'class=hidden'.html_safe if entities_pickerable %>>
     <%= f.text_area :entities_string, rows: 4,
           placeholder: JSON.pretty_generate(JSON.parse(l(:field_subscription_template_entities_string_placeholder))),
           value: (@subscription_template.entities.presence ? JSON.pretty_generate(@subscription_template.entities) : '') %>
   </p>
 
-  <p class="min-width">
+  <p class="min-width" data-wizard-step="3">
     <%= content_tag :label, l(:label_tracker) %>
     <%# data-disabled-fields drives the tracker-aware Issue details (#103):
         the form hides core fields the selected tracker disables. %>
@@ -57,12 +57,12 @@
           data: { disabled_fields: @project.trackers.each_with_object({}) { |t, h| h[t.id] = t.disabled_core_fields }.to_json } %>
   </p>
 
-  <p><%= f.text_field :subject, required: true, size: 75, placeholder: l(:field_subscription_template_subject_placeholder) %>
+  <p data-wizard-step="3"><%= f.text_field :subject, required: true, size: 75, placeholder: l(:field_subscription_template_subject_placeholder) %>
     <em class="info"><%= t(:gtt_fiware_subscription_template_variable_hint).html_safe %></em></p>
 
   <%# Live preview (#68): renders the templates against a sample entity
       fetched from the selected broker connection. %>
-  <p>
+  <p data-wizard-step="4">
     <%= content_tag :label, '' %>
     <a href="#" id="gtt-fiware-preview-button"
        data-url="<%= preview_project_subscription_templates_path(@project) %>"

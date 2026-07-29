@@ -12,6 +12,10 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
 
   after_initialize :set_default_alteration_types, if: :new_record?
   after_initialize :set_default_notify_on_metadata_change, if: :new_record?
+  # A new subscription should be creatable from the visible fields alone
+  # (#66, #102): the status select otherwise starts blank and, being
+  # required, silently blocks the submit.
+  after_initialize :set_default_status, if: :new_record?
   before_create :ensure_webhook_secret
 
   belongs_to :project, optional: false
@@ -204,6 +208,10 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
 
   def set_default_notify_on_metadata_change
     self.notify_on_metadata_change = true if notify_on_metadata_change.nil?
+  end
+
+  def set_default_status
+    self.status ||= 'active'
   end
 
   # Parsable JSON is not enough: the subscription builders and the form's

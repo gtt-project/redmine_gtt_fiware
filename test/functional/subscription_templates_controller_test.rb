@@ -340,6 +340,34 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     assert_equal [Tracker.find(1).default_status_id, 2, 5].sort, values.sort
   end
 
+  # --- guided creation (#102) ----------------------------------------------
+
+  # The wizard is a presentation layer over the single form: the new page
+  # carries the nav, the step tagging and the escape hatch; without JS the
+  # classic form renders unchanged (the nav starts hidden).
+  def test_new_carries_the_wizard_contract
+    get :new, params: { project_id: @project.id }
+    assert_response :success
+    assert_select 'form[data-wizard]'
+    assert_select '#gtt-fiware-wizard ol.gtt-fiware-wizard-steps li', 4
+    assert_select '#gtt-fiware-wizard-buttons #gtt-fiware-wizard-back'
+    assert_select '#gtt-fiware-wizard-buttons #gtt-fiware-wizard-next'
+    assert_select 'a#gtt-fiware-wizard-all'
+    assert_select 'fieldset#gtt-fiware-section-filters[data-wizard-step="2"]'
+    assert_select 'fieldset#gtt-fiware-section-issue_details[data-wizard-step="3"]'
+    assert_select 'fieldset#gtt-fiware-section-subscription_options[data-wizard-step="4"]'
+    assert_select 'p[data-wizard-step="4"] input[type=submit]'
+    # New templates default the issue geometry to the entity location (#102).
+    assert_select 'input[name="gtt_fiware_geometry_mode"][value="location"][checked]'
+  end
+
+  def test_edit_stays_on_the_classic_form
+    get :edit, params: { project_id: @project.id, id: @template.id }
+    assert_response :success
+    assert_select 'form[data-wizard]', 0
+    assert_select '#gtt-fiware-wizard', 0
+  end
+
   # Sections with stored values are expanded on edit so nothing is hidden.
   def test_edit_expands_sections_that_contain_values
     @template.update_column(:expression_query, 'temperature>30')
