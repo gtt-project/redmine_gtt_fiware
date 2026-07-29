@@ -125,9 +125,11 @@ module RedmineGttFiware
       org = entity.id.to_s[%r{\Aurn:ngsi-ld:Issue:redmine:([^:]+):}, 1] || 'external'
       status = entity.attributes.dig('status', 'value').to_s
       status_label = entity.attributes.dig('statusLabel', 'value').to_s
-      note = I18n.t(:text_federation_status_note,
-                    org: org, status: [status_label.presence, status.presence].compact.uniq.join(' / '),
-                    urn: entity.id)
+      # The label wins when it only differs from the normalized status by
+      # casing ("Closed" vs "closed" must not read "Closed / closed").
+      status_text = [status_label.presence, status.presence].compact
+                    .uniq(&:downcase).join(' / ')
+      note = I18n.t(:text_federation_status_note, org: org, status: status_text, urn: entity.id)
 
       annotated = 0
       Issue.where(fiware_entity: refers_to, project_id: @template.project_id).find_each do |issue|
