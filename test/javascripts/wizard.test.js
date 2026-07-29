@@ -91,6 +91,36 @@ describe('stepping', () => {
     expect(section.classList.contains('collapsed')).toBe(false);
     expect(section.querySelector('div').style.display).toBe('');
   });
+
+  it('expands sections through toggleFieldset when Redmine provides it', () => {
+    const toggled = [];
+    window.toggleFieldset = (legend) => {
+      toggled.push(legend.closest('fieldset').id);
+      legend.closest('fieldset').classList.remove('collapsed');
+    };
+    try {
+      buildWizardForm();
+      next();
+      expect(toggled).toEqual(['section-filters']);
+      // Already-expanded sections are left alone on revisits.
+      back(); next();
+      expect(toggled).toEqual(['section-filters']);
+    } finally {
+      delete window.toggleFieldset;
+    }
+  });
+
+  it('hides a shown preview result when navigating away from the last step', () => {
+    document.body.insertAdjacentHTML('beforeend',
+      '<div id="gtt-fiware-preview-result" style="display: none;"></div>');
+    // jsdom: move it inside the form so the fixture stays realistic.
+    document.querySelector('form').appendChild(document.getElementById('gtt-fiware-preview-result'));
+    next(); next(); next();
+    const preview = document.getElementById('gtt-fiware-preview-result');
+    preview.style.display = '';
+    back();
+    expect(preview.style.display).toBe('none');
+  });
 });
 
 describe('validation gate', () => {

@@ -33,8 +33,15 @@
 
     // Sections are the collapsible fieldsets from the classic form; a step
     // that contains one gets it expanded, nothing stays behind a fold.
+    // Expansion goes through Redmine's own toggleFieldset so the legend icon
+    // stays in sync; the manual fallback covers environments without it.
     function expandSection(el) {
-      if (!el.classList.contains('collapsible')) { return; }
+      if (!el.classList.contains('collapsible') || !el.classList.contains('collapsed')) { return; }
+      var legend = el.querySelector(':scope > legend');
+      if (typeof window.toggleFieldset === 'function' && legend) {
+        window.toggleFieldset(legend);
+        return;
+      }
       el.classList.remove('collapsed');
       var body = el.querySelector(':scope > div');
       if (body) { body.style.display = ''; }
@@ -54,6 +61,11 @@
       help.textContent = activeItem ? activeItem.dataset.help : '';
       back.disabled = step === 1;
       next.style.display = step === TOTAL_STEPS ? 'none' : '';
+      // The preview result manages its own visibility (the preview button
+      // shows it); the wizard only makes sure it never lingers on steps
+      // before Review & publish.
+      var previewResult = document.getElementById('gtt-fiware-preview-result');
+      if (previewResult && step !== TOTAL_STEPS) { previewResult.style.display = 'none'; }
     }
 
     // Required fields of the current step must hold before advancing;
