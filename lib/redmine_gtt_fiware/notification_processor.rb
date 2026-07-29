@@ -224,8 +224,39 @@ module RedmineGttFiware
       return if geom.nil? || geom == issue.geom
 
       old_geom = issue.geom
+      note_geofence_transition(old_geom, geom, journal)
       issue.geom = geom
       journal.details.build(property: 'attr', prop_key: 'geom', old_value: old_geom, value: geom)
+    end
+
+    # Boundary crossing notes (#87): the previous position (the issue's
+    # stored geometry) and the new one are compared against the project
+    # boundary; a transition is journaled. Stateless beyond the issue's
+    # geometry, so a single missed notification cannot corrupt anything, and
+    # a failed geometry predicate never fails the whole notification.
+    def note_geofence_transition(old_geom, new_geom, journal)
+      return unless @template.geofence_notes?
+
+      fence = @template.project.geom
+      return if fence.nil? || old_geom.nil? || new_geom.nil?
+
+      was_inside = fence_contains?(fence, old_geom)
+      now_inside = fence_contains?(fence, new_geom)
+      return if was_inside == now_inside
+
+      text = I18n.t(now_inside ? :text_geofence_entered : :text_geofence_left)
+      journal.notes = [journal.notes.presence, text].compact.join("\n\n")
+    rescue StandardError => e
+      @logger.warn "[FIWARE] Geofence check failed: #{e.message}"
+    end
+
+    # Point-in-polygon against the fence; non-point geometries are reduced
+    # to their centroid. Cast to the fence's factory so mixed factories
+    # (fresh conversion vs. database round trip) still compare.
+    def fence_contains?(fence, geom)
+      geom = RGeo::Feature.cast(geom, factory: fence.factory) || geom
+      point = geom.geometry_type == RGeo::Feature::Point ? geom : geom.centroid
+      fence.contains?(point)
     end
 
     # Renders the template's geometry against the entity and converts the

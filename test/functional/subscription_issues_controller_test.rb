@@ -371,6 +371,73 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
            'geometry change must be recorded as a journal detail'
   end
 
+  # --- boundary crossing notes (#87) ---------------------------------------
+
+  def geo_point(lon, lat)
+    { 'type' => 'geo:json', 'value' => { 'type' => 'Point', 'coordinates' => [lon, lat] } }
+  end
+
+  # A polygon fence around [0..10, 0..10] as the project boundary.
+  def with_fence
+    skip 'redmine_gtt not installed' unless Redmine::Plugin.installed?(:redmine_gtt)
+    project = Project.find(1)
+    project.enabled_module_names |= ['gtt']
+    # The gtt geometry columns carry a Z dimension.
+    factory = RGeo::Geos.factory(srid: 4326, has_z_coordinate: true)
+    fence = factory.polygon(factory.linear_ring(
+      [factory.point(0, 0, 0), factory.point(0, 10, 0), factory.point(10, 10, 0),
+       factory.point(10, 0, 0), factory.point(0, 0, 0)]
+    ))
+    project.update_columns(geom: fence)
+    @template.update_columns(notes: nil, geometry: '${location}', geofence_notes: true)
+  end
+
+  def test_update_journals_a_leave_transition
+    with_fence
+    post_notification(entities: [entity('location' => geo_point(5, 5))])
+    assert_no_difference 'Issue.count' do
+      post_notification(entities: [entity('location' => geo_point(20, 20))])
+    end
+    assert_response :success
+    journal = Issue.order(id: :desc).first.journals.order(:id).last
+    assert_equal I18n.t(:text_geofence_left), journal.notes
+  end
+
+  def test_update_journals_an_enter_transition
+    with_fence
+    post_notification(entities: [entity('location' => geo_point(20, 20))])
+    post_notification(entities: [entity('location' => geo_point(5, 5))])
+    journal = Issue.order(id: :desc).first.journals.order(:id).last
+    assert_equal I18n.t(:text_geofence_entered), journal.notes
+  end
+
+  def test_update_stays_quiet_without_a_transition
+    with_fence
+    post_notification(entities: [entity('location' => geo_point(5, 5))])
+    post_notification(entities: [entity('location' => geo_point(6, 6))])
+    journal = Issue.order(id: :desc).first.journals.order(:id).last
+    assert journal.notes.blank?, 'movement inside the fence must not produce a note'
+  end
+
+  def test_update_stays_quiet_when_the_flag_is_off
+    with_fence
+    @template.update_columns(geofence_notes: false)
+    post_notification(entities: [entity('location' => geo_point(5, 5))])
+    post_notification(entities: [entity('location' => geo_point(20, 20))])
+    journal = Issue.order(id: :desc).first.journals.order(:id).last
+    assert journal.notes.blank?
+  end
+
+  def test_geofence_note_appends_to_configured_notes
+    with_fence
+    @template.update_columns(notes: 'Reading: ${attrs.temperature.value}')
+    post_notification(entities: [entity('location' => geo_point(5, 5))])
+    post_notification(entities: [entity('location' => geo_point(20, 20))])
+    journal = Issue.order(id: :desc).first.journals.order(:id).last
+    assert_includes journal.notes, 'Reading: 30'
+    assert_includes journal.notes, I18n.t(:text_geofence_left)
+  end
+
   # #47: new attachments (e.g. new photos) are added on update even when the
   # template has no notes configured; already-attached filenames are skipped.
   def test_update_adds_new_attachments_without_notes_configured

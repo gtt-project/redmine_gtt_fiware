@@ -340,6 +340,14 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     assert_equal [Tracker.find(1).default_status_id, 2, 5].sort, values.sort
   end
 
+  # Boundary crossing notes (#87): the checkbox renders in the filters
+  # section and is disabled while the project has no boundary to cross.
+  def test_form_renders_the_geofence_checkbox_disabled_without_a_boundary
+    get :new, params: { project_id: @project.id }
+    assert_response :success
+    assert_select 'input[name=?][disabled]', 'subscription_template[geofence_notes]'
+  end
+
   # --- guided creation (#102) ----------------------------------------------
 
   # The wizard is a presentation layer over the single form: the new page
