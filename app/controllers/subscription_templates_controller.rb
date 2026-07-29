@@ -9,7 +9,9 @@ class SubscriptionTemplatesController < ApplicationController
   # explicitly changes no behaviour (CodeQL rb/csrf-protection-not-enabled).
   protect_from_forgery with: :exception
 
-  before_action :find_project_by_project_id, except: [:index, :set_subscription_id]
+  # index is nested under a project since #22 (the REST API), so it needs the
+  # project too; only the broker's registration callback is project-less.
+  before_action :find_project_by_project_id, except: [:set_subscription_id]
   before_action :get_issue_priorities, only: [:new, :create, :edit, :update]
   before_action :get_issue_categories, only: [:new, :create, :edit, :update]
   before_action :find_subscription_template, only: [:edit, :update, :destroy, :copy, :publish, :unpublish, :sync, :update_subscription_id]
@@ -21,13 +23,31 @@ class SubscriptionTemplatesController < ApplicationController
   # no manual verify_authenticity_token skip is needed. The state-changing
   # browser actions (publish/unpublish) keep full CSRF protection via the
   # rails-ujs token.
-  accept_api_auth :set_subscription_id
+  accept_api_auth :set_subscription_id, :index, :show, :create, :update, :destroy
   before_action :authorize, except: [:set_subscription_id]
 
   helper_method :index_path, :form_issue_statuses
 
   def index
-    @subscription_templates = subscription_template_scope
+    respond_to do |format|
+      # The HTML surface for the list is the project's FIWARE tab.
+      format.html { redirect_to index_path }
+      format.api do
+        scope = subscription_template_scope
+        @subscription_template_count = scope.count
+        @offset, @limit = api_offset_and_limit
+        @subscription_templates = scope.includes(:broker_connection, :tracker, :issue_status, :member)
+                                       .offset(@offset).limit(@limit).to_a
+      end
+    end
+  end
+
+  def show
+    @subscription_template = subscription_template_scope.find(params[:id])
+    respond_to do |format|
+      format.html { redirect_to edit_project_subscription_template_path(@project, @subscription_template) }
+      format.api
+    end
   end
 
   # Prefilled defaults keep the happy path publishable without opening any
@@ -55,21 +75,36 @@ class SubscriptionTemplatesController < ApplicationController
 
   def create
     r = RedmineGttFiware::SaveSubscriptionTemplate.(subscription_template_params, project: @project)
+    @subscription_template = r.subscription_template
     if r.subscription_template_saved?
-      publish_after_create(r.subscription_template) if params[:publish_after_create].present?
-      redirect_to params[:continue] ? new_path : index_path
+      publish_after_create(@subscription_template) if params[:publish_after_create].present?
+      respond_to do |format|
+        format.html { redirect_to params[:continue] ? new_path : index_path }
+        format.api do
+          render action: 'show', status: :created,
+                 location: project_subscription_template_path(@project, @subscription_template)
+        end
+      end
     else
-      @subscription_template = r.subscription_template
-      render 'new'
+      respond_to do |format|
+        format.html { render 'new' }
+        format.api { render_validation_errors(@subscription_template) }
+      end
     end
   end
 
   def update
     r = RedmineGttFiware::SaveSubscriptionTemplate.(subscription_template_params, subscription_template: @subscription_template)
     if r.subscription_template_saved?
-      redirect_to index_path
+      respond_to do |format|
+        format.html { redirect_to index_path }
+        format.api { render_api_ok }
+      end
     else
-      render 'edit'
+      respond_to do |format|
+        format.html { render 'edit' }
+        format.api { render_validation_errors(@subscription_template) }
+      end
     end
   end
 
@@ -106,7 +141,10 @@ class SubscriptionTemplatesController < ApplicationController
 
   def destroy
     @subscription_template.destroy
-    redirect_to index_path
+    respond_to do |format|
+      format.html { redirect_to index_path }
+      format.api { render_api_ok }
+    end
   end
 
   def copy
@@ -438,8 +476,53 @@ class SubscriptionTemplatesController < ApplicationController
     @issue_priorities = IssuePriority.all.sorted
   end
 
+  # API clients naturally send structures where the form sends JSON strings
+  # (the textareas are a UI detail): entities/attachments/geometry as objects
+  # and arrays, attrs as an array of names. Convert them to the *_string
+  # inputs the model already validates, so both shapes work and the
+  # validation stays in one place. The converted values are re-parsed and
+  # shape-checked by the model before landing in the serialized columns, so
+  # this is not a mass-assignment path.
+  def normalize_api_structures
+    attributes = params[:subscription_template]
+    return unless attributes.respond_to?(:key?)
+
+    { entities: :entities_string, attachments: :attachments_string, geometry: :geometry_string }
+      .each do |structured, string_field|
+        next unless attributes.key?(structured)
+
+        value = attributes.delete(structured)
+        # An explicit null carries no structure to convert; leave whatever the
+        # client sent in the *_string field alone.
+        next if value.nil?
+
+        attributes[string_field] = value.is_a?(String) ? value : structured_to_json(value)
+      end
+
+    attributes[:attrs] = structured_to_json(attributes[:attrs]) if attributes[:attrs].is_a?(Array)
+  end
+
+  def structured_to_json(value)
+    plain_structure(value).to_json
+  end
+
+  def plain_structure(value)
+    case value
+    when ActionController::Parameters then value.to_unsafe_h
+    when Array then value.map { |element| plain_structure(element) }
+    else value
+    end
+  end
+
   def subscription_template_params
-    params[:subscription_template][:alteration_types] ||= []
+    if api_request?
+      normalize_api_structures
+    else
+      # The form omits unchecked boxes, so an absent value means "none".
+      # An API client that omits the key means "leave it alone", and on
+      # create the model's default applies.
+      params[:subscription_template][:alteration_types] ||= []
+    end
     params.require(:subscription_template).permit(:broker_connection_id, :subscription_id, :name, :expires, :status, :federation_policy, :federation_watch, :throttling, :context, :entities_string, :attrs, :expression_query, :expression_georel, :expression_geometry, :expression_coords, :notify_on_metadata_change, :subject, :description, :attachments_string, :is_private, :project_id, :tracker_id, :version_id, :issue_status_id, :issue_category_id, :issue_priority_id, :member_id, :comment, :threshold_create, :threshold_create_hours, :notes, :geometry, :geometry_string, :geofence_notes, alteration_types: [], issue_custom_field_values: {})
   end
 
