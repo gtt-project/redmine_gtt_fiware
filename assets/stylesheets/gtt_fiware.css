@@ -73,3 +73,11 @@ form.new_subscription_template p.min-width select {
   width: auto;
   font-weight: normal;
 }
+
+/* Per-tracker custom field groups on the subscription form (#103): plain
+   grouping containers, not visual fieldsets. */
+fieldset.js-tracker-custom-fields {
+  border: none;
+  margin: 0;
+  padding: 0;
+}

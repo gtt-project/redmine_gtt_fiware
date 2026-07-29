@@ -43,6 +43,23 @@ describe('disabled core fields', () => {
     expect(qs('[data-field="fixed_version_id"]').style.display).toBe('');
   });
 
+  it('enables the selected tracker custom-field group and disables the others', () => {
+    buildForm({ selectedTracker: '1' });
+    initForm();
+    const group1 = qs('.js-tracker-custom-fields[data-tracker-id="1"]');
+    const group2 = qs('.js-tracker-custom-fields[data-tracker-id="2"]');
+    expect(group1.disabled).toBe(false);
+    expect(group2.disabled).toBe(true);
+    expect(group2.style.display).toBe('none');
+
+    stubStatuses([]);
+    changeTracker('2');
+    expect(group1.disabled).toBe(true);
+    expect(group1.style.display).toBe('none');
+    expect(group2.disabled).toBe(false);
+    expect(group2.style.display).toBe('');
+  });
+
   it('clears a hidden select so it does not submit a stale value', () => {
     buildForm();
     initForm();

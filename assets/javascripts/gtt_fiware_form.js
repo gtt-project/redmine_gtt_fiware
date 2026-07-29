@@ -241,6 +241,13 @@
           p.querySelectorAll('select').forEach(function(select) { select.value = ''; });
         }
       });
+      // Custom field groups (#103, phase 2): show the selected tracker's
+      // group; hidden groups are disabled so their inputs never submit.
+      document.querySelectorAll('.js-tracker-custom-fields').forEach(function(group) {
+        var active = group.dataset.trackerId === trackerSelect.value;
+        group.style.display = active ? '' : 'none';
+        group.disabled = !active;
+      });
     }
 
     function refreshIssueStatuses() {

@@ -61,6 +61,39 @@ class SubscriptionTemplateTest < ActiveSupport::TestCase
     assert_equal category.id, template.issue_category_id
   end
 
+  # --- custom field templates (#103, phase 2) -----------------------------
+
+  def issue_custom_field(attributes = {})
+    IssueCustomField.create!({
+      name: "Severity #{SecureRandom.hex(3)}",
+      field_format: 'string',
+      is_for_all: true,
+      trackers: [Tracker.find(1)]
+    }.merge(attributes))
+  end
+
+  def test_custom_field_values_round_trip_and_drop_blanks
+    field = issue_custom_field
+    template = SubscriptionTemplate.create!(valid_attributes(
+      issue_custom_field_values: { field.id.to_s => '${severity}', '999999' => '   ' }
+    ))
+    assert_equal({ field.id.to_s => '${severity}' }, template.reload.issue_custom_field_values)
+  end
+
+  def test_custom_field_values_for_other_trackers_are_cleared_on_save
+    foreign_field = issue_custom_field(trackers: [Tracker.find(2)])
+    template = SubscriptionTemplate.create!(valid_attributes(
+      issue_custom_field_values: { foreign_field.id.to_s => '${severity}' }
+    ))
+    assert_equal({}, template.reload.issue_custom_field_values)
+  end
+
+  def test_custom_field_values_read_as_empty_hash_when_malformed
+    template = SubscriptionTemplate.create!(valid_attributes)
+    template.update_column(:issue_custom_field_values, 'not json')
+    assert_equal({}, template.reload.issue_custom_field_values)
+  end
+
   def test_default_alteration_types
     template = SubscriptionTemplate.new
     assert_equal ['entityCreate', 'entityChange'], template.alteration_types
