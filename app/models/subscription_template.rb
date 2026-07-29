@@ -86,7 +86,13 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
 
   # The @context for this template's NGSI-LD subscription: the template's own
   # value overrides the connection's default.
+  # A federation watch (#70, 4c) subscribes to the emitted Issue type, so it
+  # must expand Issue/refersTo/status through the published core vocabulary -
+  # the same context every emitting instance anchors its terms in. Otherwise
+  # the template/connection context wins as usual.
   def effective_context
+    return RedmineGttFiware::FederationSiblings::CONTEXT_URL if federation_watch?
+
     context.presence || broker_connection&.context
   end
 

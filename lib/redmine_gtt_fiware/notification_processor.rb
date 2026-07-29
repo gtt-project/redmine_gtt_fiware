@@ -20,7 +20,10 @@ module RedmineGttFiware
     # issue carries validation errors for the caller to surface. `suppressed`
     # marks the federation policy skipping creation (#70): deliberate,
     # successful handling with no issue - not a failure.
-    Result = Struct.new(:issue, :created, :saved, :suppressed, keyword_init: true) do
+    # `federated` counts local issues annotated by a federation-watch
+    # notification (#70, 4c) - like suppression, deliberate successful
+    # handling with no issue of its own.
+    Result = Struct.new(:issue, :created, :saved, :suppressed, :federated, keyword_init: true) do
       def created?
         created
       end
@@ -31,6 +34,10 @@ module RedmineGttFiware
 
       def suppressed?
         suppressed == true
+      end
+
+      def federated?
+        !federated.nil?
       end
     end
 
@@ -46,8 +53,12 @@ module RedmineGttFiware
     def process(raw_entity)
       Emitter.suppress do
         entity = Entity.from(raw_entity, @template.standard)
-        existing = find_recent_issue(entity)
-        existing ? process_update(existing, entity) : process_create(entity)
+        if @template.federation_watch?
+          process_federation_update(entity)
+        else
+          existing = find_recent_issue(entity)
+          existing ? process_update(existing, entity) : process_create(entity)
+        end
       end
     end
 
@@ -98,6 +109,44 @@ module RedmineGttFiware
       issue.reload
       issue.init_journal(User.current, "#{I18n.t(:text_federation_siblings_note)}\n\n#{lines.join("\n")}")
       issue.save
+    end
+
+    # Federation push updates (#70, 4c): the notified entity is a foreign
+    # organization's Issue; journal its status onto every local issue that
+    # refers to the same source entity. Own emissions are ignored (the echo
+    # guard the design demands), and a repeated unchanged status adds no
+    # second note.
+    def process_federation_update(entity)
+      return Result.new(federated: 0) if own_emission?(entity)
+
+      refers_to = entity.attributes.dig('refersTo', 'value').to_s
+      return Result.new(federated: 0) if refers_to.blank?
+
+      org = entity.id.to_s[%r{\Aurn:ngsi-ld:Issue:redmine:([^:]+):}, 1] || 'external'
+      status = entity.attributes.dig('status', 'value').to_s
+      status_label = entity.attributes.dig('statusLabel', 'value').to_s
+      note = I18n.t(:text_federation_status_note,
+                    org: org, status: [status_label.presence, status.presence].compact.uniq.join(' / '),
+                    urn: entity.id)
+
+      annotated = 0
+      Issue.where(fiware_entity: refers_to, project_id: @template.project_id).find_each do |issue|
+        # One note per state: skip when the latest federation note for this
+        # foreign work order already says the same thing.
+        last = issue.journals.where('notes LIKE ?', "%#{entity.id}%").order(id: :desc).first
+        next if last && last.notes == note
+
+        issue.init_journal(User.current, note)
+        annotated += 1 if issue.save
+      end
+      Result.new(federated: annotated)
+    end
+
+    # The 4c echo guard: our own emitted work orders come back through a
+    # watch subscription on the same tenant and must be ignored.
+    def own_emission?(entity)
+      instance = Emitter.instance_id
+      instance.present? && entity.id.to_s.start_with?("urn:ngsi-ld:Issue:redmine:#{instance}:")
     end
 
     # Only when the policy asks for it, and never fatally: sibling lookup
