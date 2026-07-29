@@ -36,6 +36,31 @@ class SubscriptionTemplateTest < ActiveSupport::TestCase
     assert template.save
   end
 
+  # #103: a tracker that disables a core field must not keep a stored value
+  # for it - the form hides the selects, but hidden inputs still submit.
+  def test_save_clears_fields_the_tracker_disables
+    tracker = Tracker.find(1)
+    tracker.core_fields = Tracker::CORE_FIELDS - %w[category_id fixed_version_id priority_id]
+    tracker.save!
+    category = IssueCategory.create!(project_id: 1, name: 'Field test')
+    version = Version.create!(project_id: 1, name: 'Field test 1.0')
+
+    template = SubscriptionTemplate.create!(valid_attributes(
+      issue_category_id: category.id,
+      version_id: version.id,
+      issue_priority_id: IssuePriority.first.id
+    ))
+    assert_nil template.issue_category_id
+    assert_nil template.version_id
+    assert_nil template.issue_priority_id
+  end
+
+  def test_save_keeps_fields_the_tracker_allows
+    category = IssueCategory.create!(project_id: 1, name: 'Field test')
+    template = SubscriptionTemplate.create!(valid_attributes(issue_category_id: category.id))
+    assert_equal category.id, template.issue_category_id
+  end
+
   def test_default_alteration_types
     template = SubscriptionTemplate.new
     assert_equal ['entityCreate', 'entityChange'], template.alteration_types

@@ -73,6 +73,10 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
   validate :attrs_must_be_array_of_strings
   validate :geo_query_fields_must_be_all_or_none
 
+  # A tracker that disables a core field must not keep a stored value for it
+  # (#103): the form hides the selects, but hidden inputs still submit, and
+  # the form is not the only writer.
+  before_validation :clear_tracker_disabled_fields
   before_save :serialize_alteration_types
   after_find :deserialize_alteration_types
 
@@ -217,6 +221,14 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
     self.attachments = parsed
   rescue JSON::ParserError
     errors.add :attachments_string, I18n.t('model.subscription_template.must_be_valid_array_of_objects')
+  end
+
+  def clear_tracker_disabled_fields
+    return unless tracker
+    disabled = tracker.disabled_core_fields
+    self.issue_priority_id = nil if disabled.include?('priority_id')
+    self.issue_category_id = nil if disabled.include?('category_id')
+    self.version_id = nil if disabled.include?('fixed_version_id')
   end
 
   def serialize_alteration_types

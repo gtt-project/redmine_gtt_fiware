@@ -68,7 +68,14 @@ export function buildForm({
   geometryMode = 'location',
   geoMode = 'anywhere',
   status = 'active',
-  alterationChecked = ['entityCreate', 'entityChange']
+  alterationChecked = ['entityCreate', 'entityChange'],
+  // Tracker-driven issue details (#103). trackerDisabledFields maps tracker
+  // id -> disabled core fields, like the data attribute the ERB renders.
+  trackerDisabledFields = { 1: [], 2: ['category_id', 'fixed_version_id'] },
+  selectedTracker = '1',
+  issueStatuses = [{ id: 1, name: 'New' }, { id: 2, name: 'In Progress' }],
+  selectedIssueStatus = '1',
+  statusesUrl = '/projects/demo/subscription_templates/allowed_statuses'
 } = {}) {
   const checked = (type) => (alterationChecked.includes(type) ? 'checked' : '');
   const ldTriggers = {
@@ -140,6 +147,22 @@ export function buildForm({
         <option value="inactive" ${status === 'inactive' ? 'selected' : ''}>inactive</option>
         <option value="oneshot" ${status === 'oneshot' ? 'selected' : ''}>oneshot</option>
       </select>
+
+      <select id="subscription_template_tracker_id" data-disabled-fields='${JSON.stringify(trackerDisabledFields)}'>
+        ${Object.keys(trackerDisabledFields).map(id =>
+          `<option value="${id}" ${id === selectedTracker ? 'selected' : ''}>Tracker ${id}</option>`).join('')}
+      </select>
+      <select id="subscription_template_member_id">
+        <option value="10" selected>Aiko Tanaka</option>
+        <option value="11">Ben Okafor</option>
+      </select>
+      <select id="subscription_template_issue_status_id" data-statuses-url="${statusesUrl}">
+        ${issueStatuses.map(s =>
+          `<option value="${s.id}" ${String(s.id) === selectedIssueStatus ? 'selected' : ''}>${s.name}</option>`).join('')}
+      </select>
+      <p class="min-width js-issue-core-field" data-field="priority_id"><select></select></p>
+      <p class="min-width js-issue-core-field" data-field="category_id"><select></select></p>
+      <p class="min-width js-issue-core-field" data-field="fixed_version_id"><select></select></p>
 
       <input type="submit" name="publish_after_create" value="Create and publish" />
     </form>`;

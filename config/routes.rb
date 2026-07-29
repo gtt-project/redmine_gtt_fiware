@@ -42,6 +42,9 @@ scope 'projects/:project_id' do
       # collection route. POST (it carries form state), CSRF-protected (the
       # form JS sends the token header).
       post :preview
+      # Workflow-allowed issue statuses for a tracker/member pair (#103):
+      # read-only lookup the form calls when either select changes.
+      get :allowed_statuses
     end
     member do
       # copy is read-only (it prefills a curl command), so it stays GET.

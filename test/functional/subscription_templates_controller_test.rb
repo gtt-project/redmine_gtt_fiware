@@ -258,6 +258,60 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     assert_select 'a.js-attachment-remove svg'
   end
 
+  # --- tracker-driven issue details (#103) --------------------------------
+
+  # The form carries the hooks the JS drives: the per-tracker disabled-fields
+  # map, the statuses endpoint, and the hideable core-field wrappers.
+  def test_new_form_carries_tracker_driven_issue_details_hooks
+    tracker = Tracker.find(1)
+    tracker.core_fields = Tracker::CORE_FIELDS - ['category_id']
+    tracker.save!
+
+    get :new, params: { project_id: @project.id }
+    assert_response :success
+    assert_select 'select#subscription_template_tracker_id[data-disabled-fields*=?]', 'category_id'
+    assert_select 'select#subscription_template_issue_status_id[data-statuses-url=?]',
+                  "/projects/#{@project.identifier}/subscription_templates/allowed_statuses"
+    %w[priority_id category_id fixed_version_id].each do |field|
+      assert_select "p.js-issue-core-field[data-field=?]", field
+    end
+  end
+
+  def test_allowed_statuses_returns_the_workflow_statuses_for_the_pair
+    WorkflowTransition.create!(tracker_id: 1, role_id: 1, old_status_id: 0, new_status_id: 2)
+
+    get :allowed_statuses, params: { project_id: @project.id, tracker_id: 1, member_id: 1 }
+    assert_response :success
+    ids = JSON.parse(response.body).map { |s| s['id'] }
+    # The new-issue transition target plus the tracker's default status.
+    assert_equal [Tracker.find(1).default_status_id, 2].sort, ids.sort
+  end
+
+  def test_allowed_statuses_falls_back_to_all_statuses_for_an_unknown_pair
+    get :allowed_statuses, params: { project_id: @project.id, tracker_id: '', member_id: '' }
+    assert_response :success
+    assert_equal IssueStatus.count, JSON.parse(response.body).size
+  end
+
+  def test_allowed_statuses_requires_login
+    @request.session[:user_id] = nil
+    get :allowed_statuses, params: { project_id: @project.id, tracker_id: 1, member_id: 1 }
+    assert_response :redirect
+  end
+
+  # The initially rendered status select is already reduced, and a stored
+  # status the workflow would no longer offer stays in the list instead of
+  # being silently dropped.
+  def test_edit_reduces_the_status_select_and_keeps_the_stored_status
+    WorkflowTransition.create!(tracker_id: 1, role_id: 1, old_status_id: 0, new_status_id: 2)
+    @template.update_columns(issue_status_id: 5)
+
+    get :edit, params: { project_id: @project.id, id: @template.id }
+    assert_response :success
+    values = css_select('select#subscription_template_issue_status_id option').map { |o| o['value'].to_i }
+    assert_equal [Tracker.find(1).default_status_id, 2, 5].sort, values.sort
+  end
+
   # Sections with stored values are expanded on edit so nothing is hidden.
   def test_edit_expands_sections_that_contain_values
     @template.update_column(:expression_query, 'temperature>30')

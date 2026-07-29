@@ -58,19 +58,23 @@
           value: (@subscription_template.attachments.presence ? JSON.pretty_generate(@subscription_template.attachments) : '') %>
   </p>
 
+  <%# Issue details follow the selected tracker (#103): the status list is
+      workflow-allowed for the tracker/member pair (refetched by the form JS
+      on change), and core fields the tracker disables are hidden. %>
   <p class="min-width">
     <%= content_tag :label, l(:label_issue_status) %>
-    <%= f.collection_select :issue_status_id, @issue_statuses, :id, :name %>
+    <%= f.collection_select :issue_status_id, form_issue_statuses, :id, :name, {},
+          data: { statuses_url: allowed_statuses_project_subscription_templates_path(@project) } %>
   </p>
-  <p class="min-width">
+  <p class="min-width js-issue-core-field" data-field="priority_id">
     <%= content_tag :label, l(:field_priority) %>
     <%= f.collection_select :issue_priority_id, @issue_priorities, :id, :name %>
   </p>
-  <p class="min-width">
+  <p class="min-width js-issue-core-field" data-field="category_id">
     <%= content_tag :label, l(:label_issue_category) %>
     <%= f.collection_select :issue_category_id, @issue_categories, :id, :name, include_blank: true %>
   </p>
-  <p class="min-width">
+  <p class="min-width js-issue-core-field" data-field="fixed_version_id">
     <%= content_tag :label, l(:label_version) %>
     <%= f.collection_select :version_id, @project.versions, :id, :name, include_blank: true %>
   </p>

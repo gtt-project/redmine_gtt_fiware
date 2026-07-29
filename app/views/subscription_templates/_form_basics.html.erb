@@ -51,7 +51,10 @@
 
   <p class="min-width">
     <%= content_tag :label, l(:label_tracker) %>
-    <%= f.collection_select :tracker_id, @project.trackers, :id, :name %>
+    <%# data-disabled-fields drives the tracker-aware Issue details (#103):
+        the form hides core fields the selected tracker disables. %>
+    <%= f.collection_select :tracker_id, @project.trackers, :id, :name, {},
+          data: { disabled_fields: @project.trackers.each_with_object({}) { |t, h| h[t.id] = t.disabled_core_fields }.to_json } %>
   </p>
 
   <p><%= f.text_field :subject, required: true, size: 75, placeholder: l(:field_subscription_template_subject_placeholder) %>
