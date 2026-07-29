@@ -80,6 +80,11 @@ class BrokerConnectionsController < ApplicationController
         mapping.subtype = attrs[:subtype].to_s.strip
         # The setter intersects with the catalog, so unknown keys are dropped.
         mapping.exposed_standard_fields = Array(attrs[:fields]).map(&:to_s)
+        custom = {}
+        (attrs[:custom] || {}).each do |cf_id, cf_attrs|
+          custom[cf_id] = cf_attrs[:term].to_s.strip if cf_attrs[:enabled] == '1'
+        end
+        mapping.exposed_custom_fields = custom
         failed << mapping unless mapping.save
       elsif mapping.persisted?
         mapping.destroy

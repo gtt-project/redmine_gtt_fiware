@@ -78,6 +78,40 @@ class EmissionMappingTest < ActiveSupport::TestCase
     assert_equal [], mapping.reload.exposed_standard_fields
   end
 
+  # --- custom field exposure (#69, step 2c) ----------------------------------
+
+  def test_exposed_custom_fields_round_trip
+    mapping = EmissionMapping.new(broker_connection: connection, tracker: Tracker.first, subtype: 'WorkOrder')
+    mapping.exposed_custom_fields = { 5 => 'roadSurface', '7' => 'severityScore' }
+    assert mapping.valid?
+    assert_equal({ 5 => 'roadSurface', 7 => 'severityScore' }, mapping.exposed_custom_fields)
+  end
+
+  # An admin's typo must surface as an error, not vanish through the
+  # reader's defensive filter.
+  def test_invalid_custom_terms_are_validation_errors
+    mapping = EmissionMapping.new(broker_connection: connection, tracker: Tracker.first, subtype: 'WorkOrder')
+    ['road surface', 'title', 'rdf', '9lives'].each do |bad|
+      mapping.exposed_custom_fields = { 5 => bad }
+      assert_not mapping.valid?, "#{bad.inspect} must be rejected"
+      # ... and the reader drops it regardless.
+      assert_equal({}, mapping.exposed_custom_fields)
+    end
+  end
+
+  def test_duplicate_custom_terms_are_rejected
+    mapping = EmissionMapping.new(broker_connection: connection, tracker: Tracker.first, subtype: 'WorkOrder')
+    mapping.exposed_custom_fields = { 5 => 'roadSurface', 7 => 'roadSurface' }
+    assert_not mapping.valid?
+  end
+
+  def test_suggested_custom_term
+    assert_equal 'reportedVia', EmissionMapping.suggested_custom_term(IssueCustomField.new(name: 'Reported via'))
+    assert_equal 'onSiteVerified', EmissionMapping.suggested_custom_term(IssueCustomField.new(name: 'On-site verified'))
+    fallback = EmissionMapping.suggested_custom_term(IssueCustomField.new(name: '調査日').tap { |cf| cf.id = 42 })
+    assert_equal 'customField42', fallback
+  end
+
   # The exposure catalog and the published vocabulary must not drift apart.
   def test_standard_fields_match_the_published_terms
     assert_equal RedmineGttFiware::InstanceContext::STANDARD_TERMS.sort,

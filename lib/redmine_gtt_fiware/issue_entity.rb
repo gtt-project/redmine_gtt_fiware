@@ -34,6 +34,7 @@ module RedmineGttFiware
       entity['location'] = geo_property if geometry?
       entity['refersTo'] = relationship(@issue.fiware_entity) if refers_to?
       entity.merge!(exposed_properties)
+      entity.merge!(exposed_custom_properties)
       entity['@context'] = entity_context
       entity
     end
@@ -92,6 +93,38 @@ module RedmineGttFiware
     # decision (the checkbox defaults off like everything else).
     def exposed_assignee
       property(@issue.assigned_to.name) if @issue.assigned_to
+    end
+
+    # The admin-exposed custom fields (#69, step 2c), typed by field format;
+    # blank values are absent from the entity like everything else.
+    def exposed_custom_properties
+      @mapping.exposed_custom_fields.each_with_object({}) do |(cf_id, term), result|
+        custom_field = IssueCustomField.find_by(id: cf_id)
+        next unless custom_field
+
+        value = custom_property(custom_field)
+        result[term] = value if value
+      end
+    end
+
+    def custom_property(custom_field)
+      raw = @issue.custom_field_value(custom_field)
+      raw = raw.reject(&:blank?) if raw.is_a?(Array)
+      return nil if raw.blank? && raw != false
+
+      case custom_field.field_format
+      when 'int' then property(raw.to_i)
+      when 'float' then property(raw.to_f)
+      when 'bool' then property(raw == '1' || raw == true)
+      when 'date'
+        begin
+          date_property(Date.parse(raw.to_s))
+        rescue ArgumentError, TypeError
+          nil
+        end
+      else
+        property(raw.is_a?(Array) ? raw.map(&:to_s) : raw.to_s)
+      end
     end
 
     def property(value)

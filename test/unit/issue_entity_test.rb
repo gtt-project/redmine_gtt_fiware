@@ -149,6 +149,50 @@ class IssueEntityTest < ActiveSupport::TestCase
     assert_equal "urn:ngsi-ld:Issue:redmine:test-town:#{parent.id}", e.dig('parent', 'object')
   end
 
+  # --- exposed custom fields (#69, step 2c) ----------------------------------
+
+  def custom_field(format, name)
+    IssueCustomField.create!(name: name, field_format: format, is_for_all: true,
+                             trackers: Tracker.all)
+  end
+
+  def test_exposed_custom_fields_are_typed_by_format
+    string_cf = custom_field('string', 'Road surface')
+    bool_cf = custom_field('bool', 'On-site verified')
+    int_cf = custom_field('int', 'Severity score')
+    date_cf = custom_field('date', 'Inspection date')
+    @mapping.exposed_custom_fields = {
+      string_cf.id => 'roadSurface', bool_cf.id => 'onSiteVerified',
+      int_cf.id => 'severityScore', date_cf.id => 'inspectionDate'
+    }
+    @mapping.save!
+    @issue.custom_field_values = {
+      string_cf.id => 'gravel', bool_cf.id => '0',
+      int_cf.id => '4', date_cf.id => '2026-07-30'
+    }
+
+    e = entity
+    assert_equal 'gravel', e.dig('roadSurface', 'value')
+    assert_equal false, e.dig('onSiteVerified', 'value')
+    assert_equal 4, e.dig('severityScore', 'value')
+    assert_equal({ '@type' => 'Date', '@value' => '2026-07-30' }, e.dig('inspectionDate', 'value'))
+  end
+
+  def test_blank_custom_values_are_omitted
+    string_cf = custom_field('string', 'Road surface')
+    @mapping.exposed_custom_fields = { string_cf.id => 'roadSurface' }
+    @mapping.save!
+    @issue.custom_field_values = { string_cf.id => '' }
+
+    assert_nil entity['roadSurface']
+  end
+
+  def test_deleted_custom_fields_are_skipped
+    @mapping.exposed_custom_fields = { 99_999 => 'ghostField' }
+    @mapping.save!
+    assert_nil entity['ghostField']
+  end
+
   def test_source_omitted_without_a_configured_host
     with_settings plugin_redmine_gtt_fiware: { 'fiware_instance_id' => 'test-town' }, host_name: '' do
       e = RedmineGttFiware::IssueEntity.new(@issue, @mapping).to_h
