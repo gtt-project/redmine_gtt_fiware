@@ -52,6 +52,20 @@
                            mapping&.subtype || EmissionMapping.suggested_subtype(tracker),
                            size: 30, id: "emission_mapping_subtype_#{tracker.id}" %>
         <em class="info"><%= l(:field_emission_subtype_hint) %></em>
+        <%# Admin-exposable standard fields (#69, step 2b). Everything beyond
+            the frozen core defaults to unexposed; assignee doubly so - it
+            publishes a person's name to a shared broker. %>
+        <span class="gtt-fiware-exposure" style="display: block; margin-top: 2px; font-size: 0.92em;">
+          <%= l(:label_emission_exposed_fields) %>:
+          <% EmissionMapping::STANDARD_FIELDS.each do |term, field_label| %>
+            <label style="margin-right: 8px; font-weight: normal;">
+              <%= check_box_tag "emission_mappings[#{tracker.id}][fields][]", term,
+                                mapping&.exposed_standard_fields&.include?(term),
+                                id: "emission_mapping_field_#{tracker.id}_#{term}" %>
+              <%= l(field_label) %>
+            </label>
+          <% end %>
+        </span>
       </p>
     <% end %>
   </div>

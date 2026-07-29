@@ -53,6 +53,26 @@ class EmissionMappingTest < ActiveSupport::TestCase
     end
   end
 
+  # The exposure accessors trust nothing: unknown keys are dropped on read
+  # and write, so IssueEntity can dispatch on every entry.
+  def test_exposed_standard_fields_are_cleaned_against_the_catalog
+    mapping = EmissionMapping.new(broker_connection: connection, tracker: Tracker.first, subtype: 'WorkOrder')
+    mapping.exposed_standard_fields = ['priority', 'no_such_field', 'assignee']
+    assert_equal %w[priority assignee], mapping.exposed_standard_fields
+
+    mapping.exposed_attributes = { 'standard' => ['dueDate', 'bogus'] }
+    assert_equal %w[dueDate], mapping.exposed_standard_fields
+
+    mapping.exposed_attributes = nil
+    assert_equal [], mapping.exposed_standard_fields
+  end
+
+  # The exposure catalog and the published vocabulary must not drift apart.
+  def test_standard_fields_match_the_published_terms
+    assert_equal RedmineGttFiware::InstanceContext::STANDARD_TERMS.sort,
+                 EmissionMapping::STANDARD_FIELDS.keys.sort
+  end
+
   # Tracker names are free text, often non-ASCII; the suggestion must always
   # be a usable term.
   def test_suggested_subtype

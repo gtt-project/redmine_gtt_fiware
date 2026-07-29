@@ -71,6 +71,7 @@ de:
   label_emission_mappings: 'Ticket-Übertragung'
   text_emission_mappings_info: 'Tickets der angehakten Tracker werden als NGSI-LD-Issue-Entitäten mit dem angegebenen Subtyp an diesen Broker übertragen, aus Projekten mit aktiviertem Modul Ticket-Übertragung. Erfordert die Instanz-Kennung in den Plugin-Einstellungen.'
   field_emission_subtype_hint: 'Subtyp (JSON-LD-Term, z. B. WorkOrder)'
+  label_emission_exposed_fields: 'Veröffentlichte Attribute'
   gtt_fiware_settings_emission: 'Ticket-Übertragung'
   field_fiware_instance_id: 'Instanz-Kennung'
   text_fiware_instance_id_info: 'Buchstaben, Ziffern, Bindestrich und Unterstrich. Teil jeder übertragenen Entitäts-ID (urn:ngsi-ld:Issue:redmine:<instanz>:<ticket>). Ohne Wert bleibt die Übertragung aus; eine spätere Änderung vergibt allen übertragenen Entitäten neue IDs.'

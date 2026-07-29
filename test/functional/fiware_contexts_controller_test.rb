@@ -31,6 +31,18 @@ class FiwareContextsControllerTest < ActionController::TestCase
     assert_equal '@id', context.dig('refersTo', '@type')
   end
 
+  # The exposable standard terms are published for every instance: exposure
+  # gates what is emitted, the vocabulary defines what the words mean.
+  def test_context_carries_the_standard_terms
+    get :show
+    context = JSON.parse(response.body)['@context']
+    RedmineGttFiware::InstanceContext::STANDARD_TERMS.each do |term|
+      assert context.key?(term), "standard term #{term} must be defined"
+    end
+    # parent is a Relationship, so it expands as an IRI.
+    assert_equal '@id', context.dig('parent', '@type')
+  end
+
   def test_subtypes_are_declared_subclasses_of_issue
     EmissionMapping.create!(broker_connection: @connection, tracker: Tracker.find(1), subtype: 'WorkOrder')
     EmissionMapping.create!(broker_connection: @connection, tracker: Tracker.find(2), subtype: 'WorkOrder')

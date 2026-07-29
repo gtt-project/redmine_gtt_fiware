@@ -10,6 +10,11 @@ module RedmineGttFiware
     # consumer of every instance.
     CORE_NAMESPACE = 'https://gtt-project.org/ns/fiware#'.freeze
     CORE_TERMS = %w[Issue title status statusLabel subtype source refersTo].freeze
+    # The admin-exposable standard field terms (#69, step 2b). Published for
+    # every instance whether exposed or not: exposure gates what an instance
+    # emits, the vocabulary defines what the words mean.
+    STANDARD_TERMS = %w[description priority category targetVersion startDate
+                        dueDate estimatedTime percentDone parent assignee].freeze
     RDFS = 'http://www.w3.org/2000/01/rdf-schema#'.freeze
 
     # base_url: the instance's public base (Setting.host_name-derived, with
@@ -38,9 +43,11 @@ module RedmineGttFiware
         'gttfiware' => CORE_NAMESPACE,
         'inst' => vocab_namespace
       }
-      CORE_TERMS.each { |term| terms[term] = "gttfiware:#{term}" }
-      # refersTo points at another entity, so it expands as an IRI, not a string.
+      (CORE_TERMS + STANDARD_TERMS).each { |term| terms[term] = "gttfiware:#{term}" }
+      # Relationship terms point at other entities, so they expand as IRIs,
+      # not strings.
       terms['refersTo'] = { '@id' => 'gttfiware:refersTo', '@type' => '@id' }
+      terms['parent'] = { '@id' => 'gttfiware:parent', '@type' => '@id' }
       # Validation rejects reserved subtype names (EmissionMapping); the skip
       # is defense in depth for pre-validation rows, so a stray subtype can
       # never shadow a core term or prefix in the published document.

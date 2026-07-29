@@ -33,14 +33,74 @@ module RedmineGttFiware
       entity['source'] = property(source_url) if source_url
       entity['location'] = geo_property if geometry?
       entity['refersTo'] = relationship(@issue.fiware_entity) if refers_to?
+      entity.merge!(exposed_properties)
       entity['@context'] = entity_context
       entity
     end
 
     private
 
+    # The admin-exposed standard fields (#69, step 2b): each renderer returns
+    # the NGSI-LD attribute or nil when the issue has no value, so absent
+    # data is absent from the entity instead of null-valued.
+    def exposed_properties
+      @mapping.exposed_standard_fields.each_with_object({}) do |field, result|
+        value = send("exposed_#{field.underscore}")
+        result[field] = value if value
+      end
+    end
+
+    def exposed_description
+      property(@issue.description) if @issue.description.present?
+    end
+
+    def exposed_priority
+      property(@issue.priority.name) if @issue.priority
+    end
+
+    def exposed_category
+      property(@issue.category.name) if @issue.category
+    end
+
+    def exposed_target_version
+      property(@issue.fixed_version.name) if @issue.fixed_version
+    end
+
+    def exposed_start_date
+      date_property(@issue.start_date) if @issue.start_date
+    end
+
+    def exposed_due_date
+      date_property(@issue.due_date) if @issue.due_date
+    end
+
+    def exposed_estimated_time
+      property(@issue.estimated_hours) if @issue.estimated_hours
+    end
+
+    def exposed_percent_done
+      property(@issue.done_ratio.to_i)
+    end
+
+    # A Relationship to the parent issue's URN - resolvable when the parent
+    # is emitted too, and still a truthful stable identifier when not.
+    def exposed_parent
+      relationship(self.class.urn(@issue.parent)) if @issue.parent
+    end
+
+    # Publishing person names to a shared broker is an explicit admin
+    # decision (the checkbox defaults off like everything else).
+    def exposed_assignee
+      property(@issue.assigned_to.name) if @issue.assigned_to
+    end
+
     def property(value)
       { 'type' => 'Property', 'value' => value }
+    end
+
+    def date_property(date)
+      { 'type' => 'Property',
+        'value' => { '@type' => 'Date', '@value' => date.iso8601 } }
     end
 
     def datetime_property(time)
