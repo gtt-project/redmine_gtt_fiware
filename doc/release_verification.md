@@ -7,10 +7,17 @@ whole pass takes roughly half an hour. First run: 2026-07-28/29 for v3.0
 
 ## Layer 0 — automated suite (CI)
 
-The GitHub Actions matrix (Redmine/RedMica 6.0–7.0 x Ruby 3.3–4.0) must be
-green on the release commit. It covers models, controllers, builders and the
-form's DOM contract, but executes **no client-side JavaScript** and talks to
-**no real broker** — that is what the layers below are for.
+Two workflows must be green on the release commit:
+
+- the Ruby matrix (Redmine/RedMica 6.0–7.0 x Ruby 3.3–4.0), covering models,
+  controllers, builders, the REST API and the form's DOM contract;
+- the JavaScript suite (`npm ci && npm test`, Vitest + jsdom), covering the
+  subscription form's behaviour: row pickers, serialization, the JSON-mode
+  toggle, the standard-aware toggles, the tracker-driven issue details and the
+  guided flow.
+
+Together they exercise no **real browser** and no **real broker** — that is
+what the layers below are for.
 
 ## Layer 1 — auth mode drill (fake broker)
 
@@ -122,7 +129,7 @@ templates from the UI (or rerun the seeder next time — it is idempotent).
 
 ## Future automation
 
-The natural promotion path is browser-driven system tests (Capybara/headless
-Chrome, as Redmine core uses) for layer 1, and a scripted layer 2 harness.
-Tracked with the JavaScript test setup in
-[#106](https://github.com/gtt-project/redmine_gtt_fiware/issues/106).
+The form's client-side logic is covered by the Vitest suite in layer 0 since
+version 3.2. The remaining promotion path is browser-driven system tests
+(Capybara/headless Chrome, as Redmine core uses) for layer 1, and a scripted
+layer 2 harness.
