@@ -19,7 +19,9 @@ class IssueOtherFormatsTest < Redmine::IntegrationTest
       get "/issues/#{@issue.id}"
     end
     assert_response :success
-    assert_select 'p.other-formats' do
+    # count: 1 is the point of the change: the link used to live in a second
+    # p.other-formats of the plugin's own below the description.
+    assert_select 'p.other-formats', count: 1 do
       assert_select "a[href=?]", "/fiware/issues/#{@issue.id}/entity", text: 'NGSI-LD'
     end
   end
@@ -29,7 +31,7 @@ class IssueOtherFormatsTest < Redmine::IntegrationTest
       get "/issues/#{@issue.id}"
     end
     assert_response :success
-    assert_select 'p.other-formats'
+    assert_select 'p.other-formats', count: 1
     assert_select 'p.other-formats a', text: 'NGSI-LD', count: 0
   end
 end

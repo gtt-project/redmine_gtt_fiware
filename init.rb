@@ -55,7 +55,9 @@ end
 
 # Deface overrides are not autoloaded (they define no constants), so they are
 # required here and hidden from Zeitwerk, the same way redmine_gtt does it.
-Dir.glob("#{Rails.root}/plugins/redmine_gtt_fiware/app/overrides/**/*.rb").each do |path|
+# Resolved from __dir__ rather than Rails.root, so the directory this plugin
+# happens to be installed under does not matter.
+Dir.glob(File.join(__dir__, 'app', 'overrides', '**', '*.rb')).each do |path|
   Rails.autoloaders.main.ignore(path)
   require path
 end
