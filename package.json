@@ -1,0 +1,12 @@
+{
+  "name": "redmine_gtt_fiware",
+  "private": true,
+  "description": "JavaScript test harness for the subscription form (#106). The plugin ships no bundler; assets/javascripts are plain browser files driven against jsdom fixtures.",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0",
+    "vitest": "^3.2.4"
+  }
+}

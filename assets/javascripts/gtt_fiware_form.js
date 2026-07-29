@@ -1,0 +1,293 @@
+/* Client-side behaviour of the subscription form (#66, #68, #105, #106).
+ *
+ * Everything the script needs from the server travels through the DOM:
+ * data-* attributes, ids and classes rendered by the form partials. The
+ * Rails suite pins that DOM contract; the Vitest suite in test/javascripts
+ * drives this file against jsdom fixtures.
+ *
+ * init() is idempotent per page load and returns early when the form is
+ * not present. It runs automatically on DOMContentLoaded and is exposed as
+ * window.GttFiwareForm.init for the tests.
+ */
+(function() {
+  'use strict';
+
+  function init() {
+    var form = document.getElementById('gtt-fiware-connection-select');
+    if (!form) { return; }
+    form = form.closest('form');
+
+    // --- helpers ---------------------------------------------------------
+
+    function jsonModeOn(target) {
+      var json = document.getElementById('gtt-fiware-' + target + '-json');
+      return json && !json.classList.contains('hidden');
+    }
+
+    function toggleJsonMode(target) {
+      var rows = document.getElementById('gtt-fiware-' + (target === 'entities' ? 'entity' : 'attachment') + '-rows');
+      var json = document.getElementById('gtt-fiware-' + target + '-json');
+      if (!rows || !json) { return; }
+      var showJson = json.classList.contains('hidden');
+      if (showJson) { serialize(); }
+      json.classList.toggle('hidden', !showJson);
+      rows.style.display = showJson ? 'none' : '';
+    }
+
+    function rowValues(row, selectors) {
+      return selectors.map(function(sel) {
+        var el = row.querySelector(sel);
+        return el ? el.value.trim() : '';
+      });
+    }
+
+    // --- serialization into the existing *_string / attrs fields ----------
+
+    function serializeEntities() {
+      if (jsonModeOn('entities')) { return; }
+      var entities = [];
+      document.querySelectorAll('.gtt-fiware-entity-row').forEach(function(row) {
+        var values = rowValues(row, ['.js-entity-type', '.js-entity-match-kind', '.js-entity-match-value']);
+        if (values[0] === '') { return; }
+        var entity = { type: values[0] };
+        if (values[2] !== '') { entity[values[1]] = values[2]; }
+        entities.push(entity);
+      });
+      var field = document.getElementById('subscription_template_entities_string');
+      if (field) { field.value = entities.length ? JSON.stringify(entities) : ''; }
+    }
+
+    function serializeAttrs() {
+      var input = document.getElementById('gtt-fiware-attrs-input');
+      var field = document.getElementById('subscription_template_attrs');
+      if (!input || !field) { return; }
+      var names = input.value.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+      field.value = names.length ? JSON.stringify(names) : '';
+    }
+
+    function serializeGeometry() {
+      var mode = form.querySelector('input[name="gtt_fiware_geometry_mode"]:checked');
+      var field = document.getElementById('subscription_template_geometry_string');
+      if (!mode || !field) { return; }
+      // 'null' (not blank) clears a stored geometry: the model skips blank input.
+      if (mode.value === 'location') { field.value = '"${location}"'; }
+      else if (mode.value === 'none') { field.value = 'null'; }
+    }
+
+    function serializeAttachments() {
+      if (jsonModeOn('attachments')) { return; }
+      var attachments = [];
+      document.querySelectorAll('.gtt-fiware-attachment-row').forEach(function(row) {
+        var values = rowValues(row, ['.js-attachment-url', '.js-attachment-filename', '.js-attachment-description']);
+        if (values[0] === '') { return; }
+        var attachment = { url: values[0] };
+        if (values[1] !== '') { attachment.filename = values[1]; }
+        if (values[2] !== '') { attachment.description = values[2]; }
+        attachments.push(attachment);
+      });
+      var field = document.getElementById('subscription_template_attachments_string');
+      if (field) { field.value = attachments.length ? JSON.stringify(attachments) : 'null'; }
+    }
+
+    function serializeGeoArea() {
+      var mode = form.querySelector('input[name="gtt_fiware_geo_mode"]:checked');
+      if (!mode || mode.value === 'custom') { return; }
+      var georel = document.getElementById('subscription_template_expression_georel');
+      var geometry = document.getElementById('subscription_template_expression_geometry');
+      var coords = document.getElementById('subscription_template_expression_coords');
+      if (mode.value === 'anywhere') {
+        georel.value = ''; geometry.value = ''; coords.value = '';
+      } else if (mode.value === 'boundary') {
+        var geom = JSON.parse(mode.dataset.geom).geometry.coordinates[0]
+          .map(function(c) { return [Number(c[1].toFixed(5)), Number(c[0].toFixed(5))]; })
+          .join(';');
+        georel.value = 'coveredBy'; geometry.value = 'polygon'; coords.value = geom;
+      }
+    }
+
+    function serialize() {
+      serializeEntities();
+      serializeAttrs();
+      serializeGeometry();
+      serializeAttachments();
+      serializeGeoArea();
+    }
+
+    form.addEventListener('submit', serialize);
+
+    // --- row add/remove ----------------------------------------------------
+
+    function wireRowContainer(containerId, addId, rowClass, prototypeId) {
+      var container = document.getElementById(containerId);
+      if (!container) { return; }
+      container.addEventListener('click', function(e) {
+        var remove = e.target.closest('.js-entity-remove, .js-attachment-remove');
+        if (remove) {
+          e.preventDefault();
+          remove.closest('.' + rowClass).remove();
+          return;
+        }
+        if (e.target.closest('#' + addId)) {
+          e.preventDefault();
+          // Clone the inert <template> prototype, not an existing row: cloning
+          // the last row broke as soon as every row had been removed.
+          var prototype = document.getElementById(prototypeId);
+          if (!prototype) { return; }
+          var clone = prototype.content.firstElementChild.cloneNode(true);
+          container.insertBefore(clone, document.getElementById(addId));
+        }
+      });
+    }
+    wireRowContainer('gtt-fiware-entity-rows', 'gtt-fiware-entity-add', 'gtt-fiware-entity-row', 'gtt-fiware-entity-prototype');
+    wireRowContainer('gtt-fiware-attachment-rows', 'gtt-fiware-attachment-add', 'gtt-fiware-attachment-row', 'gtt-fiware-attachment-prototype');
+
+    document.querySelectorAll('.js-json-toggle').forEach(function(link) {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        toggleJsonMode(link.dataset.target);
+      });
+    });
+
+    // --- mode-dependent visibility ------------------------------------------
+
+    form.querySelectorAll('input[name="gtt_fiware_geo_mode"]').forEach(function(radio) {
+      radio.addEventListener('change', function() {
+        document.getElementById('gtt-fiware-geo-custom').style.display = radio.value === 'custom' ? '' : 'none';
+      });
+    });
+    form.querySelectorAll('input[name="gtt_fiware_geometry_mode"]').forEach(function(radio) {
+      radio.addEventListener('change', function() {
+        document.getElementById('gtt-fiware-geometry-custom').classList.toggle('hidden', radio.value !== 'custom');
+      });
+    });
+
+    // --- standard-aware toggles (#66): the connection decides NGSIv2 vs LD ---
+
+    var connectionSelect = document.getElementById('gtt-fiware-connection-select');
+
+    function applyStandard() {
+      var option = connectionSelect.options[connectionSelect.selectedIndex];
+      var standard = option ? option.dataset.standard : null;
+      var isLd = standard === 'NGSI-LD';
+      var known = Boolean(standard);
+
+      document.querySelectorAll('.js-ngsi-v2-only').forEach(function(el) {
+        el.style.display = (known && isLd) ? 'none' : '';
+      });
+      document.querySelectorAll('.js-ngsi-ld-only').forEach(function(el) {
+        el.style.display = (known && isLd) ? '' : 'none';
+      });
+      document.querySelectorAll('.js-alteration-label').forEach(function(code) {
+        code.textContent = (known && isLd) ? code.dataset.ld : code.dataset.v2;
+      });
+      // NGSI-LD has no distinct "change" trigger: entityChange and entityUpdate
+      // both map to entityUpdated, so showing both duplicates the label. Fold
+      // entityUpdate into entityChange and hide it while an LD connection is
+      // selected.
+      var updateChoice = document.querySelector('.js-alteration-choice[data-type="entityUpdate"]');
+      var changeChoice = document.querySelector('.js-alteration-choice[data-type="entityChange"]');
+      if (updateChoice && changeChoice) {
+        var updateBox = updateChoice.querySelector('input[type="checkbox"]');
+        var changeBox = changeChoice.querySelector('input[type="checkbox"]');
+        if (known && isLd && updateBox.checked) {
+          changeBox.checked = true;
+          updateBox.checked = false;
+        }
+        updateChoice.style.display = (known && isLd) ? 'none' : '';
+      }
+      // 'oneshot' is an NGSIv2-only concept (#16 test plan follow-up).
+      var statusSelect = document.getElementById('gtt-fiware-status-select');
+      if (statusSelect) {
+        Array.prototype.forEach.call(statusSelect.options, function(opt) {
+          if (opt.value === 'oneshot') {
+            opt.hidden = known && isLd;
+            opt.disabled = known && isLd;
+            if (opt.selected && known && isLd) { statusSelect.value = 'active'; }
+          }
+        });
+      }
+      // Create-and-publish only works server-side with a stored token.
+      var publishButton = document.querySelector('input[name="publish_after_create"]');
+      if (publishButton) {
+        publishButton.style.display = (option && option.dataset.authMode === 'stored') ? '' : 'none';
+      }
+    }
+
+    connectionSelect.addEventListener('change', applyStandard);
+    applyStandard();
+
+    // --- live preview (#68) ---------------------------------------------------
+
+    function previewEntityType() {
+      var rows = document.getElementById('gtt-fiware-entity-rows');
+      if (rows && rows.style.display !== 'none') {
+        var input = rows.querySelector('.js-entity-type');
+        if (input && input.value.trim() !== '') { return input.value.trim(); }
+      }
+      var json = document.getElementById('subscription_template_entities_string');
+      if (json && json.value.trim() !== '') {
+        try {
+          var entities = JSON.parse(json.value);
+          if (Array.isArray(entities) && entities[0] && entities[0].type) { return entities[0].type; }
+        } catch (err) { /* fall through */ }
+      }
+      return '';
+    }
+
+    var previewButton = document.getElementById('gtt-fiware-preview-button');
+    if (previewButton) {
+      previewButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        var out = document.getElementById('gtt-fiware-preview-result');
+        out.style.display = '';
+        out.textContent = previewButton.dataset.loading;
+
+        var field = function(id) {
+          var el = document.getElementById(id);
+          return el ? el.value : '';
+        };
+        var csrf = document.querySelector('meta[name="csrf-token"]');
+
+        fetch(previewButton.dataset.url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-Token': csrf ? csrf.content : ''
+          },
+          body: JSON.stringify({
+            broker_connection_id: connectionSelect.value,
+            entity_type: previewEntityType(),
+            subject: field('subscription_template_subject'),
+            description: field('subscription_template_description'),
+            notes: field('subscription_template_notes')
+          })
+        }).then(function(response) {
+          return response.json().then(function(json) { return { ok: response.ok, json: json }; });
+        }).then(function(result) {
+          if (!result.ok) {
+            out.textContent = result.json.error || previewButton.dataset.error;
+            return;
+          }
+          out.innerHTML = '';
+          [result.json.subject, result.json.description, result.json.notes].forEach(function(text) {
+            if (!text) { return; }
+            var pre = document.createElement('pre');
+            pre.textContent = text;
+            out.appendChild(pre);
+          });
+          var em = document.createElement('em');
+          em.className = 'info';
+          em.textContent = previewButton.dataset.entityLabel + ' ' + result.json.entity_id +
+            (result.json.has_geometry ? ', ' + previewButton.dataset.geometryLabel : '');
+          out.appendChild(em);
+        }).catch(function() {
+          out.textContent = previewButton.dataset.error;
+        });
+      });
+    }
+  }
+
+  window.GttFiwareForm = { init: init };
+  document.addEventListener('DOMContentLoaded', init);
+})();
