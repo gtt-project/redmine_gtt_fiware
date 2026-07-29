@@ -96,6 +96,25 @@ class SubscriptionRequestTest < ActiveSupport::TestCase
     assert_equal 'active', p['status']
   end
 
+  # Setting.host_name may carry a sub-URI path ("example.com/redmine"); the
+  # callback URLs must keep it instead of joining it away (#101).
+  def test_callback_urls_preserve_a_sub_uri_base
+    builder = RedmineGttFiware::SubscriptionRequest.build(
+      template('NGSIv2'), base_url: 'https://example.com/redmine', throttling: 3
+    )
+    http_custom = JSON.parse(builder.to_json).dig('notification', 'httpCustom')
+    assert_equal 'https://example.com/redmine/fiware/subscription_template/123/notification',
+                 http_custom['url']
+
+    # A trailing slash on the base must not produce a double slash.
+    builder = RedmineGttFiware::SubscriptionRequest.build(
+      template('NGSIv2'), base_url: 'https://example.com/redmine/', throttling: 3
+    )
+    http_custom = JSON.parse(builder.to_json).dig('notification', 'httpCustom')
+    assert_equal 'https://example.com/redmine/fiware/subscription_template/123/notification',
+                 http_custom['url']
+  end
+
   def test_ngsi_v2_notification_carries_only_callback_and_headers_no_templating
     http_custom = payload('NGSIv2').dig('notification', 'httpCustom')
     assert_equal 'https://redmine.example.com/fiware/subscription_template/123/notification', http_custom['url']

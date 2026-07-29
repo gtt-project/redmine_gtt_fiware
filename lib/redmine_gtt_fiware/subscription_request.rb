@@ -96,12 +96,15 @@ module RedmineGttFiware
       URI(@template.broker_url)
     end
 
+    # Plain appends, not URI.join with an absolute path: joining "/fiware/..."
+    # discards any path in the base, which breaks sub-URI deployments
+    # (Setting.host_name may legitimately be "example.com/redmine", #101).
     def callback_url
-      URI.join(@base_url, "/fiware/subscription_template/#{@template.id}/notification").to_s
+      "#{@base_url.to_s.chomp('/')}/fiware/subscription_template/#{@template.id}/notification"
     end
 
     def registration_url
-      URI.join(@base_url, "/fiware/subscription_template/#{@template.id}/registration/").to_s
+      "#{@base_url.to_s.chomp('/')}/fiware/subscription_template/#{@template.id}/registration/"
     end
   end
 end

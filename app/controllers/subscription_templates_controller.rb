@@ -181,7 +181,7 @@ class SubscriptionTemplatesController < ApplicationController
     end
 
     template = SubscriptionTemplate.new(broker_connection: connection)
-    request_builder = RedmineGttFiware::SubscriptionRequest.build(template, base_url: request.base_url)
+    request_builder = RedmineGttFiware::SubscriptionRequest.build(template, base_url: callback_base_url)
     uri = URI(request_builder.entities_url)
     uri.query = URI.encode_www_form(type: entity_type, limit: 1)
 
@@ -353,9 +353,20 @@ class SubscriptionTemplatesController < ApplicationController
   def subscription_request
     RedmineGttFiware::SubscriptionRequest.build(
       @subscription_template,
-      base_url: request.base_url,
+      base_url: callback_base_url,
       throttling: @subscription_template.effective_throttling
     )
+  end
+
+  # Base URL the broker calls back on (#101). The publishing admin's request
+  # host is frequently not broker-reachable (localhost in development, an
+  # internal name behind a reverse proxy), so the configured canonical host
+  # wins: Setting.protocol + Setting.host_name, exactly what core uses for
+  # links in notification emails (host_name may carry a sub-URI path).
+  # An unconfigured host_name keeps the previous request-based behaviour.
+  def callback_base_url
+    host = Setting.host_name.to_s.strip
+    host.present? ? "#{Setting.protocol}://#{host}" : request.base_url
   end
 
   def new_path
