@@ -1,8 +1,29 @@
 <%= title [l(:label_subscription_template_plural), index_path], l(:label_subscription_template_new) %>
 
-<%= labelled_form_for @subscription_template, url: project_subscription_templates_path(@project) do |f| %>
+<%= labelled_form_for @subscription_template, url: project_subscription_templates_path(@project),
+                      html: { data: { wizard: 'true' } } do |f| %>
+  <%# Guided flow (#102): a presentation layer over the single form. The nav
+      stays hidden until the wizard script activates it, so without JS the
+      classic full form renders unchanged. %>
+  <div id="gtt-fiware-wizard" style="display: none;">
+    <ol class="gtt-fiware-wizard-steps">
+      <li data-step="1" data-help="<%= l(:gtt_fiware_wizard_help_1) %>"><%= l(:gtt_fiware_wizard_step_1) %></li>
+      <li data-step="2" data-help="<%= l(:gtt_fiware_wizard_help_2) %>"><%= l(:gtt_fiware_wizard_step_2) %></li>
+      <li data-step="3" data-help="<%= l(:gtt_fiware_wizard_help_3) %>"><%= l(:gtt_fiware_wizard_step_3) %></li>
+      <li data-step="4" data-help="<%= l(:gtt_fiware_wizard_help_4) %>"><%= l(:gtt_fiware_wizard_step_4) %></li>
+    </ol>
+    <p class="gtt-fiware-wizard-help"><em class="info" id="gtt-fiware-wizard-help"></em></p>
+  </div>
+
   <%= render partial: 'form', locals: { f: f } %>
-  <p>
+
+  <p id="gtt-fiware-wizard-buttons" style="display: none;">
+    <button type="button" id="gtt-fiware-wizard-back"><%= l(:gtt_fiware_wizard_back) %></button>
+    <button type="button" id="gtt-fiware-wizard-next"><%= l(:gtt_fiware_wizard_next) %></button>
+    <a href="#" id="gtt-fiware-wizard-all" style="margin-left: 8px; font-size: 0.9em;"><%= l(:gtt_fiware_wizard_show_all) %></a>
+  </p>
+
+  <p data-wizard-step="4">
     <%= submit_tag l :button_create %>
     <%# Publish runs server-side with the connection's stored token; the
         script hides this button for browser-mode connections. %>

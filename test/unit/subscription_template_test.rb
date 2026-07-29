@@ -94,6 +94,12 @@ class SubscriptionTemplateTest < ActiveSupport::TestCase
     assert_equal({}, template.reload.issue_custom_field_values)
   end
 
+  # A new subscription must be creatable from the visible fields alone
+  # (#102): the required status select otherwise starts blank.
+  def test_default_status_is_active
+    assert_equal 'active', SubscriptionTemplate.new.status
+  end
+
   def test_default_alteration_types
     template = SubscriptionTemplate.new
     assert_equal ['entityCreate', 'entityChange'], template.alteration_types

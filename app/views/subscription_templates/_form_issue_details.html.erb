@@ -1,9 +1,11 @@
 <%
   # Issue geometry radio: the common case is mapping the entity's location
   # GeoProperty; custom keeps a raw GeoJSON template; none clears it.
+  # New templates default to the entity's location (#102): mapping the
+  # GeoProperty is the overwhelmingly common case. A stored blank stays None.
   geometry_mode =
     if @subscription_template.geometry.blank?
-      'none'
+      @subscription_template.new_record? ? 'location' : 'none'
     elsif @subscription_template.geometry == '${location}'
       'location'
     else
@@ -105,6 +107,7 @@
   <p class="min-width">
     <%= content_tag :label, l(:field_subscription_template_notification_user) %>
     <%= f.collection_select :member_id, @project.members, :id, :name %>
+    <em class="info"><%= l(:text_subscription_template_member_info) %></em>
   </p>
   <p><%= f.check_box :is_private %></p>
 </div>
