@@ -103,11 +103,7 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
     assert_equal @template.member.user_id, issue.author_id
   end
 
-  # Echo suppression (#69): an issue created from a broker notification must
-  # not be emitted back to a broker, even when the project and tracker have an
-  # emission mapping - a subscription plus an emission on the same tenant
-  # would loop otherwise.
-  def test_notification_created_issues_are_not_emitted_back
+  def enable_emission
     project = Project.find(1)
     project.enabled_module_names = project.enabled_module_names | ['gtt_fiware_emission']
     ld_connection = BrokerConnection.create!(
@@ -115,11 +111,39 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
       url: 'https://broker.example.com', auth_mode: 'stored'
     )
     EmissionMapping.create!(broker_connection: ld_connection, tracker: Tracker.find(1), subtype: 'WorkOrder')
+  end
 
-    Net::HTTP.any_instance.expects(:request).never
+  # Issues created from ordinary entities ARE emitted - that is the point of
+  # emission: the sensor event becomes a work order other organizations can
+  # see. No loop: the emitted type (Issue) differs from what the
+  # subscription watches (#70 staging finding).
+  def test_notification_created_issues_are_emitted
+    enable_emission
+    emitted = []
+    created = Net::HTTPCreated.new('1.1', '201', 'Created')
+    Net::HTTP.any_instance.stubs(:request).with { |req| emitted << req; true }.returns(created)
+
     with_settings plugin_redmine_gtt_fiware: { 'fiware_instance_id' => 'test-town' } do
       assert_difference 'Issue.count', 1 do
         post_notification
+      end
+    end
+    assert_response :success
+    post = emitted.find { |r| r.is_a?(Net::HTTP::Post) && r.path.include?('/entities') }
+    assert_not_nil post, 'the created issue must be emitted'
+    body = JSON.parse(post.body)
+    assert_equal 'urn:ngsi-ld:TemperatureSensor:001', body.dig('refersTo', 'object')
+  end
+
+  # The echo loop exists exactly when the notifying entity is itself an
+  # Issue (a work order creating a work order creating ...): that case is
+  # suppressed.
+  def test_issue_typed_notifications_are_not_emitted_back
+    enable_emission
+    Net::HTTP.any_instance.expects(:request).never
+    with_settings plugin_redmine_gtt_fiware: { 'fiware_instance_id' => 'test-town' } do
+      assert_difference 'Issue.count', 1 do
+        post_notification(entities: [entity('id' => 'urn:ngsi-ld:Issue:redmine:other-org:5', 'type' => 'Issue')])
       end
     end
     assert_response :success

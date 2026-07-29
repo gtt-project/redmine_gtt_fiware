@@ -47,22 +47,30 @@ module RedmineGttFiware
     end
 
     # raw_entity: one entity hash from the notification's data[] array.
-    # Emitter.suppress: issues created or updated from a broker notification
-    # must not be emitted back to a broker (#69 echo suppression) - a
-    # subscription and an emission mapping on the same tenant would loop.
+    # Echo suppression, narrowed (#70 staging finding): issues created from
+    # ordinary entities (sensors, reports) ARE emitted - that is the point of
+    # emission, and it cannot loop because the emitted entity's type (Issue)
+    # differs from what the subscription watches. The loop only exists when
+    # the notifying entity is itself an Issue (a work order creating a work
+    # order creating ...), so exactly that case is suppressed - as is the
+    # federation watch, which annotates local issues in place.
     def process(raw_entity)
-      Emitter.suppress do
-        entity = Entity.from(raw_entity, @template.standard)
-        if @template.federation_watch?
-          process_federation_update(entity)
-        else
-          existing = find_recent_issue(entity)
-          existing ? process_update(existing, entity) : process_create(entity)
-        end
+      entity = Entity.from(raw_entity, @template.standard)
+      if @template.federation_watch?
+        Emitter.suppress { process_federation_update(entity) }
+      elsif entity.type.to_s == 'Issue'
+        Emitter.suppress { create_or_update(entity) }
+      else
+        create_or_update(entity)
       end
     end
 
     private
+
+    def create_or_update(entity)
+      existing = find_recent_issue(entity)
+      existing ? process_update(existing, entity) : process_create(entity)
+    end
 
     # A new notification for an entity already turned into an issue within the
     # threshold_create window updates that issue instead of creating a duplicate
