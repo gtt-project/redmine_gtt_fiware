@@ -32,7 +32,19 @@ class IssueEntityTest < ActiveSupport::TestCase
     assert_equal 'WorkOrder', e.dig('subtype', 'value')
     assert_equal "https://redmine.example.com/issues/#{@issue.id}", e.dig('source', 'value')
     assert_equal 'DateTime', e.dig('dateCreated', 'value', '@type')
-    assert_equal RedmineGttFiware::IssueEntity::CORE_CONTEXT, e['@context']
+    # With a public host the entity references the instance's published
+    # context ahead of the core one, so subtype terms expand properly.
+    assert_equal ['https://redmine.example.com/fiware/context.jsonld',
+                  RedmineGttFiware::IssueEntity::CORE_CONTEXT], e['@context']
+  end
+
+  # Brokers dereference @context at ingestion: an instance without a public
+  # identity must not point them at an unreachable URL.
+  def test_context_is_core_only_without_a_configured_host
+    with_settings plugin_redmine_gtt_fiware: { 'fiware_instance_id' => 'test-town' }, host_name: '' do
+      e = RedmineGttFiware::IssueEntity.new(@issue, @mapping).to_h
+      assert_equal RedmineGttFiware::IssueEntity::CORE_CONTEXT, e['@context']
+    end
   end
 
   def test_status_normalizes_to_closed_for_closed_statuses

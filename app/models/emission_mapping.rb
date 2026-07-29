@@ -10,11 +10,20 @@ class EmissionMapping < (defined?(ApplicationRecord) == 'constant' ? Application
   # CamelCase by convention (WorkOrder, RoadDamageReport), not enforced.
   SUBTYPE_PATTERN = /\A[A-Za-z][A-Za-z0-9]*\z/
 
+  # Terms a subtype must not shadow in the published context (#69, step 2):
+  # the core vocabulary, the context's prefixes, and the NGSI-LD/core-context
+  # terms every entity relies on. Compared case-insensitively.
+  RESERVED_SUBTYPES = (
+    RedmineGttFiware::InstanceContext::CORE_TERMS +
+    %w[rdfs gttfiware inst id type location dateCreated dateModified dateObserved]
+  ).map(&:downcase).freeze
+
   belongs_to :broker_connection
   belongs_to :tracker
 
   validates :subtype, presence: true,
                       format: { with: SUBTYPE_PATTERN, message: I18n.t('model.emission_mapping.invalid_subtype') }
+  validate :subtype_must_not_shadow_reserved_terms
   validates :tracker_id, uniqueness: { scope: :broker_connection_id }
   # Emission is NGSI-LD only in v1 (the entity payload is JSON-LD).
   validate :connection_must_be_ngsi_ld
@@ -33,5 +42,11 @@ class EmissionMapping < (defined?(ApplicationRecord) == 'constant' ? Application
     return if broker_connection.nil? || broker_connection.ngsi_ld?
 
     errors.add :broker_connection, I18n.t('model.emission_mapping.connection_not_ngsi_ld')
+  end
+
+  def subtype_must_not_shadow_reserved_terms
+    return unless RESERVED_SUBTYPES.include?(subtype.to_s.downcase)
+
+    errors.add :subtype, I18n.t('model.emission_mapping.reserved_subtype')
   end
 end

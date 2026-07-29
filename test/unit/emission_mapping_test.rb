@@ -43,6 +43,16 @@ class EmissionMappingTest < ActiveSupport::TestCase
     assert mapping.errors[:broker_connection].present?
   end
 
+  # A subtype must not shadow core vocabulary terms or context prefixes in
+  # the published document (#69 step 2), whatever the casing.
+  def test_subtype_must_not_shadow_reserved_terms
+    %w[Issue issue rdfs gttfiware inst location dateCreated type].each do |reserved|
+      mapping = EmissionMapping.new(broker_connection: connection, tracker: Tracker.first, subtype: reserved)
+      assert_not mapping.valid?, "#{reserved.inspect} must be rejected"
+      assert mapping.errors[:subtype].present?
+    end
+  end
+
   # Tracker names are free text, often non-ASCII; the suggestion must always
   # be a usable term.
   def test_suggested_subtype
