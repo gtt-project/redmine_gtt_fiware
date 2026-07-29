@@ -7,5 +7,8 @@ module RedmineGttFiware
 
     # Federation panel (#70, 4b) below the issue description.
     render_on :view_issues_show_description_bottom, partial: 'gtt_fiware/federation_panel'
+
+    # Link to the issue's NGSI-LD representation (#4).
+    render_on :view_issues_show_description_bottom, partial: 'gtt_fiware/entity_link'
   end
 end

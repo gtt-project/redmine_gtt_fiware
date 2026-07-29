@@ -28,6 +28,10 @@ get 'fiware/context.jsonld', to: 'fiware_contexts#show', format: false
 # for the same source entity, fetched asynchronously.
 get 'fiware/issues/:id/federation', to: 'federation#show'
 
+# A single issue as an NGSI-LD entity (#4): the emitter's representation,
+# available on demand (session or API key).
+get 'fiware/issues/:id/entity', to: 'fiware_entities#show', defaults: { format: 'json' }
+
 # Define a route for FIWARE broker subscription templates
 scope 'projects/:project_id' do
   resources :subscription_templates, only: %i(new create edit update destroy),

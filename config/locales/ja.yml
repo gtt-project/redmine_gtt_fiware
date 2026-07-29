@@ -57,6 +57,7 @@ ja:
   field_federation_watch: "フェデレーション監視"
   text_federation_watch_info: "このサブスクリプションはチケットを作成せず、他組織のワークオーダーを監視します。同じエンティティを参照するローカルのチケットに、他組織のステータス変更を注記として追加します。エンティティフィルタをタイプIssue、監視属性をstatusに設定してください。"
   text_federation_status_note: "フェデレーション更新：%{org} のワークオーダーは %{status} になりました（%{urn}）"
+  label_fiware_entity_link: "他の形式"
   gtt_fiware_settings_emission: "チケット送信"
   field_fiware_instance_id: "インスタンス識別子"
   text_fiware_instance_id_info: "英数字、ハイフン、アンダースコアのみ。送信されるすべてのエンティティID（urn:ngsi-ld:Issue:redmine:<instance>:<issue>）に含まれます。空欄の間は送信されません。後から変更するとすべての送信済みエンティティのIDが変わります。"

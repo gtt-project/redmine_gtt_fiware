@@ -193,6 +193,24 @@ class IssueEntityTest < ActiveSupport::TestCase
     assert_nil entity['ghostField']
   end
 
+  # A pre-validation mapping row with a blank subtype must not emit a
+  # null-valued property.
+  def test_blank_subtype_is_absent
+    @mapping.subtype = ''
+    assert_nil entity['subtype']
+  end
+
+  # Pull-side rendering (#4): without a mapping the representation is the
+  # frozen core alone.
+  def test_renders_the_core_alone_without_a_mapping
+    with_settings plugin_redmine_gtt_fiware: { 'fiware_instance_id' => 'test-town' } do
+      e = RedmineGttFiware::IssueEntity.new(@issue).to_h
+      assert_equal 'Issue', e['type']
+      assert_nil e['subtype']
+      assert_nil e['priority']
+    end
+  end
+
   def test_source_omitted_without_a_configured_host
     with_settings plugin_redmine_gtt_fiware: { 'fiware_instance_id' => 'test-town' }, host_name: '' do
       e = RedmineGttFiware::IssueEntity.new(@issue, @mapping).to_h
