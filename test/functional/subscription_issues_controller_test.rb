@@ -125,6 +125,63 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
     assert_response :success
   end
 
+  # --- federation awareness (#70, 4a) ----------------------------------------
+
+  def sibling(status: 'open')
+    RedmineGttFiware::FederationSiblings::Sibling.new(
+      urn: 'urn:ngsi-ld:Issue:redmine:nexco-east:7', org: 'nexco-east',
+      subtype: 'WorkOrder', status: status, status_label: 'In Progress',
+      title: 'Container full', source: 'https://other.example/issues/7'
+    )
+  end
+
+  def test_annotate_policy_notes_siblings_on_the_new_issue
+    @template.update_column(:federation_policy, 'annotate')
+    RedmineGttFiware::FederationSiblings.any_instance.stubs(:for_entity).returns([sibling])
+
+    assert_difference 'Issue.count', 1 do
+      post_notification
+    end
+    assert_response :success
+    issue = Issue.order(id: :desc).first
+    note = issue.journals.last.notes
+    assert_includes note, 'nexco-east'
+    assert_includes note, 'https://other.example/issues/7'
+  end
+
+  # Suppression is deliberate, successful handling: a batch of only
+  # suppressed entities must be a 200, or the broker retries forever.
+  def test_suppress_policy_skips_creation_and_answers_200
+    @template.update_column(:federation_policy, 'suppress')
+    RedmineGttFiware::FederationSiblings.any_instance.stubs(:for_entity).returns([sibling])
+
+    assert_no_difference 'Issue.count' do
+      post_notification
+    end
+    assert_response :success
+    body = JSON.parse(response.body)
+    assert_equal 1, body['suppressed']
+    assert_equal 0, body['created']
+  end
+
+  def test_suppress_policy_creates_when_all_siblings_are_closed
+    @template.update_column(:federation_policy, 'suppress')
+    RedmineGttFiware::FederationSiblings.any_instance.stubs(:for_entity).returns([sibling(status: 'closed')])
+
+    assert_difference 'Issue.count', 1 do
+      post_notification
+    end
+    assert_response :success
+  end
+
+  def test_off_policy_never_queries_the_broker
+    RedmineGttFiware::FederationSiblings.any_instance.expects(:for_entity).never
+    assert_difference 'Issue.count', 1 do
+      post_notification
+    end
+    assert_response :success
+  end
+
   # Two notifications for the same entity within the threshold_create window
   # update the first issue instead of creating a duplicate (#47).
   def test_create_updates_a_recent_issue_instead_of_duplicating

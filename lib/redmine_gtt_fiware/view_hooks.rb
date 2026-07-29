@@ -4,5 +4,8 @@ module RedmineGttFiware
       <%= stylesheet_link_tag 'gtt_fiware', plugin: 'redmine_gtt_fiware' %>
       <%= javascript_include_tag 'gtt_fiware', plugin: 'redmine_gtt_fiware' %>
     END
+
+    # Federation panel (#70, 4b) below the issue description.
+    render_on :view_issues_show_description_bottom, partial: 'gtt_fiware/federation_panel'
   end
 end
