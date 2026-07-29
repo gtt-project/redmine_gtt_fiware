@@ -1,0 +1,3 @@
+api.subscription_template do
+  render_api_subscription_template(@subscription_template, api)
+end

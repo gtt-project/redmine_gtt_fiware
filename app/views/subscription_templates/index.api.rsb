@@ -1,0 +1,8 @@
+api.array :subscription_templates,
+          api_meta(total_count: @subscription_template_count, offset: @offset, limit: @limit) do
+  @subscription_templates.each do |subscription_template|
+    api.subscription_template do
+      render_api_subscription_template(subscription_template, api)
+    end
+  end
+end

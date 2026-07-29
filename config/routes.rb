@@ -34,7 +34,10 @@ get 'fiware/issues/:id/entity', to: 'fiware_entities#show', defaults: { format: 
 
 # Define a route for FIWARE broker subscription templates
 scope 'projects/:project_id' do
-  resources :subscription_templates, only: %i(new create edit update destroy),
+  # index and show exist for the REST API (#22); in a browser they redirect to
+  # the project's FIWARE tab and to the edit form respectively, which are the
+  # HTML surfaces for the same data.
+  resources :subscription_templates, only: %i(index show new create edit update destroy),
                             as: :project_subscription_templates do
     collection do
       # Live preview (#68): renders the issue templates against a sample

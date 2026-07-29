@@ -33,6 +33,7 @@ If you need a test broker, [FIWARE-Small-Bang](https://github.com/lets-fiware/FI
 - [Subscriptions](subscription_template.md)
 - [Issue Emission](issue_emission.md)
 - [Federation](federation.md)
+- [REST API](api.md)
 
 ## Tools and Utilities
 
