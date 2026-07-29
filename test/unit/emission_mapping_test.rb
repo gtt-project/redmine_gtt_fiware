@@ -67,6 +67,17 @@ class EmissionMappingTest < ActiveSupport::TestCase
     assert_equal [], mapping.exposed_standard_fields
   end
 
+  # A hand-edited or corrupted column value degrades to "nothing exposed"
+  # instead of raising - the public context endpoint iterates every mapping.
+  def test_corrupted_exposed_attributes_degrade_to_empty
+    mapping = EmissionMapping.create!(broker_connection: connection, tracker: Tracker.first, subtype: 'WorkOrder')
+    mapping.update_column(:exposed_attributes, 'not json {')
+    assert_equal [], mapping.reload.exposed_standard_fields
+
+    mapping.update_column(:exposed_attributes, '["an", "array"]')
+    assert_equal [], mapping.reload.exposed_standard_fields
+  end
+
   # The exposure catalog and the published vocabulary must not drift apart.
   def test_standard_fields_match_the_published_terms
     assert_equal RedmineGttFiware::InstanceContext::STANDARD_TERMS.sort,

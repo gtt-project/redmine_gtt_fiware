@@ -38,7 +38,26 @@ class EmissionMapping < (defined?(ApplicationRecord) == 'constant' ? Application
     %w[rdfs gttfiware inst id type location dateCreated dateModified dateObserved]
   ).map(&:downcase).freeze
 
-  serialize :exposed_attributes, coder: JSON
+  # Tolerant JSON coder: a hand-edited or corrupted column value degrades to
+  # "nothing exposed" instead of raising - the public context endpoint and
+  # every issue save iterate mappings, so a broken row must never take them
+  # down.
+  class ExposedAttributesCoder
+    def self.dump(value)
+      JSON.dump(value || {})
+    end
+
+    def self.load(value)
+      return {} if value.blank?
+
+      parsed = JSON.parse(value)
+      parsed.is_a?(Hash) ? parsed : {}
+    rescue JSON::ParserError
+      {}
+    end
+  end
+
+  serialize :exposed_attributes, coder: ExposedAttributesCoder
 
   belongs_to :broker_connection
   belongs_to :tracker

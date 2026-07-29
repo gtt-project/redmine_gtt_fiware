@@ -30,7 +30,10 @@ module RedmineGttFiware
       }
     end
 
-    # Where instance-defined terms (subtypes, later attributes) live.
+    # Where instance-defined terms live: the subtypes now, the custom-field
+    # terms of step 2c later. The standard field terms deliberately do NOT
+    # live here - they mean the same on every instance, so they belong to the
+    # shared namespace (see STANDARD_TERMS).
     def vocab_namespace
       "#{@base_url}/fiware/vocab#"
     end
