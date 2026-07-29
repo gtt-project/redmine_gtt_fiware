@@ -100,12 +100,9 @@
                 placeholder: '${...}' %>
         </p>
       <% end %>
-      <%# Empty label so the hint lines up with the other hints in the
-          tabular layout instead of starting at the box edge. %>
-      <p>
-        <%= content_tag :label, '' %>
-        <em class="info"><%= l(:text_issue_custom_field_values_info) %></em>
-      </p>
+      <%# In a <p>, not bare in the fieldset: Redmine's .tabular p carries the
+          label-column padding, which lines the hint up with the fields above. %>
+      <p><em class="info"><%= l(:text_issue_custom_field_values_info) %></em></p>
     </fieldset>
   <% end %>
 
