@@ -5,15 +5,21 @@ FIWARE plugin and its API endpoints.
 
 ## First Steps
 
-- Make sure REST web services is enabled: <http://localhost:3000/settings?tab=api>
-- Enable the plugin in project settings
-- For security reasons don't select a user with admin rights for the FIWARE
-  subscriptions. Instead, create a new user with the necessary permissions.
+1. Create a [FIWARE Connection](broker_connections.md) for your context
+   broker (Administration → FIWARE Connections).
+2. Set **Administration → Settings → Host name** to a host the broker can
+   reach: subscription callbacks are built from it.
+3. Enable the **GTT FIWARE** module in a project and create a
+   [subscription](subscription_template.md).
+4. Optional: configure [issue emission](issue_emission.md) and
+   [federation](federation.md) to publish your issues back to the broker.
 
-If you need a test installation of FIWARE, you can use
-[FIWARE-Small-Bang](https://github.com/lets-fiware/FIWARE-Small-Bang) (for local
-development) or [FIWARE-Big-Bang](https://github.com/lets-fiware/FIWARE-Big-Bang)
-(for server deployment).
+Use a dedicated user with just the needed permissions as the subscription
+author, not an administrator.
+
+If you need a test broker, [FIWARE-Small-Bang](https://github.com/lets-fiware/FIWARE-Small-Bang)
+(local) or [FIWARE-Big-Bang](https://github.com/lets-fiware/FIWARE-Big-Bang)
+(server) set one up.
 
 ### Redmine Permissions
 
@@ -22,8 +28,11 @@ development) or [FIWARE-Big-Bang](https://github.com/lets-fiware/FIWARE-Big-Bang
 ## How to use
 
 - [Plugin Settings](plugin_settings.md)
+- [FIWARE Connections](broker_connections.md)
 - [Project Settings](project_settings.md)
-- [Subscription Templates](subscription_template.md)
+- [Subscriptions](subscription_template.md)
+- [Issue Emission](issue_emission.md)
+- [Federation](federation.md)
 
 ## Tools and Utilities
 
@@ -34,9 +43,11 @@ development) or [FIWARE-Big-Bang](https://github.com/lets-fiware/FIWARE-Big-Bang
 
 ## Reference
 
-- [Redmine NGSI-LD vocabulary](reference/ngsi-ld-vocabulary.md) — the JSON-LD
-  vocabulary preserved from the removed read API, kept as the seed for the
-  entity model the plugin will emit to a broker (Phase 3).
+- [GTT FIWARE core vocabulary](https://gtt-project.org/ns/fiware) — the
+  published terms used by [issue emission](issue_emission.md).
+- [Historical NGSI-LD vocabulary notes](reference/ngsi-ld-vocabulary.md) —
+  preserved from the removed read API; the published vocabulary above
+  supersedes it.
 
 ## Examples and Tutorials
 
