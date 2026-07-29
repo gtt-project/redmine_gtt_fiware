@@ -1,21 +1,26 @@
-# Redmine GTT FIWARE Plugin Settings
+# Plugin Settings
 
-This page provides an overview of the settings available for the Redmine GTT
-FIWARE plugin. The plugin is designed to manage subscriptions for a FIWARE
-context broker, allowing the creation of Redmine issues through FIWARE
-notifications.
+Administration → Plugins → Redmine GTT FIWARE plugin → Configure.
 
-![Plugin Settings Screenshot](plugin_settings.png)
+Broker URLs, authentication and throttling are not configured here: they live
+on [FIWARE Connections](broker_connections.md) since version 3.0.
 
-## FIWARE Broker Settings
+## Issue Emission
 
-### Subscription Throttling
+- **Instance identifier**: letters, digits, hyphen and underscore. It becomes
+  part of every emitted entity id
+  (`urn:ngsi-ld:Issue:redmine:<instance>:<issue>`), so other organizations can
+  tell your work orders apart from theirs. [Issue emission](issue_emission.md)
+  stays off while this is blank. Choose it once and keep it: changing it later
+  re-identifies every emitted entity.
 
-- **Description**: Limits the number of subscription notifications per second.
-- **Connect via internal proxy**: If enabled, the plugin will connect to the
-  FIWARE broker through an internal proxy.
-- **Default**: 10
+## Notification Attachment Downloads
 
-## Applying Settings
+Attachments referenced in broker notifications are downloaded over HTTPS only,
+from an allowlist of hosts.
 
-After configuring the settings, click the **Apply** button to save your changes.
+- **Additional allowed hosts**: one host per line. The subscription's
+  broker host is always allowed.
+- **Allowed content types**: one content type per line; wildcards like
+  `image/*` are supported. Leave blank for the default list (common image
+  formats, PDF, plain text, CSV, JSON).
