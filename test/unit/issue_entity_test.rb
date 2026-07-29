@@ -93,6 +93,62 @@ class IssueEntityTest < ActiveSupport::TestCase
     assert_nil entity['refersTo']
   end
 
+  # --- exposed standard fields (#69, step 2b) --------------------------------
+
+  # Nothing beyond the frozen core is emitted unless the admin exposed it.
+  def test_no_standard_fields_without_exposure
+    @issue.priority = IssuePriority.first
+    e = entity
+    assert_nil e['priority']
+    assert_nil e['description']
+    assert_nil e['assignee']
+  end
+
+  def test_exposed_fields_are_emitted
+    @mapping.exposed_standard_fields = %w[priority percentDone startDate assignee parent]
+    @mapping.save!
+    @issue.start_date = Date.new(2026, 7, 30)
+    @issue.assigned_to = User.active.first
+    @issue.done_ratio = 40
+
+    e = entity
+    assert_equal @issue.priority.name, e.dig('priority', 'value')
+    assert_equal 40, e.dig('percentDone', 'value')
+    assert_equal({ '@type' => 'Date', '@value' => '2026-07-30' }, e.dig('startDate', 'value'))
+    assert_equal User.active.first.name, e.dig('assignee', 'value')
+    # priority exposed but description not: exposure is per field.
+    assert_nil e['description']
+  end
+
+  # Absent data is absent from the entity, not null-valued (fixture issue 1
+  # carries a category, so it is cleared explicitly).
+  def test_exposed_fields_without_values_are_omitted
+    @mapping.exposed_standard_fields = %w[category targetVersion dueDate assignee]
+    @mapping.save!
+    @issue.category = nil
+    @issue.fixed_version = nil
+    @issue.due_date = nil
+    @issue.assigned_to = nil
+    e = entity
+    assert_nil e['category']
+    assert_nil e['targetVersion']
+    assert_nil e['dueDate']
+    assert_nil e['assignee']
+  end
+
+  def test_exposed_parent_is_a_relationship_to_the_parent_urn
+    @mapping.exposed_standard_fields = %w[parent]
+    @mapping.save!
+    # parent reads the persisted hierarchy; stubbing keeps the test free of
+    # nested-set writes (and of emission side effects on save).
+    parent = Issue.find(2)
+    @issue.stubs(:parent).returns(parent)
+
+    e = entity
+    assert_equal 'Relationship', e.dig('parent', 'type')
+    assert_equal "urn:ngsi-ld:Issue:redmine:test-town:#{parent.id}", e.dig('parent', 'object')
+  end
+
   def test_source_omitted_without_a_configured_host
     with_settings plugin_redmine_gtt_fiware: { 'fiware_instance_id' => 'test-town' }, host_name: '' do
       e = RedmineGttFiware::IssueEntity.new(@issue, @mapping).to_h

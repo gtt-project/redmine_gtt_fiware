@@ -44,6 +44,7 @@ ja:
   label_emission_mappings: "チケット送信"
   text_emission_mappings_info: "チェックしたトラッカーのチケットは、指定したサブタイプ付きのNGSI-LD Issueエンティティとしてこのブローカーへ送信されます（チケット送信モジュールを有効にしたプロジェクトのみ）。プラグイン設定のインスタンス識別子が必要です。"
   field_emission_subtype_hint: "サブタイプ（JSON-LDターム、例：WorkOrder）"
+  label_emission_exposed_fields: "公開する属性"
   gtt_fiware_settings_emission: "チケット送信"
   field_fiware_instance_id: "インスタンス識別子"
   text_fiware_instance_id_info: "英数字、ハイフン、アンダースコアのみ。送信されるすべてのエンティティID（urn:ngsi-ld:Issue:redmine:<instance>:<issue>）に含まれます。空欄の間は送信されません。後から変更するとすべての送信済みエンティティのIDが変わります。"

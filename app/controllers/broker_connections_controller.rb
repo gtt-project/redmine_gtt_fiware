@@ -78,6 +78,8 @@ class BrokerConnectionsController < ApplicationController
       mapping = @broker_connection.emission_mappings.find_or_initialize_by(tracker_id: tracker_id)
       if attrs[:enabled] == '1'
         mapping.subtype = attrs[:subtype].to_s.strip
+        # The setter intersects with the catalog, so unknown keys are dropped.
+        mapping.exposed_standard_fields = Array(attrs[:fields]).map(&:to_s)
         failed << mapping unless mapping.save
       elsif mapping.persisted?
         mapping.destroy

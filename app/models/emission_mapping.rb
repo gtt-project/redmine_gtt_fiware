@@ -10,13 +10,54 @@ class EmissionMapping < (defined?(ApplicationRecord) == 'constant' ? Application
   # CamelCase by convention (WorkOrder, RoadDamageReport), not enforced.
   SUBTYPE_PATTERN = /\A[A-Za-z][A-Za-z0-9]*\z/
 
+  # The standard issue fields an admin may expose per mapping (#69, step 2b),
+  # keyed by their published vocabulary term. Values name the Redmine field
+  # label so the UI needs no locale keys of its own. assignee is listed last
+  # and defaults off like everything else - publishing person names to a
+  # shared broker is an explicit admin decision.
+  STANDARD_FIELDS = {
+    'description' => :field_description,
+    'priority' => :field_priority,
+    'category' => :field_category,
+    'targetVersion' => :field_fixed_version,
+    'startDate' => :field_start_date,
+    'dueDate' => :field_due_date,
+    'estimatedTime' => :field_estimated_hours,
+    'percentDone' => :field_done_ratio,
+    'parent' => :field_parent_issue,
+    'assignee' => :field_assigned_to
+  }.freeze
+
   # Terms a subtype must not shadow in the published context (#69, step 2):
-  # the core vocabulary, the context's prefixes, and the NGSI-LD/core-context
-  # terms every entity relies on. Compared case-insensitively.
+  # the core vocabulary, the exposable standard terms, the context's prefixes,
+  # and the NGSI-LD/core-context terms every entity relies on. Compared
+  # case-insensitively.
   RESERVED_SUBTYPES = (
     RedmineGttFiware::InstanceContext::CORE_TERMS +
+    STANDARD_FIELDS.keys +
     %w[rdfs gttfiware inst id type location dateCreated dateModified dateObserved]
   ).map(&:downcase).freeze
+
+  # Tolerant JSON coder: a hand-edited or corrupted column value degrades to
+  # "nothing exposed" instead of raising - the public context endpoint and
+  # every issue save iterate mappings, so a broken row must never take them
+  # down.
+  class ExposedAttributesCoder
+    def self.dump(value)
+      JSON.dump(value || {})
+    end
+
+    def self.load(value)
+      return {} if value.blank?
+
+      parsed = JSON.parse(value)
+      parsed.is_a?(Hash) ? parsed : {}
+    rescue JSON::ParserError
+      {}
+    end
+  end
+
+  serialize :exposed_attributes, coder: ExposedAttributesCoder
 
   belongs_to :broker_connection
   belongs_to :tracker
@@ -27,6 +68,19 @@ class EmissionMapping < (defined?(ApplicationRecord) == 'constant' ? Application
   validates :tracker_id, uniqueness: { scope: :broker_connection_id }
   # Emission is NGSI-LD only in v1 (the entity payload is JSON-LD).
   validate :connection_must_be_ngsi_ld
+
+  # The exposed standard fields, always a cleaned subset of the catalog -
+  # unknown keys (a stale UI, a hand-edited row) are dropped on read and
+  # write, so IssueEntity can trust every entry.
+  def exposed_standard_fields
+    Array((exposed_attributes || {})['standard']) & STANDARD_FIELDS.keys
+  end
+
+  def exposed_standard_fields=(fields)
+    self.exposed_attributes = (exposed_attributes || {}).merge(
+      'standard' => Array(fields).map(&:to_s) & STANDARD_FIELDS.keys
+    )
+  end
 
   # Default subtype suggestion for a tracker: its name as a JSON-LD term when
   # that yields something usable, the generic suggestion otherwise (tracker
