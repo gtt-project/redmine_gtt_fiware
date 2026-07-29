@@ -1,7 +1,7 @@
 # REST API
 
-Since version 3.2 subscriptions can be read and written over Redmine's REST
-API, in JSON and XML. Enable **Administration → Settings → API → Enable REST
+Subscriptions can be read and written over Redmine's REST API, in JSON and
+XML. Enable **Administration → Settings → API → Enable REST
 web service** first, and authenticate as usual: an `X-Redmine-API-Key` header,
 `key=` parameter, or HTTP Basic. The acting user needs the *Manage
 Subscriptions* permission in the project, and the project needs the GTT FIWARE

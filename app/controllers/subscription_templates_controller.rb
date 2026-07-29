@@ -36,7 +36,9 @@ class SubscriptionTemplatesController < ApplicationController
         scope = subscription_template_scope
         @subscription_template_count = scope.count
         @offset, @limit = api_offset_and_limit
-        @subscription_templates = scope.includes(:broker_connection, :tracker, :issue_status, :member)
+        # Preload everything the API renders as a reference.
+        @subscription_templates = scope.includes(:project, :broker_connection, :tracker, :issue_status,
+                                                 :issue_priority, :issue_category, :version, :member)
                                        .offset(@offset).limit(@limit).to_a
       end
     end
@@ -496,10 +498,23 @@ class SubscriptionTemplatesController < ApplicationController
         # client sent in the *_string field alone.
         next if value.nil?
 
-        attributes[string_field] = value.is_a?(String) ? value : structured_to_json(value)
+        attributes[string_field] = json_input(value)
       end
 
     attributes[:attrs] = structured_to_json(attributes[:attrs]) if attributes[:attrs].is_a?(Array)
+  end
+
+  # The model parses the *_string fields as JSON. A structure is dumped; a
+  # string that already is JSON passes through; anything else is a scalar
+  # template value and gets encoded as the JSON string it stands for, so
+  # geometry: "${location}" works as documented instead of failing to parse.
+  def json_input(value)
+    return structured_to_json(value) unless value.is_a?(String)
+
+    JSON.parse(value)
+    value
+  rescue JSON::ParserError
+    value.to_json
   end
 
   def structured_to_json(value)

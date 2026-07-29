@@ -187,6 +187,26 @@ class SubscriptionTemplatesApiTest < Redmine::IntegrationTest
     assert_equal [{ 'type' => 'Room' }], SubscriptionTemplate.order(id: :desc).first.entities
   end
 
+  # geometry is a template, so the documented "${location}" placeholder is a
+  # bare string rather than JSON; it must still be stored as the model's
+  # JSON-encoded value instead of failing to parse.
+  def test_create_accepts_the_geometry_placeholder
+    post "/projects/#{@project.id}/subscription_templates.json",
+         params: create_payload(geometry: '${location}').to_json,
+         headers: auth.merge('CONTENT_TYPE' => 'application/json')
+    assert_response :created
+    assert_equal '${location}', SubscriptionTemplate.order(id: :desc).first.geometry
+  end
+
+  def test_create_accepts_geojson_geometry
+    geojson = { 'type' => 'Point', 'coordinates' => [139.7, 35.68] }
+    post "/projects/#{@project.id}/subscription_templates.json",
+         params: create_payload(geometry: geojson).to_json,
+         headers: auth.merge('CONTENT_TYPE' => 'application/json')
+    assert_response :created
+    assert_equal geojson, SubscriptionTemplate.order(id: :desc).first.geometry
+  end
+
   def test_create_reports_validation_errors
     assert_no_difference 'SubscriptionTemplate.count' do
       post "/projects/#{@project.id}/subscription_templates.json",
