@@ -99,6 +99,20 @@ class EmissionMappingTest < ActiveSupport::TestCase
     end
   end
 
+  # One inst: IRI must not be both a class and a property: custom terms may
+  # not shadow any configured subtype, own mapping or another's.
+  def test_custom_terms_must_not_shadow_subtypes
+    conn = connection
+    mapping = EmissionMapping.new(broker_connection: conn, tracker: Tracker.first, subtype: 'WorkOrder')
+    mapping.exposed_custom_fields = { 5 => 'workorder' }
+    assert_not mapping.valid?
+
+    EmissionMapping.create!(broker_connection: conn, tracker: Tracker.first, subtype: 'Incident')
+    other = EmissionMapping.new(broker_connection: conn, tracker: Tracker.all.second, subtype: 'WorkOrder')
+    other.exposed_custom_fields = { 5 => 'incident' }
+    assert_not other.valid?
+  end
+
   def test_duplicate_custom_terms_are_rejected
     mapping = EmissionMapping.new(broker_connection: connection, tracker: Tracker.first, subtype: 'WorkOrder')
     mapping.exposed_custom_fields = { 5 => 'roadSurface', 7 => 'roadSurface' }

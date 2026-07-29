@@ -98,8 +98,10 @@ module RedmineGttFiware
     # The admin-exposed custom fields (#69, step 2c), typed by field format;
     # blank values are absent from the entity like everything else.
     def exposed_custom_properties
-      @mapping.exposed_custom_fields.each_with_object({}) do |(cf_id, term), result|
-        custom_field = IssueCustomField.find_by(id: cf_id)
+      exposed = @mapping.exposed_custom_fields
+      custom_fields = IssueCustomField.where(id: exposed.keys).index_by(&:id)
+      exposed.each_with_object({}) do |(cf_id, term), result|
+        custom_field = custom_fields[cf_id]
         next unless custom_field
 
         value = custom_property(custom_field)

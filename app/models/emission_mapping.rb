@@ -144,8 +144,14 @@ class EmissionMapping < (defined?(ApplicationRecord) == 'constant' ? Application
     return unless raw.is_a?(Hash)
 
     terms = raw.values.map(&:to_s)
+    # One inst: IRI must not be published as both a class (subtype) and a
+    # property (custom term), so custom terms may not shadow any configured
+    # subtype - this mapping's or another's.
+    subtype_terms = ([subtype] + EmissionMapping.where.not(id: id).distinct.pluck(:subtype))
+                    .compact.map(&:downcase)
     terms.each do |term|
-      if !term.match?(SUBTYPE_PATTERN) || RESERVED_SUBTYPES.include?(term.downcase)
+      if !term.match?(SUBTYPE_PATTERN) || RESERVED_SUBTYPES.include?(term.downcase) ||
+         subtype_terms.include?(term.downcase)
         errors.add :base, I18n.t('model.emission_mapping.invalid_custom_term', term: term)
       end
     end

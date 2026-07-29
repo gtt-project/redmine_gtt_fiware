@@ -93,13 +93,22 @@ module RedmineGttFiware
       end
     end
 
+    # term => source field names, custom fields batch-loaded in one query.
+    # A term colliding with a subtype is skipped: one inst: IRI must not be
+    # published as both a class and a property (validation rejects new
+    # collisions; this covers pre-validation rows).
     def custom_terms
-      @custom_terms ||= EmissionMapping.find_each.each_with_object({}) do |mapping, result|
-        mapping.exposed_custom_fields.each do |cf_id, term|
-          custom_field = IssueCustomField.find_by(id: cf_id)
-          next unless custom_field
+      @custom_terms ||= begin
+        exposures = EmissionMapping.all.map(&:exposed_custom_fields)
+        custom_fields = IssueCustomField.where(id: exposures.flat_map(&:keys).uniq).index_by(&:id)
+        exposures.each_with_object({}) do |exposed, result|
+          exposed.each do |cf_id, term|
+            custom_field = custom_fields[cf_id]
+            next unless custom_field
+            next if subtypes.key?(term)
 
-          (result[term] ||= []) << custom_field.name
+            (result[term] ||= []) << custom_field.name
+          end
         end
       end
     end
