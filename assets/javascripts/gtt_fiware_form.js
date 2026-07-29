@@ -232,7 +232,14 @@
       if (!trackerSelect || !trackerSelect.dataset.disabledFields) { return; }
       var disabled = JSON.parse(trackerSelect.dataset.disabledFields)[trackerSelect.value] || [];
       document.querySelectorAll('.js-issue-core-field').forEach(function(p) {
-        p.style.display = disabled.indexOf(p.dataset.field) === -1 ? '' : 'none';
+        var hidden = disabled.indexOf(p.dataset.field) !== -1;
+        p.style.display = hidden ? 'none' : '';
+        // A hidden select would still submit its value; clear it so the form
+        // matches what the model persists (it clears tracker-disabled fields
+        // server-side too).
+        if (hidden) {
+          p.querySelectorAll('select').forEach(function(select) { select.value = ''; });
+        }
       });
     }
 

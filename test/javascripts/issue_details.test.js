@@ -42,6 +42,16 @@ describe('disabled core fields', () => {
     expect(qs('[data-field="category_id"]').style.display).toBe('');
     expect(qs('[data-field="fixed_version_id"]').style.display).toBe('');
   });
+
+  it('clears a hidden select so it does not submit a stale value', () => {
+    buildForm();
+    initForm();
+    const category = qs('[data-field="category_id"] select');
+    category.innerHTML = '<option value=""></option><option value="7" selected>Bugs</option>';
+    stubStatuses([]);
+    changeTracker('2');
+    expect(category.value).toBe('');
+  });
 });
 
 describe('status refetch', () => {
