@@ -62,8 +62,9 @@
 
   <%# Live preview (#68): renders the templates against a sample entity
       fetched from the selected broker connection. %>
+  <%# No label: .tabular p already reserves the label column, so the link
+      lines up without an empty label element. %>
   <p data-wizard-step="4">
-    <%= content_tag :label, '' %>
     <a href="#" id="gtt-fiware-preview-button"
        data-url="<%= preview_project_subscription_templates_path(@project) %>"
        data-loading="<%= l(:preview_loading) %>"

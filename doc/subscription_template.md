@@ -4,9 +4,18 @@ A subscription tells a context broker which entity changes to send to Redmine,
 and how to turn each notification into an issue. Subscriptions are managed per
 project: project → Settings → FIWARE → **New Subscription**.
 
-The form shows the essential fields first; everything else lives in three
-collapsible sections. A new subscription is publishable with just the visible
-fields.
+Creating one is guided: the form opens as a four-step flow that asks for the
+connection, what to watch, the issue to create, and finally previews and
+publishes. **Show all fields** leaves the guide and shows the whole form,
+which is also what editing an existing subscription gives you. Nothing is
+lost when switching: it is one form throughout, and the guide only chooses
+what to show.
+
+![The guided flow](subscription_wizard.png)
+
+In the full form the essential fields come first and everything else lives in
+three collapsible sections. A new subscription is publishable with just the
+visible fields.
 
 ## Basics
 
@@ -34,10 +43,20 @@ fields.
 - **Query**: an attribute condition, for example `severity>3`.
 - **Area**: no geographic filter, the project boundary, or a custom
   georel/geometry/coordinates triple.
+- **Boundary notes**: adds an issue note when the entity enters or leaves the
+  project boundary. The crossing is detected between notifications, by
+  comparing the issue's stored position with the new one, so it needs the GTT
+  module and a project boundary. Keep **Area** on *Anywhere* when using it: a
+  broker that filters geographically simply stops notifying once the entity is
+  outside the area, and a departure can then never be observed.
 - **Alteration types** and **Notify on metadata change**: which kinds of
   entity changes notify (the options follow the connection's NGSI standard).
 
 ## Issue details
+
+The fields follow the selected tracker: fields the tracker disables are
+hidden, the status list offers what the tracker's workflow allows for the
+*Sent from user* member, and the tracker's own custom fields appear.
 
 - **Description** and **Issue notes** templates (`${...}` placeholders work
   here too). The notes template is used when a notification updates an
@@ -46,13 +65,25 @@ fields.
   entity update the first issue (adding the notes) instead of creating
   duplicates. `0` creates a new issue every time.
 - **Issue geometry**: the entity's location, a custom GeoJSON template, or
-  none.
+  none. New subscriptions default to the entity's location.
 - **Attachments**: URLs (with `${...}` placeholders) downloaded and attached
   to the issue; see the allowlist in the
   [plugin settings](plugin_settings.md).
 - **Issue status, priority, category, version**: the created issue's fields.
-- **Sent from user** (required): the member the issues are authored as. Use a
-  dedicated user with just the needed permissions, not an administrator.
+  The status list is reduced to the workflow's new-issue transitions for the
+  member's roles; a stored status the workflow no longer offers is kept rather
+  than silently changed.
+- **Custom fields**: the selected tracker's custom fields, each a template
+  (`${...}` placeholders included), so a reading can land in a typed field.
+  Blank fields are left unset, and values are applied with the member's field
+  permissions.
+
+  ![Custom field templates](subscription_form_custom_fields.png)
+
+- **Sent from user** (required): the member the issues are authored as. It
+  decides the author, the permissions the issue is created with, and the
+  workflow statuses offered above, so use a dedicated user with just the
+  needed permissions, not an administrator.
 
 ## Subscription options
 

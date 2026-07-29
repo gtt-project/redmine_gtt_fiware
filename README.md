@@ -2,8 +2,11 @@
 
 The Geo-Task-Tracker (GTT) FIWARE plugin adds support for interacting with [FIWARE](https://www.fiware.org/):
 
-- Create and publish FIWARE Context Broker subscriptions
+- Create and publish FIWARE Context Broker subscriptions (NGSIv2 and NGSI-LD)
 - Create and update issues based on FIWARE context data
+- Publish issues back to a broker as NGSI-LD entities
+- See and react to other organizations' work on the same entity
+- Manage subscriptions over Redmine's REST API
 
 ## Requirements
 
