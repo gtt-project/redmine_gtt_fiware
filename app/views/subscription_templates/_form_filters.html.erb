@@ -43,6 +43,16 @@
     <label class="inline"><input type="radio" name="gtt_fiware_geo_mode" value="custom" <%= 'checked' if geo_mode == 'custom' %> /> <%= l(:label_geo_area_custom) %></label>
   </p>
 
+  <%# Boundary crossing notes (#87): plugin-side, so it works precisely when
+      the broker is NOT geo-filtering (a geo-filtered broker simply stops
+      notifying, and a leave can never be observed). %>
+  <p>
+    <%= f.check_box :geofence_notes, disabled: !project_boundary_available %>
+    <em class="info">
+      <%= project_boundary_available ? l(:text_geofence_notes_info) : l(:text_geofence_notes_unavailable) %>
+    </em>
+  </p>
+
   <span id="gtt-fiware-geo-custom" <%= 'style=display:none;'.html_safe unless geo_mode == 'custom' %>>
     <p><%= f.text_field :expression_georel, size: 75, placeholder: l(:field_subscription_template_expression_georel_placeholder) %></p>
     <p class="min-width"><%= f.select :expression_geometry, SubscriptionTemplate::GEOMETRIES, include_blank: true %></p>
