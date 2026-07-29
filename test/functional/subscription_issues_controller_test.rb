@@ -135,7 +135,19 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
     )
   end
 
+  # The sibling query is NGSI-LD only, so the policy tests need an LD
+  # connection (the default test connection is NGSIv2).
+  def use_ld_connection
+    ld = BrokerConnection.create!(
+      name: 'Federation LD broker', standard: 'NGSI-LD',
+      url: 'https://broker.example.com', auth_mode: 'browser',
+      context: 'https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld'
+    )
+    @template.update_column(:broker_connection_id, ld.id)
+  end
+
   def test_annotate_policy_notes_siblings_on_the_new_issue
+    use_ld_connection
     @template.update_column(:federation_policy, 'annotate')
     RedmineGttFiware::FederationSiblings.any_instance.stubs(:for_entity).returns([sibling])
 
@@ -152,6 +164,7 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
   # Suppression is deliberate, successful handling: a batch of only
   # suppressed entities must be a 200, or the broker retries forever.
   def test_suppress_policy_skips_creation_and_answers_200
+    use_ld_connection
     @template.update_column(:federation_policy, 'suppress')
     RedmineGttFiware::FederationSiblings.any_instance.stubs(:for_entity).returns([sibling])
 
@@ -165,6 +178,7 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
   end
 
   def test_suppress_policy_creates_when_all_siblings_are_closed
+    use_ld_connection
     @template.update_column(:federation_policy, 'suppress')
     RedmineGttFiware::FederationSiblings.any_instance.stubs(:for_entity).returns([sibling(status: 'closed')])
 
@@ -175,6 +189,16 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
   end
 
   def test_off_policy_never_queries_the_broker
+    RedmineGttFiware::FederationSiblings.any_instance.expects(:for_entity).never
+    assert_difference 'Issue.count', 1 do
+      post_notification
+    end
+    assert_response :success
+  end
+
+  # A v2 connection has no /ngsi-ld/v1/entities to ask.
+  def test_ngsi_v2_connections_are_never_queried
+    @template.update_column(:federation_policy, 'annotate')
     RedmineGttFiware::FederationSiblings.any_instance.expects(:for_entity).never
     assert_difference 'Issue.count', 1 do
       post_notification

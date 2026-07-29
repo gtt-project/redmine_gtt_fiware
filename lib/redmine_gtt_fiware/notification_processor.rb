@@ -101,10 +101,12 @@ module RedmineGttFiware
     end
 
     # Only when the policy asks for it, and never fatally: sibling lookup
-    # failures degrade to "no siblings" inside FederationSiblings.
+    # failures degrade to "no siblings" inside FederationSiblings. NGSI-LD
+    # only - a v2 connection has no /ngsi-ld/v1/entities to ask.
     def federation_siblings(entity)
       return [] if @template.federation_policy == 'off'
       return [] if entity.id.blank?
+      return [] unless @template.broker_connection&.ngsi_ld?
 
       FederationSiblings.new(@template.broker_connection).for_entity(entity.id)
     end

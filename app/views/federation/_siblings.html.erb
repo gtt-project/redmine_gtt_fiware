@@ -8,7 +8,9 @@
         <strong><%= sibling.org %></strong>
         <span><%= [sibling.subtype, sibling.status_label || sibling.status].select(&:present?).join(', ') %></span>
         <% if sibling.source.present? %>
-          <%= link_to sibling.title.presence || sibling.source, sibling.source, class: 'external' %>
+          <%# source is boundary-validated to http(s) in FederationSiblings. %>
+          <%= link_to sibling.title.presence || sibling.source, sibling.source,
+                      class: 'external', rel: 'noopener noreferrer' %>
         <% elsif sibling.title.present? %>
           <span><%= sibling.title %></span>
         <% end %>

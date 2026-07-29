@@ -69,6 +69,17 @@ class FederationSiblingsTest < ActiveSupport::TestCase
     end
   end
 
+  # Broker data is untrusted: source is rendered as a link and embedded in
+  # journal notes, so anything but plain http(s) is dropped at the boundary.
+  def test_non_http_source_urls_are_dropped
+    stub_response([
+      foreign_issue('nexco-east', 7).merge('source' => { 'type' => 'Property', 'value' => 'javascript:alert(1)' }),
+      foreign_issue('nexco-east', 8).merge('source' => { 'type' => 'Property', 'value' => 'not a url' })
+    ])
+    result = siblings
+    assert_equal [nil, nil], result.map(&:source)
+  end
+
   def test_broker_failure_degrades_to_empty
     Net::HTTP.any_instance.stubs(:request).raises(Errno::ECONNREFUSED)
     assert_equal [], siblings

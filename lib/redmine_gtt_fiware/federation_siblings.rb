@@ -105,8 +105,18 @@ module RedmineGttFiware
         status: value_of(entity['status']),
         status_label: value_of(entity['statusLabel']),
         title: value_of(entity['title']),
-        source: value_of(entity['source'])
+        source: safe_url(value_of(entity['source']))
       )
+    end
+
+    # Broker data is untrusted: source is rendered as a link (panel) and
+    # embedded in journal notes, so anything but a plain http(s) URL is
+    # dropped at this boundary (a javascript: URL would be XSS).
+    def safe_url(value)
+      uri = URI.parse(value.to_s)
+      uri.is_a?(URI::HTTP) && uri.host.present? ? value.to_s : nil
+    rescue URI::InvalidURIError
+      nil
     end
 
     # Notification-style ({"value" => ...}) and keyValues-style (plain)
