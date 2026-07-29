@@ -87,6 +87,23 @@ class FiwareContextsControllerTest < ActionController::TestCase
     assert_equal 1, label.scan(Tracker.find(1).name).size
   end
 
+  # Exposed custom-field terms are published as instance vocabulary with a
+  # labeled property node (#69, step 2c).
+  def test_custom_field_terms_are_published
+    custom_field = IssueCustomField.create!(name: 'Road surface', field_format: 'string',
+                                            is_for_all: true, trackers: Tracker.all)
+    mapping = EmissionMapping.create!(broker_connection: @connection, tracker: Tracker.find(1), subtype: 'WorkOrder')
+    mapping.exposed_custom_fields = { custom_field.id => 'roadSurface' }
+    mapping.save!
+
+    get :show
+    body = JSON.parse(response.body)
+    assert_equal 'inst:roadSurface', body['@context']['roadSurface']
+    node = body['@graph'].detect { |n| n['@id'] == 'inst:roadSurface' }
+    assert_equal 'rdf:Property', node['@type']
+    assert_includes node['rdfs:label'], 'Road surface'
+  end
+
   # The configured public host defines the instance namespace (#101
   # semantics); the request host is only the local fallback.
   def test_instance_namespace_follows_the_configured_host

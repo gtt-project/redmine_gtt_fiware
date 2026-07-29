@@ -45,6 +45,7 @@ en:
   text_emission_mappings_info: "Issues of the checked trackers are emitted to this broker as NGSI-LD Issue entities with the given subtype, from projects that enable the Issue Emission module. Requires the instance identifier in the plugin settings."
   field_emission_subtype_hint: "Subtype (a JSON-LD term, e.g. WorkOrder)"
   label_emission_exposed_fields: "Published attributes"
+  label_emission_exposed_custom_fields: "Published custom fields"
   gtt_fiware_settings_emission: "Issue Emission"
   field_fiware_instance_id: "Instance identifier"
   text_fiware_instance_id_info: "Letters, digits, hyphen and underscore. Becomes part of every emitted entity id (urn:ngsi-ld:Issue:redmine:<instance>:<issue>). Emission stays off while blank; changing it later re-identifies every emitted entity."
@@ -229,4 +230,6 @@ en:
     emission_mapping:
       invalid_subtype: "must be a JSON-LD term: letters and digits, starting with a letter"
       reserved_subtype: "is a reserved vocabulary term and cannot be used as a subtype"
+      invalid_custom_term: "custom field term %{term} must be a non-reserved JSON-LD term (letters and digits, starting with a letter)"
+      duplicate_custom_term: "custom field terms must be unique within a mapping"
       connection_not_ngsi_ld: "issue emission requires an NGSI-LD connection"

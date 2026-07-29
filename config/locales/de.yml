@@ -62,6 +62,8 @@ de:
     emission_mapping:
       invalid_subtype: 'muss ein JSON-LD-Term sein: Buchstaben und Ziffern, beginnend mit einem Buchstaben'
       reserved_subtype: 'ist ein reservierter Vokabular-Term und kann nicht als Subtyp verwendet werden'
+      invalid_custom_term: 'Term %{term} muss ein nicht reservierter JSON-LD-Term sein (Buchstaben und Ziffern, beginnend mit einem Buchstaben)'
+      duplicate_custom_term: 'Terme benutzerdefinierter Felder müssen innerhalb einer Zuordnung eindeutig sein'
       connection_not_ngsi_ld: 'Ticket-Übertragung erfordert eine NGSI-LD-Verbindung'
   field_subscription_template_fiware_servicepath: 'FIWARE Service Path'
   gtt_fiware_settings_broker: 'FIWARE-Einstellungen'
@@ -72,6 +74,7 @@ de:
   text_emission_mappings_info: 'Tickets der angehakten Tracker werden als NGSI-LD-Issue-Entitäten mit dem angegebenen Subtyp an diesen Broker übertragen, aus Projekten mit aktiviertem Modul Ticket-Übertragung. Erfordert die Instanz-Kennung in den Plugin-Einstellungen.'
   field_emission_subtype_hint: 'Subtyp (JSON-LD-Term, z. B. WorkOrder)'
   label_emission_exposed_fields: 'Veröffentlichte Attribute'
+  label_emission_exposed_custom_fields: 'Veröffentlichte benutzerdefinierte Felder'
   gtt_fiware_settings_emission: 'Ticket-Übertragung'
   field_fiware_instance_id: 'Instanz-Kennung'
   text_fiware_instance_id_info: 'Buchstaben, Ziffern, Bindestrich und Unterstrich. Teil jeder übertragenen Entitäts-ID (urn:ngsi-ld:Issue:redmine:<instanz>:<ticket>). Ohne Wert bleibt die Übertragung aus; eine spätere Änderung vergibt allen übertragenen Entitäten neue IDs.'

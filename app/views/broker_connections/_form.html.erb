@@ -66,6 +66,24 @@
             </label>
           <% end %>
         </span>
+        <%# Custom-field exposure (#69, step 2c): each exposed field gets an
+            admin-named instance vocabulary term (lowerCamel by convention). %>
+        <% if tracker.custom_fields.any? %>
+          <span class="gtt-fiware-exposure" style="display: block; margin-top: 2px; font-size: 0.92em;">
+            <%= l(:label_emission_exposed_custom_fields) %>:
+            <% tracker.custom_fields.sorted.each do |custom_field| %>
+              <label style="margin-right: 4px; font-weight: normal;">
+                <%= check_box_tag "emission_mappings[#{tracker.id}][custom][#{custom_field.id}][enabled]", '1',
+                                  mapping&.exposed_custom_fields&.key?(custom_field.id),
+                                  id: "emission_mapping_custom_#{tracker.id}_#{custom_field.id}" %>
+                <%= custom_field.name %>
+              </label>
+              <%= text_field_tag "emission_mappings[#{tracker.id}][custom][#{custom_field.id}][term]",
+                                 mapping&.exposed_custom_fields&.[](custom_field.id) || EmissionMapping.suggested_custom_term(custom_field),
+                                 size: 18, id: "emission_mapping_custom_term_#{tracker.id}_#{custom_field.id}" %>
+            <% end %>
+          </span>
+        <% end %>
       </p>
     <% end %>
   </div>

@@ -45,6 +45,7 @@ ja:
   text_emission_mappings_info: "チェックしたトラッカーのチケットは、指定したサブタイプ付きのNGSI-LD Issueエンティティとしてこのブローカーへ送信されます（チケット送信モジュールを有効にしたプロジェクトのみ）。プラグイン設定のインスタンス識別子が必要です。"
   field_emission_subtype_hint: "サブタイプ（JSON-LDターム、例：WorkOrder）"
   label_emission_exposed_fields: "公開する属性"
+  label_emission_exposed_custom_fields: "公開するカスタムフィールド"
   gtt_fiware_settings_emission: "チケット送信"
   field_fiware_instance_id: "インスタンス識別子"
   text_fiware_instance_id_info: "英数字、ハイフン、アンダースコアのみ。送信されるすべてのエンティティID（urn:ngsi-ld:Issue:redmine:<instance>:<issue>）に含まれます。空欄の間は送信されません。後から変更するとすべての送信済みエンティティのIDが変わります。"
@@ -225,4 +226,6 @@ ja:
     emission_mapping:
       invalid_subtype: "はJSON-LDタームである必要があります（英字で始まる英数字のみ）"
       reserved_subtype: "は予約済みの語彙タームのためサブタイプとして使用できません"
+      invalid_custom_term: "カスタムフィールドのターム %{term} は予約されていないJSON-LDタームである必要があります（英字で始まる英数字のみ）"
+      duplicate_custom_term: "カスタムフィールドのタームはマッピング内で一意である必要があります"
       connection_not_ngsi_ld: "チケット送信にはNGSI-LD接続が必要です"

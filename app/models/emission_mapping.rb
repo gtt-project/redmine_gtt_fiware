@@ -35,7 +35,7 @@ class EmissionMapping < (defined?(ApplicationRecord) == 'constant' ? Application
   RESERVED_SUBTYPES = (
     RedmineGttFiware::InstanceContext::CORE_TERMS +
     STANDARD_FIELDS.keys +
-    %w[rdfs gttfiware inst id type location dateCreated dateModified dateObserved]
+    %w[rdf rdfs gttfiware inst id type location dateCreated dateModified dateObserved]
   ).map(&:downcase).freeze
 
   # Tolerant JSON coder: a hand-edited or corrupted column value degrades to
@@ -65,6 +65,7 @@ class EmissionMapping < (defined?(ApplicationRecord) == 'constant' ? Application
   validates :subtype, presence: true,
                       format: { with: SUBTYPE_PATTERN, message: I18n.t('model.emission_mapping.invalid_subtype') }
   validate :subtype_must_not_shadow_reserved_terms
+  validate :custom_terms_must_be_valid
   validates :tracker_id, uniqueness: { scope: :broker_connection_id }
   # Emission is NGSI-LD only in v1 (the entity payload is JSON-LD).
   validate :connection_must_be_ngsi_ld
@@ -80,6 +81,38 @@ class EmissionMapping < (defined?(ApplicationRecord) == 'constant' ? Application
     self.exposed_attributes = (exposed_attributes || {}).merge(
       'standard' => Array(fields).map(&:to_s) & STANDARD_FIELDS.keys
     )
+  end
+
+  # The exposed custom fields (#69, step 2c): {custom field id => term}.
+  # Terms are instance vocabulary (inst: namespace), lowerCamel by
+  # convention. Validation reports bad terms; the reader additionally drops
+  # anything invalid, so IssueEntity and the context can trust every entry.
+  def exposed_custom_fields
+    raw = (exposed_attributes || {})['custom']
+    return {} unless raw.is_a?(Hash)
+
+    raw.each_with_object({}) do |(cf_id, term), result|
+      term = term.to_s
+      next unless term.match?(SUBTYPE_PATTERN)
+      next if RESERVED_SUBTYPES.include?(term.downcase)
+
+      result[cf_id.to_i] = term
+    end
+  end
+
+  def exposed_custom_fields=(fields)
+    cleaned = {}
+    (fields || {}).each { |cf_id, term| cleaned[cf_id.to_s] = term.to_s }
+    self.exposed_attributes = (exposed_attributes || {}).merge('custom' => cleaned)
+  end
+
+  # Default term suggestion for a custom field: its name as a lowerCamel
+  # JSON-LD term when usable, an id-based fallback otherwise (custom field
+  # names are free text, often non-ASCII).
+  def self.suggested_custom_term(custom_field)
+    words = custom_field.name.to_s.gsub(/[^A-Za-z0-9]+/, ' ').split
+    term = ([words.first.to_s.downcase] + words.drop(1).map(&:capitalize)).join
+    term.match?(SUBTYPE_PATTERN) ? term : "customField#{custom_field.id}"
   end
 
   # Default subtype suggestion for a tracker: its name as a JSON-LD term when
@@ -102,5 +135,28 @@ class EmissionMapping < (defined?(ApplicationRecord) == 'constant' ? Application
     return unless RESERVED_SUBTYPES.include?(subtype.to_s.downcase)
 
     errors.add :subtype, I18n.t('model.emission_mapping.reserved_subtype')
+  end
+
+  # An admin's typo in a custom term must surface as an error, not silently
+  # vanish through the reader's defensive filter.
+  def custom_terms_must_be_valid
+    raw = (exposed_attributes || {})['custom']
+    return unless raw.is_a?(Hash)
+
+    terms = raw.values.map(&:to_s)
+    # One inst: IRI must not be published as both a class (subtype) and a
+    # property (custom term), so custom terms may not shadow any configured
+    # subtype - this mapping's or another's.
+    subtype_terms = ([subtype] + EmissionMapping.where.not(id: id).distinct.pluck(:subtype))
+                    .compact.map(&:downcase)
+    terms.each do |term|
+      if !term.match?(SUBTYPE_PATTERN) || RESERVED_SUBTYPES.include?(term.downcase) ||
+         subtype_terms.include?(term.downcase)
+        errors.add :base, I18n.t('model.emission_mapping.invalid_custom_term', term: term)
+      end
+    end
+    return if terms.uniq.length == terms.length
+
+    errors.add :base, I18n.t('model.emission_mapping.duplicate_custom_term')
   end
 end
