@@ -13,11 +13,14 @@ module RedmineGttFiware
     class << self
       # Wraps NotificationProcessor issue writes: issues created or updated
       # from broker notifications must not be emitted back (echo loop).
+      # Restores the previous value so nested suppress blocks cannot
+      # re-enable emission for an outer one.
       def suppress
+        previous = Thread.current[:gtt_fiware_suppress_emission]
         Thread.current[:gtt_fiware_suppress_emission] = true
         yield
       ensure
-        Thread.current[:gtt_fiware_suppress_emission] = nil
+        Thread.current[:gtt_fiware_suppress_emission] = previous
       end
 
       def suppressed?

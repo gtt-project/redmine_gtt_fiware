@@ -147,6 +147,15 @@ class EmitterTest < ActiveSupport::TestCase
     assert_empty requests
   end
 
+  # Nested suppress blocks must not re-enable emission for the outer one.
+  def test_suppress_nests_safely
+    RedmineGttFiware::Emitter.suppress do
+      RedmineGttFiware::Emitter.suppress {}
+      assert RedmineGttFiware::Emitter.suppressed?, 'outer suppression must survive a nested block'
+    end
+    assert_not RedmineGttFiware::Emitter.suppressed?
+  end
+
   # An unreachable broker must never block saving an issue.
   def test_broker_failure_never_raises
     Net::HTTP.any_instance.stubs(:request).raises(Errno::ECONNREFUSED)

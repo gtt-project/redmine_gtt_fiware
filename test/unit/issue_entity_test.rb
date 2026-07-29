@@ -64,7 +64,7 @@ class IssueEntityTest < ActiveSupport::TestCase
 
   def test_location_strips_zero_z_from_nested_coordinates
     @issue.geom = RedmineGtt::Conversions.to_geom(
-      '{"type":"Feature","geometry":{"type":"LineString","coordinates":[[139.6,35.6],[139.7,35.7]]},"properties":null}'
+      '{"type":"Feature","geometry":{"type":"LineString","coordinates":[[139.6,35.6,0.0],[139.7,35.7,0.0]]},"properties":null}'
     )
     assert_equal [[139.6, 35.6], [139.7, 35.7]], entity.dig('location', 'value')['coordinates']
   end
