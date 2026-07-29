@@ -164,6 +164,13 @@ export function buildForm({
       <p class="min-width js-issue-core-field" data-field="category_id"><select></select></p>
       <p class="min-width js-issue-core-field" data-field="fixed_version_id"><select></select></p>
 
+      <fieldset class="js-tracker-custom-fields" data-tracker-id="1" ${selectedTracker === '1' ? '' : 'disabled style="display:none;"'}>
+        <input type="text" name="subscription_template[issue_custom_field_values][7]" value="\${severity}" />
+      </fieldset>
+      <fieldset class="js-tracker-custom-fields" data-tracker-id="2" ${selectedTracker === '2' ? '' : 'disabled style="display:none;"'}>
+        <input type="text" name="subscription_template[issue_custom_field_values][8]" value="" />
+      </fieldset>
+
       <input type="submit" name="publish_after_create" value="Create and publish" />
     </form>`;
 }

@@ -28,6 +28,37 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
   delegate :standard, :fiware_service, :fiware_servicepath, :ngsi_ld?, :stored_auth?,
            to: :broker_connection, allow_nil: true
 
+  # Per-tracker custom field templates (#103, phase 2): a JSON object mapping
+  # issue custom field ids (string keys) to template strings. Tolerant on
+  # read like EmissionMapping's coder: malformed stored JSON reads as {}.
+  class CustomFieldValuesCoder
+    def self.dump(value)
+      JSON.dump(value || {})
+    end
+
+    def self.load(value)
+      return {} if value.blank?
+
+      parsed = JSON.parse(value)
+      parsed.is_a?(Hash) ? parsed : {}
+    rescue JSON::ParserError
+      {}
+    end
+  end
+
+  serialize :issue_custom_field_values, coder: CustomFieldValuesCoder
+
+  # Normalizes form input (ActionController::Parameters or a hash with mixed
+  # key types) into plain string keys and values, dropping blank templates so
+  # untouched inputs never store empty strings.
+  def issue_custom_field_values=(value)
+    hash = value.respond_to?(:to_h) && value ? value.to_h : {}
+    cleaned = hash.each_with_object({}) do |(key, template), result|
+      result[key.to_s] = template.to_s unless template.to_s.strip.empty?
+    end
+    super(cleaned)
+  end
+
   STATUS = ['active', 'inactive', 'oneshot'].freeze
 
   # Federation awareness at creation time (#70, 4a): what to do when another
@@ -229,6 +260,13 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
     self.issue_priority_id = nil if disabled.include?('priority_id')
     self.issue_category_id = nil if disabled.include?('category_id')
     self.version_id = nil if disabled.include?('fixed_version_id')
+    # Same rule for custom fields: values for fields the tracker does not
+    # carry must not persist (the form disables their inputs, but the form is
+    # not the only writer).
+    if issue_custom_field_values.present?
+      allowed = tracker.custom_field_ids.map(&:to_s)
+      self.issue_custom_field_values = issue_custom_field_values.slice(*allowed)
+    end
   end
 
   def serialize_alteration_types

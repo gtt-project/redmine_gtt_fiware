@@ -1,8 +1,9 @@
 require File.expand_path('../../test_helper', __FILE__)
 
 class SubscriptionTemplatesControllerTest < ActionController::TestCase
-  fixtures :projects, :trackers, :issue_statuses, :users, :email_addresses,
-           :members, :member_roles, :roles, :enumerations, :enabled_modules
+  fixtures :projects, :trackers, :projects_trackers, :issue_statuses, :users,
+           :email_addresses, :members, :member_roles, :roles, :enumerations,
+           :enabled_modules
 
   # A value that would break out of a single-quoted JavaScript string if
   # rendered unescaped.
@@ -275,6 +276,33 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     %w[priority_id category_id fixed_version_id].each do |field|
       assert_select "p.js-issue-core-field[data-field=?]", field
     end
+  end
+
+  # Custom field templates (#103, phase 2): every tracker's fields render in
+  # their own group; only the selected tracker's group is enabled.
+  def test_form_renders_custom_field_groups_per_tracker
+    mine = IssueCustomField.create!(name: 'Reading', field_format: 'string',
+                                    is_for_all: true, trackers: [Tracker.find(1)])
+    other = IssueCustomField.create!(name: 'Other', field_format: 'string',
+                                     is_for_all: true, trackers: [Tracker.find(2)])
+    @template.reload.update!(issue_custom_field_values: { mine.id.to_s => '${severity}' })
+
+    get :edit, params: { project_id: @project.id, id: @template.id }
+    assert_response :success
+    assert_select 'fieldset.js-tracker-custom-fields[data-tracker-id="1"]:not([disabled])' do
+      assert_select "input[name=?][value=?]", "subscription_template[issue_custom_field_values][#{mine.id}]", '${severity}'
+    end
+    assert_select 'fieldset.js-tracker-custom-fields[data-tracker-id="2"][disabled]' do
+      assert_select "input[name=?]", "subscription_template[issue_custom_field_values][#{other.id}]"
+    end
+  end
+
+  def test_create_stores_custom_field_values
+    field = IssueCustomField.create!(name: 'Reading', field_format: 'string',
+                                     is_for_all: true, trackers: [Tracker.find(1)])
+    post :create, params: create_params(issue_custom_field_values: { field.id.to_s => '${temperature}' })
+    template = SubscriptionTemplate.order(id: :desc).first
+    assert_equal({ field.id.to_s => '${temperature}' }, template.issue_custom_field_values)
   end
 
   def test_allowed_statuses_returns_the_workflow_statuses_for_the_pair

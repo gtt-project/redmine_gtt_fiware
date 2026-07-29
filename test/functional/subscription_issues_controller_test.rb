@@ -103,6 +103,37 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
     assert_equal @template.member.user_id, issue.author_id
   end
 
+  # Custom field templates (#103, phase 2) render against the entity and are
+  # applied through safe_attributes, so tracker availability and the acting
+  # member's field permissions keep holding.
+  def test_create_applies_rendered_custom_field_values
+    field = IssueCustomField.create!(
+      name: 'Reading', field_format: 'string', is_for_all: true,
+      trackers: [Tracker.find(1)]
+    )
+    @template.reload.update!(issue_custom_field_values: { field.id.to_s => 'reading ${attrs.temperature.value}' })
+
+    assert_difference 'Issue.count', 1 do
+      post_notification
+    end
+    issue = Issue.order(id: :desc).first
+    assert_equal 'reading 30', issue.custom_field_value(field)
+  end
+
+  def test_create_skips_custom_fields_that_render_blank
+    field = IssueCustomField.create!(
+      name: 'Missing', field_format: 'string', is_for_all: true,
+      trackers: [Tracker.find(1)]
+    )
+    @template.reload.update!(issue_custom_field_values: { field.id.to_s => '${attrs.nonexistent.value}' })
+
+    assert_difference 'Issue.count', 1 do
+      post_notification
+    end
+    issue = Issue.order(id: :desc).first
+    assert issue.custom_field_value(field).to_s.strip.empty?
+  end
+
   def enable_emission
     project = Project.find(1)
     project.enabled_module_names = project.enabled_module_names | ['gtt_fiware_emission']

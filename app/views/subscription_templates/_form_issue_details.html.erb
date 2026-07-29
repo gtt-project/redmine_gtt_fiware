@@ -78,6 +78,30 @@
     <%= content_tag :label, l(:label_version) %>
     <%= f.collection_select :version_id, @project.versions, :id, :name, include_blank: true %>
   </p>
+  <%# Per-tracker custom fields (#103, phase 2): every tracker's fields are
+      rendered, grouped, and the form shows only the selected tracker's group
+      (hidden groups are disabled so they never submit). Values are template
+      strings; ${...} placeholders render against the notification entity. %>
+  <% @project.trackers.each do |tracker| %>
+    <% custom_fields = tracker.custom_fields.sorted & @project.all_issue_custom_fields %>
+    <% next if custom_fields.empty? %>
+    <%# fieldset because its disabled attribute disables every input inside:
+        hidden groups must not submit their values. %>
+    <fieldset class="js-tracker-custom-fields" data-tracker-id="<%= tracker.id %>"
+              <%= 'disabled style="display:none;"'.html_safe unless tracker.id == @subscription_template.tracker_id %>>
+      <% custom_fields.each do |custom_field| %>
+        <p>
+          <%= content_tag :label, custom_field.name, for: "gtt_fiware_custom_field_#{tracker.id}_#{custom_field.id}" %>
+          <%= text_field_tag "subscription_template[issue_custom_field_values][#{custom_field.id}]",
+                @subscription_template.issue_custom_field_values[custom_field.id.to_s],
+                id: "gtt_fiware_custom_field_#{tracker.id}_#{custom_field.id}", size: 40,
+                placeholder: '${...}' %>
+        </p>
+      <% end %>
+      <em class="info"><%= l(:text_issue_custom_field_values_info) %></em>
+    </fieldset>
+  <% end %>
+
   <p class="min-width">
     <%= content_tag :label, l(:field_subscription_template_notification_user) %>
     <%= f.collection_select :member_id, @project.members, :id, :name %>

@@ -191,7 +191,23 @@ module RedmineGttFiware
       issue.fixed_version = @template.version
       issue.fiware_entity = entity.id
       issue.subscription_template_id = @template.id
+      apply_custom_field_values(issue, entity)
       issue
+    end
+
+    # Custom field templates (#103, phase 2), rendered against the entity and
+    # applied through safe_attributes so tracker availability and the acting
+    # member's per-role field permissions keep holding. Blank rendered values
+    # are skipped: the field is simply left unset.
+    def apply_custom_field_values(issue, entity)
+      templates = @template.issue_custom_field_values
+      return if templates.blank?
+
+      rendered = templates.each_with_object({}) do |(field_id, template), values|
+        value = render(template, entity)
+        values[field_id] = value unless value.to_s.strip.empty?
+      end
+      issue.safe_attributes = { 'custom_field_values' => rendered } if rendered.any?
     end
 
     def apply_new_geometry(issue, entity)
