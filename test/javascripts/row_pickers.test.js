@@ -25,6 +25,12 @@ describe('entity rows', () => {
     expect(document.querySelectorAll('#gtt-fiware-entity-rows .gtt-fiware-entity-row')).toHaveLength(0);
   });
 
+  it('does not double-register listeners when init runs twice', () => {
+    initForm();
+    document.getElementById('gtt-fiware-entity-add').click();
+    expect(document.querySelectorAll('#gtt-fiware-entity-rows .gtt-fiware-entity-row')).toHaveLength(2);
+  });
+
   it('adds again after every row was removed (#105)', () => {
     document.querySelector('.js-entity-remove').click();
     document.getElementById('gtt-fiware-entity-add').click();

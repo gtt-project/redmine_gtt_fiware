@@ -5,8 +5,9 @@
  * Rails suite pins that DOM contract; the Vitest suite in test/javascripts
  * drives this file against jsdom fixtures.
  *
- * init() is idempotent per page load and returns early when the form is
- * not present. It runs automatically on DOMContentLoaded and is exposed as
+ * init() is idempotent: it returns early when the form is not present or
+ * was already wired (a data flag on the form guards against duplicate
+ * listeners). It runs automatically on DOMContentLoaded and is exposed as
  * window.GttFiwareForm.init for the tests.
  */
 (function() {
@@ -16,6 +17,8 @@
     var form = document.getElementById('gtt-fiware-connection-select');
     if (!form) { return; }
     form = form.closest('form');
+    if (form.dataset.gttFiwareFormInit) { return; }
+    form.dataset.gttFiwareFormInit = '1';
 
     // --- helpers ---------------------------------------------------------
 
