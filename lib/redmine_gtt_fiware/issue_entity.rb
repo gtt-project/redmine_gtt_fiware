@@ -12,7 +12,9 @@ module RedmineGttFiware
       "urn:ngsi-ld:Issue:redmine:#{Emitter.instance_id}:#{issue.id}"
     end
 
-    def initialize(issue, mapping)
+    # mapping may be nil for pull-side rendering (#4): the representation is
+    # then the frozen core alone - no subtype, no exposed attributes.
+    def initialize(issue, mapping = nil)
       @issue = issue
       @mapping = mapping
     end
@@ -26,10 +28,10 @@ module RedmineGttFiware
         # instance's own status name travels alongside as statusLabel.
         'status' => property(@issue.status.is_closed? ? 'closed' : 'open'),
         'statusLabel' => property(@issue.status.name),
-        'subtype' => property(@mapping.subtype),
         'dateCreated' => datetime_property(@issue.created_on),
         'dateModified' => datetime_property(@issue.updated_on)
       }
+      entity['subtype'] = property(@mapping.subtype) if @mapping
       entity['source'] = property(source_url) if source_url
       entity['location'] = geo_property if geometry?
       entity['refersTo'] = relationship(@issue.fiware_entity) if refers_to?
@@ -45,6 +47,8 @@ module RedmineGttFiware
     # the NGSI-LD attribute or nil when the issue has no value, so absent
     # data is absent from the entity instead of null-valued.
     def exposed_properties
+      return {} unless @mapping
+
       @mapping.exposed_standard_fields.each_with_object({}) do |field, result|
         value = send("exposed_#{field.underscore}")
         result[field] = value if value
@@ -98,6 +102,8 @@ module RedmineGttFiware
     # The admin-exposed custom fields (#69, step 2c), typed by field format;
     # blank values are absent from the entity like everything else.
     def exposed_custom_properties
+      return {} unless @mapping
+
       exposed = @mapping.exposed_custom_fields
       custom_fields = IssueCustomField.where(id: exposed.keys).index_by(&:id)
       exposed.each_with_object({}) do |(cf_id, term), result|
