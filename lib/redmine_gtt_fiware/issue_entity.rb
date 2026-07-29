@@ -28,12 +28,12 @@ module RedmineGttFiware
         'statusLabel' => property(@issue.status.name),
         'subtype' => property(@mapping.subtype),
         'dateCreated' => datetime_property(@issue.created_on),
-        'dateModified' => datetime_property(@issue.updated_on),
-        '@context' => CORE_CONTEXT
+        'dateModified' => datetime_property(@issue.updated_on)
       }
       entity['source'] = property(source_url) if source_url
       entity['location'] = geo_property if geometry?
       entity['refersTo'] = relationship(@issue.fiware_entity) if refers_to?
+      entity['@context'] = entity_context
       entity
     end
 
@@ -94,6 +94,18 @@ module RedmineGttFiware
       return nil if host.blank?
 
       "#{Setting.protocol}://#{host}/issues/#{@issue.id}"
+    end
+
+    # Brokers dereference @context at ingestion, so the instance's published
+    # context (#69, step 2) is referenced only when the instance has a public
+    # identity (Setting.host_name) a broker can actually reach; an
+    # unconfigured instance emits with the core context alone and its terms
+    # expand into the default vocabulary.
+    def entity_context
+      host = Setting.host_name.to_s.strip
+      return CORE_CONTEXT if host.blank?
+
+      ["#{Setting.protocol}://#{host}/fiware/context.jsonld", CORE_CONTEXT]
     end
   end
 end

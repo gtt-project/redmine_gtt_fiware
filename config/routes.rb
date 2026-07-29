@@ -19,6 +19,11 @@ end
 # Instance-level broker connections, managed by admins (#67).
 resources :broker_connections, except: [:show]
 
+# The instance's self-published JSON-LD context (#69, step 2): core terms
+# plus the configured emission subtypes. Public - brokers dereference it at
+# ingestion and consumers read the schema from it.
+get 'fiware/context.jsonld', to: 'fiware_contexts#show', format: false
+
 # Define a route for FIWARE broker subscription templates
 scope 'projects/:project_id' do
   resources :subscription_templates, only: %i(new create edit update destroy),
