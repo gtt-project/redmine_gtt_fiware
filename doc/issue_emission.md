@@ -13,6 +13,8 @@ Three things must be configured; nothing is published until all are in place.
 2. **Tracker mapping** on an NGSI-LD [connection](broker_connections.md):
    check the trackers to emit and give each a subtype (a JSON-LD term such as
    `WorkOrder` or `RoadDamageReport`).
+
+   ![Issue emission mappings](issue_emission_mappings.png)
 3. **Project module**: enable *GTT FIWARE Issue Emission* in the project's
    settings. Emission is a separate module from the subscriptions module on
    purpose: sharing issue data with a broker is an explicit decision.

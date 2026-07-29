@@ -2,6 +2,8 @@
 
 Administration → Plugins → Redmine GTT FIWARE plugin → Configure.
 
+![Plugin settings](plugin_settings.png)
+
 Broker URLs, authentication and throttling are not configured here: they live
 on [FIWARE Connections](broker_connections.md) since version 3.0.
 

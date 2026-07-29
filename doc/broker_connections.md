@@ -6,7 +6,11 @@ A connection describes one context broker: URL, NGSI standard, tenant,
 authentication. Subscriptions and issue emission both use
 connections, so broker details are entered once and reused.
 
+![FIWARE connections list](broker_connections.png)
+
 ## Fields
+
+![Connection form](broker_connection_form.png)
 
 - **Name**: how the connection appears in subscription forms.
 - **NGSI standard**: `NGSIv2` or `NGSI-LD`. The subscription form adapts to the
@@ -39,3 +43,5 @@ connections, so broker details are entered once and reused.
 For NGSI-LD connections, the form also lists the trackers with a checkbox and
 a subtype per tracker. This controls which issues are published to this broker
 and how; see [Issue emission](issue_emission.md).
+
+![Issue emission mappings](issue_emission_mappings.png)

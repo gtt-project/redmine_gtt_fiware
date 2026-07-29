@@ -10,6 +10,8 @@ fields.
 
 ## Basics
 
+![Subscription form](subscription_form.png)
+
 - **Name** (required).
 - **FIWARE connection** (required): the broker to subscribe on; see
   [FIWARE Connections](broker_connections.md). The form adapts to the
@@ -25,6 +27,8 @@ fields.
   published.
 
 ## Filters
+
+![Filters section](subscription_form_filters.png)
 
 - **Watched attributes**: notify only when one of these attributes changes.
 - **Query**: an attribute condition, for example `severity>3`.
@@ -51,6 +55,8 @@ fields.
   dedicated user with just the needed permissions, not an administrator.
 
 ## Subscription options
+
+![Subscription options section](subscription_form_options.png)
 
 - **Subscription status**: active, inactive or oneshot (oneshot is NGSIv2
   only).

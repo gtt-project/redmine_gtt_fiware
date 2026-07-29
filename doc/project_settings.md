@@ -10,10 +10,14 @@ The plugin provides two project modules (project → Settings → Modules):
   publishing issue data to a broker is an explicit decision, never a side
   effect of using subscriptions.
 
+![Project modules](project_modules.png)
+
 ## The FIWARE tab
 
 With the GTT FIWARE module enabled, a **FIWARE** tab appears in the project
 settings. It lists the project's subscriptions and offers:
+
+![The FIWARE tab](project_settings.png)
 
 - **New Subscription**: opens the
   [subscription form](subscription_template.md).
