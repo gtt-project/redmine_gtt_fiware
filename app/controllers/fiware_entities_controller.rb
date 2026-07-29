@@ -18,14 +18,22 @@ class FiwareEntitiesController < ApplicationController
       return
     end
 
-    mapping = EmissionMapping.joins(:broker_connection)
-                             .where(tracker_id: @issue.tracker_id)
-                             .order(:id).first
-    entity = RedmineGttFiware::IssueEntity.new(@issue, mapping).to_h
+    entity = RedmineGttFiware::IssueEntity.new(@issue, mapping_for(@issue)).to_h
     render json: entity, content_type: 'application/ld+json'
   end
 
   private
+
+  # A tracker can be mapped on several connections with different subtypes
+  # and exposure. The on-demand representation uses the mapping of the
+  # issue's own connection when the issue came from a broker, the oldest
+  # mapping otherwise - deterministic, and consistent with the broker the
+  # issue is actually correlated with.
+  def mapping_for(issue)
+    mappings = EmissionMapping.where(tracker_id: issue.tracker_id).order(:id)
+    preferred = issue.subscription_template&.broker_connection_id
+    mappings.detect { |m| m.broker_connection_id == preferred } || mappings.first
+  end
 
   def find_issue
     @issue = Issue.find(params[:id])

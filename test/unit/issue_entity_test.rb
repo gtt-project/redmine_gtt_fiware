@@ -193,6 +193,13 @@ class IssueEntityTest < ActiveSupport::TestCase
     assert_nil entity['ghostField']
   end
 
+  # A pre-validation mapping row with a blank subtype must not emit a
+  # null-valued property.
+  def test_blank_subtype_is_absent
+    @mapping.subtype = ''
+    assert_nil entity['subtype']
+  end
+
   # Pull-side rendering (#4): without a mapping the representation is the
   # frozen core alone.
   def test_renders_the_core_alone_without_a_mapping

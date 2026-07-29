@@ -31,7 +31,10 @@ module RedmineGttFiware
         'dateCreated' => datetime_property(@issue.created_on),
         'dateModified' => datetime_property(@issue.updated_on)
       }
-      entity['subtype'] = property(@mapping.subtype) if @mapping
+      # subtype.present? and not just @mapping: a pre-validation row with a
+      # blank subtype must not emit a null-valued property (absent data is
+      # absent).
+      entity['subtype'] = property(@mapping.subtype) if @mapping&.subtype.present?
       entity['source'] = property(source_url) if source_url
       entity['location'] = geo_property if geometry?
       entity['refersTo'] = relationship(@issue.fiware_entity) if refers_to?
