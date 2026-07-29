@@ -167,6 +167,21 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.js-alteration-label').forEach(function(code) {
       code.textContent = (known && isLd) ? code.dataset.ld : code.dataset.v2;
     });
+    // NGSI-LD has no distinct "change" trigger: entityChange and entityUpdate
+    // both map to entityUpdated, so showing both duplicates the label. Fold
+    // entityUpdate into entityChange and hide it while an LD connection is
+    // selected.
+    var updateChoice = document.querySelector('.js-alteration-choice[data-type="entityUpdate"]');
+    var changeChoice = document.querySelector('.js-alteration-choice[data-type="entityChange"]');
+    if (updateChoice && changeChoice) {
+      var updateBox = updateChoice.querySelector('input[type="checkbox"]');
+      var changeBox = changeChoice.querySelector('input[type="checkbox"]');
+      if (known && isLd && updateBox.checked) {
+        changeBox.checked = true;
+        updateBox.checked = false;
+      }
+      updateChoice.style.display = (known && isLd) ? 'none' : '';
+    }
     // 'oneshot' is an NGSIv2-only concept (#16 test plan follow-up).
     var statusSelect = document.getElementById('gtt-fiware-status-select');
     if (statusSelect) {

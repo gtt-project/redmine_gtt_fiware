@@ -55,9 +55,11 @@
   <p>
     <%= content_tag :label, l(:field_subscription_template_alteration_types) %>
     <% SubscriptionTemplate::ALTERATION_TYPES.each do |type| %>
-      <%= check_box_tag 'subscription_template[alteration_types][]', type,
-          @subscription_template.alteration_types&.include?(type), id: nil %>
-      <code class="js-alteration-label" data-v2="<%= type %>" data-ld="<%= SubscriptionTemplate::NGSI_LD_TRIGGER_MAP[type] %>"><%= type %></code>
+      <span class="js-alteration-choice" data-type="<%= type %>">
+        <%= check_box_tag 'subscription_template[alteration_types][]', type,
+            @subscription_template.alteration_types&.include?(type), id: nil %>
+        <code class="js-alteration-label" data-v2="<%= type %>" data-ld="<%= SubscriptionTemplate::NGSI_LD_TRIGGER_MAP[type] %>"><%= type %></code>
+      </span>
     <% end %>
     <em class="info js-ngsi-ld-only" style="display: none;"><%= l(:text_alteration_types_ld_info) %></em>
   </p>

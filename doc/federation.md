@@ -23,6 +23,8 @@ Each subscription has a **Federation** policy (Subscription options):
 
 ## The "Also handled by" panel
 
+![The federation panel on an issue](federation_panel.png)
+
 Issues that came from a broker show a panel below the description listing the
 other organizations' work orders for the same entity, with status and a link.
 The panel loads after the page, so a slow broker never delays the issue page.

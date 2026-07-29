@@ -55,10 +55,10 @@
         <%# Admin-exposable standard fields (#69, step 2b). Everything beyond
             the frozen core defaults to unexposed; assignee doubly so - it
             publishes a person's name to a shared broker. %>
-        <span class="gtt-fiware-exposure" style="display: block; margin-top: 2px; font-size: 0.92em;">
+        <span class="gtt-fiware-exposure">
           <%= l(:label_emission_exposed_fields) %>:
           <% EmissionMapping::STANDARD_FIELDS.each do |term, field_label| %>
-            <label style="margin-right: 8px; font-weight: normal;">
+            <label>
               <%= check_box_tag "emission_mappings[#{tracker.id}][fields][]", term,
                                 mapping&.exposed_standard_fields&.include?(term),
                                 id: "emission_mapping_field_#{tracker.id}_#{term}" %>
@@ -69,10 +69,10 @@
         <%# Custom-field exposure (#69, step 2c): each exposed field gets an
             admin-named instance vocabulary term (lowerCamel by convention). %>
         <% if tracker.custom_fields.any? %>
-          <span class="gtt-fiware-exposure" style="display: block; margin-top: 2px; font-size: 0.92em;">
+          <span class="gtt-fiware-exposure">
             <%= l(:label_emission_exposed_custom_fields) %>:
             <% tracker.custom_fields.sorted.each do |custom_field| %>
-              <label style="margin-right: 4px; font-weight: normal;">
+              <label>
                 <%= check_box_tag "emission_mappings[#{tracker.id}][custom][#{custom_field.id}][enabled]", '1',
                                   mapping&.exposed_custom_fields&.key?(custom_field.id),
                                   id: "emission_mapping_custom_#{tracker.id}_#{custom_field.id}" %>
