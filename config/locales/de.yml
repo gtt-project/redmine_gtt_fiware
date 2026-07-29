@@ -86,7 +86,6 @@ de:
   field_federation_watch: 'Föderations-Beobachtung'
   text_federation_watch_info: 'Diese Subscription beobachtet die Arbeitsaufträge anderer Organisationen, statt Tickets zu erstellen: fremde Statusänderungen werden als Kommentare an lokalen Tickets vermerkt, die auf dieselbe Entität verweisen. Entitätsfilter auf Typ Issue und beobachtete Attribute auf status setzen.'
   text_federation_status_note: 'Föderations-Update: Der Arbeitsauftrag von %{org} ist jetzt %{status} (%{urn})'
-  label_fiware_entity_link: 'Auch verfügbar als'
   gtt_fiware_settings_emission: 'Ticket-Übertragung'
   field_fiware_instance_id: 'Instanz-Kennung'
   text_fiware_instance_id_info: 'Buchstaben, Ziffern, Bindestrich und Unterstrich. Teil jeder übertragenen Entitäts-ID (urn:ngsi-ld:Issue:redmine:<instanz>:<ticket>). Ohne Wert bleibt die Übertragung aus; eine spätere Änderung vergibt allen übertragenen Entitäten neue IDs.'
