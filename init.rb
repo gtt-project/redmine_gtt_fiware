@@ -18,6 +18,9 @@ Redmine::Plugin.register :redmine_gtt_fiware do
     default: {
       'attachment_download_hosts' => '',
       'attachment_download_content_types' => "image/jpeg\nimage/png\nimage/gif\nimage/webp\napplication/pdf\ntext/plain\ntext/csv\napplication/json",
+      # Issue emission (#69) stays off until an instance id is set; it is
+      # baked into every emitted URN and must stay stable once chosen.
+      'fiware_instance_id' => '',
     },
     partial: 'gtt_fiware/settings'
   )
@@ -39,6 +42,14 @@ Redmine::Plugin.register :redmine_gtt_fiware do
       subscription_templates: %i( new edit update create destroy copy preview publish unpublish sync update_subscription_id set_subscription_id),
       projects: %i( manage_subscription_templates )
     }, require: :member
+  end
+
+  # Issue emission is an explicit per-project opt-in (#69): sharing issue data
+  # with a broker must never be a side effect of enabling subscriptions, so it
+  # is a separate module. The permission is a pure flag (public, no actions)
+  # because a module only appears in project settings through a permission.
+  project_module :gtt_fiware_emission do
+    permission :gtt_fiware_emission, {}, public: true
   end
 end
 

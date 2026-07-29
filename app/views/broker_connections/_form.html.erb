@@ -36,6 +36,27 @@
     <em class="info"><%= l(:text_broker_connection_token_info) %></em></p>
 </div>
 
+<%# Issue emission mapping (#69): which trackers emit their issues to this
+    connection, and as which subtype. NGSI-LD only in v1 (the entity payload
+    is JSON-LD), hence the standard toggle class. %>
+<div class="js-ngsi-ld-only">
+  <h3><%= l(:label_emission_mappings) %></h3>
+  <div class="box tabular">
+    <p><em class="info"><%= l(:text_emission_mappings_info) %></em></p>
+    <% Tracker.sorted.each do |tracker| %>
+      <% mapping = @broker_connection.emission_mappings.detect { |m| m.tracker_id == tracker.id } %>
+      <p>
+        <label><%= check_box_tag "emission_mappings[#{tracker.id}][enabled]", '1', mapping.present?,
+                                 id: "emission_mapping_enabled_#{tracker.id}" %> <%= tracker.name %></label>
+        <%= text_field_tag "emission_mappings[#{tracker.id}][subtype]",
+                           mapping&.subtype || EmissionMapping.suggested_subtype(tracker),
+                           size: 30, id: "emission_mapping_subtype_#{tracker.id}" %>
+        <em class="info"><%= l(:field_emission_subtype_hint) %></em>
+      </p>
+    <% end %>
+  </div>
+</div>
+
 <%= javascript_tag do %>
 (function() {
   var standardSelect = document.getElementById('broker_connection_standard');

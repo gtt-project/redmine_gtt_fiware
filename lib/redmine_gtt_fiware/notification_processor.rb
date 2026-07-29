@@ -34,10 +34,15 @@ module RedmineGttFiware
     end
 
     # raw_entity: one entity hash from the notification's data[] array.
+    # Emitter.suppress: issues created or updated from a broker notification
+    # must not be emitted back to a broker (#69 echo suppression) - a
+    # subscription and an emission mapping on the same tenant would loop.
     def process(raw_entity)
-      entity = Entity.from(raw_entity, @template.standard)
-      existing = find_recent_issue(entity)
-      existing ? process_update(existing, entity) : process_create(entity)
+      Emitter.suppress do
+        entity = Entity.from(raw_entity, @template.standard)
+        existing = find_recent_issue(entity)
+        existing ? process_update(existing, entity) : process_create(entity)
+      end
     end
 
     private

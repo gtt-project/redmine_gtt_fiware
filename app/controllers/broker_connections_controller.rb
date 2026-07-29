@@ -27,6 +27,7 @@ class BrokerConnectionsController < ApplicationController
   def create
     @broker_connection = BrokerConnection.new(broker_connection_params)
     if @broker_connection.save
+      sync_emission_mappings
       flash[:notice] = l(:notice_successful_create)
       redirect_to broker_connections_path
     else
@@ -38,6 +39,7 @@ class BrokerConnectionsController < ApplicationController
 
   def update
     if @broker_connection.update(broker_connection_params)
+      sync_emission_mappings
       flash[:notice] = l(:notice_successful_update)
       redirect_to broker_connections_path
     else
@@ -60,6 +62,32 @@ class BrokerConnectionsController < ApplicationController
     @broker_connection = BrokerConnection.find(params[:id])
   rescue ActiveRecord::RecordNotFound
     render_404
+  end
+
+  # Issue emission mapping rows (#69): one checkbox + subtype per tracker on
+  # the connection form, serialized as emission_mappings[<tracker_id>].
+  # Rows are synced after the connection saved; a row that fails validation
+  # (bad subtype term) is reported in the flash rather than blocking the
+  # connection itself.
+  def sync_emission_mappings
+    rows = params[:emission_mappings]
+    return unless rows.is_a?(ActionController::Parameters)
+
+    failed = []
+    rows.each do |tracker_id, attrs|
+      mapping = @broker_connection.emission_mappings.find_or_initialize_by(tracker_id: tracker_id)
+      if attrs[:enabled] == '1'
+        mapping.subtype = attrs[:subtype].to_s.strip
+        failed << mapping unless mapping.save
+      elsif mapping.persisted?
+        mapping.destroy
+      end
+    end
+    return if failed.empty?
+
+    flash[:error] = failed.map do |mapping|
+      "#{mapping.tracker&.name}: #{mapping.errors.full_messages.join(', ')}"
+    end.join('; ')
   end
 
   def broker_connection_params

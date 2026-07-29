@@ -5,6 +5,7 @@ module RedmineGttFiware
     RedmineGttFiware::ProjectPatch.apply
     RedmineGttFiware::TrackerPatch.apply
     RedmineGttFiware::MemberPatch.apply
+    RedmineGttFiware::IssuePatch.apply
     ProjectsController.send :helper, RedmineGttFiware::ProjectSettingsTabs
   end
 

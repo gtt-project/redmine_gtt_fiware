@@ -39,6 +39,15 @@ en:
 
   gtt_fiware_settings_broker: "FIWARE Settings"
 
+  project_module_gtt_fiware_emission: "GTT FIWARE Issue Emission"
+  permission_gtt_fiware_emission: "Emit issues to FIWARE brokers"
+  label_emission_mappings: "Issue Emission"
+  text_emission_mappings_info: "Issues of the checked trackers are emitted to this broker as NGSI-LD Issue entities with the given subtype, from projects that enable the Issue Emission module. Requires the instance identifier in the plugin settings."
+  field_emission_subtype_hint: "Subtype (a JSON-LD term, e.g. WorkOrder)"
+  gtt_fiware_settings_emission: "Issue Emission"
+  field_fiware_instance_id: "Instance identifier"
+  text_fiware_instance_id_info: "Letters, digits, hyphen and underscore. Becomes part of every emitted entity id (urn:ngsi-ld:Issue:redmine:<instance>:<issue>). Emission stays off while blank; changing it later re-identifies every emitted entity."
+
   gtt_fiware_settings_attachment_download: "Notification Attachment Downloads"
   field_attachment_download_hosts: "Additional allowed hosts"
   text_attachment_download_hosts_info: "One host per line. Attachments are only downloaded via HTTPS from these hosts or from the subscription template's broker host."
@@ -216,3 +225,6 @@ en:
       invalid_service: "may only contain letters, digits and underscores (max 50 characters)"
       invalid_service_path: "must be /-separated levels of letters, digits and underscores (max 10 levels)"
       invalid_token_header: "must be a valid HTTP header name"
+    emission_mapping:
+      invalid_subtype: "must be a JSON-LD term: letters and digits, starting with a letter"
+      connection_not_ngsi_ld: "issue emission requires an NGSI-LD connection"

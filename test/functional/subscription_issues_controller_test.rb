@@ -103,6 +103,28 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
     assert_equal @template.member.user_id, issue.author_id
   end
 
+  # Echo suppression (#69): an issue created from a broker notification must
+  # not be emitted back to a broker, even when the project and tracker have an
+  # emission mapping - a subscription plus an emission on the same tenant
+  # would loop otherwise.
+  def test_notification_created_issues_are_not_emitted_back
+    project = Project.find(1)
+    project.enabled_module_names = project.enabled_module_names | ['gtt_fiware_emission']
+    ld_connection = BrokerConnection.create!(
+      name: 'Echo broker', standard: 'NGSI-LD',
+      url: 'https://broker.example.com', auth_mode: 'stored'
+    )
+    EmissionMapping.create!(broker_connection: ld_connection, tracker: Tracker.find(1), subtype: 'WorkOrder')
+
+    Net::HTTP.any_instance.expects(:request).never
+    with_settings plugin_redmine_gtt_fiware: { 'fiware_instance_id' => 'test-town' } do
+      assert_difference 'Issue.count', 1 do
+        post_notification
+      end
+    end
+    assert_response :success
+  end
+
   # Two notifications for the same entity within the threshold_create window
   # update the first issue instead of creating a duplicate (#47).
   def test_create_updates_a_recent_issue_instead_of_duplicating

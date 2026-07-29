@@ -39,6 +39,15 @@ ja:
 
   gtt_fiware_settings_broker: "FIWARE設定"
 
+  project_module_gtt_fiware_emission: "GTT FIWARE チケット送信"
+  permission_gtt_fiware_emission: "FIWAREブローカーへのチケット送信"
+  label_emission_mappings: "チケット送信"
+  text_emission_mappings_info: "チェックしたトラッカーのチケットは、指定したサブタイプ付きのNGSI-LD Issueエンティティとしてこのブローカーへ送信されます（チケット送信モジュールを有効にしたプロジェクトのみ）。プラグイン設定のインスタンス識別子が必要です。"
+  field_emission_subtype_hint: "サブタイプ（JSON-LDターム、例：WorkOrder）"
+  gtt_fiware_settings_emission: "チケット送信"
+  field_fiware_instance_id: "インスタンス識別子"
+  text_fiware_instance_id_info: "英数字、ハイフン、アンダースコアのみ。送信されるすべてのエンティティID（urn:ngsi-ld:Issue:redmine:<instance>:<issue>）に含まれます。空欄の間は送信されません。後から変更するとすべての送信済みエンティティのIDが変わります。"
+
   gtt_fiware_settings_attachment_download: "通知添付ファイルのダウンロード"
   field_attachment_download_hosts: "追加で許可するホスト"
   text_attachment_download_hosts_info: "1行に1ホストを指定します。添付ファイルは、これらのホストまたはサブスクリプションテンプレートのブローカーホストから、HTTPS経由でのみダウンロードされます。"
@@ -212,3 +221,6 @@ ja:
       invalid_service: "は英数字とアンダースコアのみ使用できます（最大50文字）"
       invalid_service_path: "は英数字とアンダースコアを/で区切った形式である必要があります（最大10階層）"
       invalid_token_header: "は有効なHTTPヘッダー名である必要があります"
+    emission_mapping:
+      invalid_subtype: "はJSON-LDタームである必要があります（英字で始まる英数字のみ）"
+      connection_not_ngsi_ld: "チケット送信にはNGSI-LD接続が必要です"
