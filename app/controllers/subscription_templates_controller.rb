@@ -538,7 +538,11 @@ class SubscriptionTemplatesController < ApplicationController
       # create the model's default applies.
       params[:subscription_template][:alteration_types] ||= []
     end
-    params.require(:subscription_template).permit(:broker_connection_id, :subscription_id, :name, :expires, :status, :federation_policy, :federation_watch, :throttling, :context, :entities_string, :attrs, :expression_query, :expression_georel, :expression_geometry, :expression_coords, :notify_on_metadata_change, :subject, :description, :attachments_string, :is_private, :project_id, :tracker_id, :version_id, :issue_status_id, :issue_category_id, :issue_priority_id, :member_id, :comment, :threshold_create, :threshold_create_hours, :notes, :geometry, :geometry_string, :geofence_notes, alteration_types: [], issue_custom_field_values: {})
+    # project_id is deliberately not permitted: the project comes from the
+    # route, and SaveSubscriptionTemplate assigns it before the attributes, so
+    # a permitted project_id would let a request move a subscription into
+    # another project (a real hole once the API can send arbitrary fields).
+    params.require(:subscription_template).permit(:broker_connection_id, :subscription_id, :name, :expires, :status, :federation_policy, :federation_watch, :throttling, :context, :entities_string, :attrs, :expression_query, :expression_georel, :expression_geometry, :expression_coords, :notify_on_metadata_change, :subject, :description, :attachments_string, :is_private, :tracker_id, :version_id, :issue_status_id, :issue_category_id, :issue_priority_id, :member_id, :comment, :threshold_create, :threshold_create_hours, :notes, :geometry, :geometry_string, :geofence_notes, alteration_types: [], issue_custom_field_values: {})
   end
 
   # Stored connections supply their encrypted token server-side; browser-mode

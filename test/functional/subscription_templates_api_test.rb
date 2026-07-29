@@ -207,6 +207,26 @@ class SubscriptionTemplatesApiTest < Redmine::IntegrationTest
     assert_equal geojson, SubscriptionTemplate.order(id: :desc).first.geometry
   end
 
+  # The project comes from the route: a project_id in the payload must not
+  # move the subscription somewhere else, on create or on update.
+  def test_create_ignores_a_project_id_in_the_payload
+    other_project = Project.generate!
+    post "/projects/#{@project.id}/subscription_templates.json",
+         params: create_payload(project_id: other_project.id).to_json,
+         headers: auth.merge('CONTENT_TYPE' => 'application/json')
+    assert_response :created
+    assert_equal @project.id, SubscriptionTemplate.order(id: :desc).first.project_id
+  end
+
+  def test_update_ignores_a_project_id_in_the_payload
+    other_project = Project.generate!
+    put "/projects/#{@project.id}/subscription_templates/#{@template.id}.json",
+        params: { subscription_template: { project_id: other_project.id } }.to_json,
+        headers: auth.merge('CONTENT_TYPE' => 'application/json')
+    assert_response :no_content
+    assert_equal @project.id, @template.reload.project_id
+  end
+
   def test_create_reports_validation_errors
     assert_no_difference 'SubscriptionTemplate.count' do
       post "/projects/#{@project.id}/subscription_templates.json",
