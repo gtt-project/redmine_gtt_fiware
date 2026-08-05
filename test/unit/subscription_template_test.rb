@@ -316,6 +316,23 @@ class SubscriptionTemplateTest < ActiveSupport::TestCase
     assert_equal 2, template.threshold_create_hours
   end
 
+  # The getter must be exact: an API-set 5400s used to display as "1" and be
+  # silently rewritten to 3600 by the next unrelated form save.
+  def test_threshold_create_hours_round_trips_a_non_whole_hour_value
+    template = SubscriptionTemplate.new(valid_attributes(threshold_create: 5400))
+    assert_equal 1.5, template.threshold_create_hours
+    template.threshold_create_hours = template.threshold_create_hours
+    assert_equal 5400, template.threshold_create
+  end
+
+  def test_threshold_create_hours_accepts_fractions_and_blank
+    template = SubscriptionTemplate.new(valid_attributes)
+    template.threshold_create_hours = '0.5'
+    assert_equal 1800, template.threshold_create
+    template.threshold_create_hours = ''
+    assert_nil template.threshold_create
+  end
+
   def test_geo_query_fields_must_be_all_or_none
     template = SubscriptionTemplate.new(valid_attributes(expression_georel: 'near;maxDistance:1000'))
     assert_not template.valid?

@@ -179,15 +179,20 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
     ActiveSupport::SecurityUtils.secure_compare(secret, provided)
   end
 
-  attr_accessor :threshold_create_hours
-  # Override the getter for threshold_create_hours
+  # The form edits the create-vs-update window in hours; the column stores
+  # seconds (the API reads and writes threshold_create directly). The getter
+  # must be exact: a truncating division would display an API-set 5400s as
+  # "1" and silently rewrite the column to 3600 on the next unrelated form
+  # save. Whole hours read back as Integers so the form shows "2", not "2.0".
   def threshold_create_hours
-    threshold_create / 3600 if threshold_create
+    return nil if threshold_create.nil?
+
+    hours = threshold_create / 3600.0
+    hours % 1 == 0 ? hours.to_i : hours
   end
 
-  # Override the setter for threshold_create_hours
   def threshold_create_hours=(hours)
-    self.threshold_create = hours.to_i * 3600
+    self.threshold_create = hours.blank? ? nil : (hours.to_f * 3600).round
   end
 
   attr_writer :entities_string
