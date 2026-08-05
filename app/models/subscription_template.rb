@@ -310,7 +310,10 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
   end
 
   def associations_must_belong_to_project
-    return if project_id.nil?
+    # Guard on the association, not the id: a dangling project_id must not
+    # turn the shared_versions lookup below into a NoMethodError (the
+    # belongs_to presence validation reports it instead).
+    return if project.nil?
 
     if member && member.project_id != project_id
       errors.add :member, :inclusion
