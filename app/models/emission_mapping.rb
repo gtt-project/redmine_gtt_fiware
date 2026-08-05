@@ -63,7 +63,7 @@ class EmissionMapping < (defined?(ApplicationRecord) == 'constant' ? Application
   belongs_to :tracker
 
   validates :subtype, presence: true,
-                      format: { with: SUBTYPE_PATTERN, message: I18n.t('model.emission_mapping.invalid_subtype') }
+                      format: { with: SUBTYPE_PATTERN, message: :invalid_subtype }
   validate :subtype_must_not_shadow_reserved_terms
   validate :custom_terms_must_be_valid
   validates :tracker_id, uniqueness: { scope: :broker_connection_id }

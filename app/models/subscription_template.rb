@@ -82,15 +82,15 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
     'entityDelete' => 'entityDeleted'
   }.freeze
 
-  validates :status, inclusion: { in: STATUS, message: I18n.t('model.subscription_template.valid_status') }
+  validates :status, inclusion: { in: STATUS, message: :invalid_status }
   validates :federation_policy, inclusion: { in: FEDERATION_POLICIES }
   validates :throttling, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
-  validates :expression_geometry, inclusion: { in: GEOMETRIES, message: I18n.t('model.subscription_template.valid_geometry') }, allow_blank: true
+  validates :expression_geometry, inclusion: { in: GEOMETRIES, message: :invalid_geometry }, allow_blank: true
   # The jsonb column stores the array natively (older rows were JSON-string
   # encoded; migration 20260805000000 unwrapped them). allow_nil: nil and []
   # are both valid "no types chosen" states - the builders omit the field for
   # either (present? is false for both).
-  validates :alteration_types, inclusion: { in: ALTERATION_TYPES, message: I18n.t('model.subscription_template.valid_alteration_types') }, allow_nil: true
+  validates :alteration_types, inclusion: { in: ALTERATION_TYPES, message: :invalid_alteration_types }, allow_nil: true
 
   validates :name, presence: true
   validates :subject, presence: true

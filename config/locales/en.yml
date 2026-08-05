@@ -242,6 +242,19 @@ en:
 
     error_plugin_not_enabled: "GTT FIWARE plugin is not enabled for this project"
 
+  # Validation messages referenced by symbol from the models
+  # (message: :invalid_...), resolved lazily in the request locale.
+  activerecord:
+    errors:
+      messages:
+        invalid_standard: "%{value} is not a valid standard"
+        invalid_status: "%{value} is not a valid status"
+        invalid_geometry: "%{value} is not a valid geometry"
+        invalid_alteration_types: "%{value} is not a valid alteration type"
+        invalid_service: "may only contain letters, digits and underscores (max 50 characters)"
+        invalid_service_path: "must be /-separated levels of letters, digits and underscores (max 10 levels)"
+        invalid_token_header: "must be a valid HTTP header name"
+        invalid_subtype: "must be a JSON-LD term: letters and digits, starting with a letter"
   model:
     subscription_template:
       name_uniqueness: A subscription with that name already exists.
@@ -249,17 +262,9 @@ en:
       must_be_valid_array_of_objects: "must be a valid array of objects"
       geo_query_fields_must_be_all_or_none: "All geo query fields (Georel, Geometry,
         Coordinates) must be provided or none of them"
-      valid_standard: "%{value} is not a valid standard"
-      valid_status: "%{value} is not a valid status"
-      valid_geometry: "%{value} is not a valid geometry"
-      valid_alteration_types: "%{value} is not a valid alteration type"
     broker_connection:
       invalid_url: "must be an http(s) URL"
-      invalid_service: "may only contain letters, digits and underscores (max 50 characters)"
-      invalid_service_path: "must be /-separated levels of letters, digits and underscores (max 10 levels)"
-      invalid_token_header: "must be a valid HTTP header name"
     emission_mapping:
-      invalid_subtype: "must be a JSON-LD term: letters and digits, starting with a letter"
       reserved_subtype: "is a reserved vocabulary term and cannot be used as a subtype"
       invalid_custom_term: "custom field term %{term} must be a non-reserved JSON-LD term (letters and digits, starting with a letter)"
       duplicate_custom_term: "custom field terms must be unique within a mapping"

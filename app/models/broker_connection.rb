@@ -53,16 +53,16 @@ class BrokerConnection < (defined?(ApplicationRecord) == 'constant' ? Applicatio
 
   validates :name, presence: true, uniqueness: true
   validates :url, presence: true
-  validates :standard, inclusion: { in: STANDARDS, message: I18n.t('model.subscription_template.valid_standard') }
+  validates :standard, inclusion: { in: STANDARDS, message: :invalid_standard }
   validates :auth_mode, inclusion: { in: AUTH_MODES }
   validates :throttling, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
-  validates :fiware_service, format: { with: SERVICE_PATTERN, message: I18n.t('model.broker_connection.invalid_service') }, allow_blank: true
-  validates :fiware_servicepath, format: { with: SERVICE_PATH_PATTERN, message: I18n.t('model.broker_connection.invalid_service_path') }, allow_blank: true
+  validates :fiware_service, format: { with: SERVICE_PATTERN, message: :invalid_service }, allow_blank: true
+  validates :fiware_servicepath, format: { with: SERVICE_PATH_PATTERN, message: :invalid_service_path }, allow_blank: true
   # Typing "Authorization" must mean the same as leaving the field blank
   # (Authorization: Bearer), not a raw token in the Authorization header --
   # otherwise the two spellings of the default silently differ.
   before_validation :normalize_token_header
-  validates :token_header, format: { with: HEADER_NAME_PATTERN, message: I18n.t('model.broker_connection.invalid_token_header') }, allow_blank: true
+  validates :token_header, format: { with: HEADER_NAME_PATTERN, message: :invalid_token_header }, allow_blank: true
   validate :url_must_be_http
 
   scope :sorted, -> { order(:name) }

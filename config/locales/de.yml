@@ -43,24 +43,29 @@ de:
     attachement_not_found: 'Anlage nicht gefunden'
     project_not_found: 'Projekt nicht gefunden'
     status_not_found: 'Tracker nicht gefunden'
+  # Validation messages referenced by symbol from the models
+  # (message: :invalid_...), resolved lazily in the request locale.
+  activerecord:
+    errors:
+      messages:
+        invalid_standard: '%{value} ist kein gültiger Standard'
+        invalid_status: '%{value} ist kein gültiger Status'
+        invalid_geometry: '%{value} ist keine gültige Geometrie'
+        invalid_alteration_types: '%{value} ist kein gültiger Änderungstyp'
+        invalid_service: 'darf nur Buchstaben, Ziffern und Unterstriche enthalten (max. 50 Zeichen)'
+        invalid_service_path: 'muss aus /-getrennten Ebenen aus Buchstaben, Ziffern und Unterstrichen bestehen (max. 10 Ebenen)'
+        invalid_token_header: 'muss ein gültiger HTTP-Header-Name sein'
+        invalid_subtype: 'muss ein JSON-LD-Term sein: Buchstaben und Ziffern, beginnend mit einem Buchstaben'
   model:
     subscription_template:
-      valid_geometry: '%{value} ist keine gültige Geometrie'
-      valid_status: '%{value} ist kein gültiger Status'
-      valid_standard: '%{value} ist kein gültiger Standard'
       attrs_must_be_array_of_strings: 'Attribute müssen ein Array aus Strings sein'
       name_uniqueness: 'Eine Subscription-Vorlage mit diesem Namen existiert bereits.'
       geo_query_fields_must_be_all_or_none: 'Alle Geoabfrage-Felder (Georel, Geometrie,
         Koordinaten) müssen angegeben werden oder keines von ihnen'
-      valid_alteration_types: '%{value} ist kein gültiger Änderungstyp'
       must_be_valid_array_of_objects: 'muss ein gültiges Array von Objekten sein'
     broker_connection:
       invalid_url: 'muss eine http(s)-URL sein'
-      invalid_service: 'darf nur Buchstaben, Ziffern und Unterstriche enthalten (max. 50 Zeichen)'
-      invalid_service_path: 'muss aus /-getrennten Ebenen aus Buchstaben, Ziffern und Unterstrichen bestehen (max. 10 Ebenen)'
-      invalid_token_header: 'muss ein gültiger HTTP-Header-Name sein'
     emission_mapping:
-      invalid_subtype: 'muss ein JSON-LD-Term sein: Buchstaben und Ziffern, beginnend mit einem Buchstaben'
       reserved_subtype: 'ist ein reservierter Vokabular-Term und kann nicht als Subtyp verwendet werden'
       invalid_custom_term: 'Term %{term} muss ein nicht reservierter JSON-LD-Term sein (Buchstaben und Ziffern, beginnend mit einem Buchstaben)'
       duplicate_custom_term: 'Terme benutzerdefinierter Felder müssen innerhalb einer Zuordnung eindeutig sein'
