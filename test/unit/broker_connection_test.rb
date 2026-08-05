@@ -195,6 +195,13 @@ class BrokerConnectionTest < ActiveSupport::TestCase
                  connection_with('NGSIv2', 'https://host.example.com/orion/').api_base
   end
 
+  # Callers append segments as plain strings; a query or fragment in the
+  # configured URL must not end up in the middle of every built URL.
+  def test_api_base_drops_query_and_fragment
+    assert_equal 'https://host.example.com/v2',
+                 connection_with('NGSIv2', 'https://host.example.com?tenant=x#top').api_base
+  end
+
   def test_api_base_keeps_an_explicit_versioned_path
     assert_equal 'https://host.example.com/broker/ngsi-ld/v1',
                  connection_with('NGSI-LD', 'https://host.example.com/broker/ngsi-ld/v1/').api_base

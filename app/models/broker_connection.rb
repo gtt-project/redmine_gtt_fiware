@@ -120,6 +120,10 @@ class BrokerConnection < (defined?(ApplicationRecord) == 'constant' ? Applicatio
     uri = URI(url)
     path = uri.path.chomp('/')
     uri.path = path.match?(VERSIONED_PATH_PATTERNS[key]) ? path : "#{path}/#{DEFAULT_VERSION_PREFIXES[key]}"
+    # Callers append "/subscriptions" etc. as plain strings, so a query or
+    # fragment in the configured URL would corrupt every built URL.
+    uri.query = nil
+    uri.fragment = nil
     uri.to_s
   end
 
