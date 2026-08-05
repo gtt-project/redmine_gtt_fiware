@@ -229,11 +229,12 @@ class EmitterTest < ActiveSupport::TestCase
     )
     EmissionMapping.create!(broker_connection: second, tracker: Tracker.find(1), subtype: 'WorkOrder')
 
-    hosts = []
-    Net::HTTP.any_instance.stubs(:request).with { |_req| true }.returns(created_response)
+    attempts = []
+    # One stub: the matcher counts attempts and raises on the first, so the
+    # first connection fails and the second is the one that must still run.
     Net::HTTP.any_instance.stubs(:request).with do |_req|
-      hosts << 'called'
-      raise Errno::ECONNREFUSED if hosts.length == 1
+      attempts << 1
+      raise Errno::ECONNREFUSED if attempts.length == 1
 
       true
     end.returns(created_response)
@@ -246,6 +247,6 @@ class EmitterTest < ActiveSupport::TestCase
       end
     end
     assert issue.persisted?
-    assert_equal 2, hosts.length, 'the second connection must still be attempted'
+    assert_equal 2, attempts.length, 'the second connection must still be attempted'
   end
 end
