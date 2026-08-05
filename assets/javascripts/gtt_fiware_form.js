@@ -191,11 +191,15 @@
         try {
           ring = JSON.parse(mode.dataset.geom).geometry.coordinates[0];
         } catch (err) {
-          // data-geom is server-rendered; if it is missing or malformed,
-          // leave the stored triple untouched rather than submitting a
-          // half-written one from inside a throwing submit listener.
-          return;
+          ring = null;
         }
+        // data-geom is server-rendered; if it is missing, malformed or not
+        // a ring of number pairs, leave the stored triple untouched rather
+        // than throwing from inside the submit listener.
+        var isPair = function(c) {
+          return Array.isArray(c) && typeof c[0] === 'number' && typeof c[1] === 'number';
+        };
+        if (!Array.isArray(ring) || ring.length === 0 || !ring.every(isPair)) { return; }
         var geom = ring
           .map(function(c) { return [Number(c[1].toFixed(5)), Number(c[0].toFixed(5))]; })
           .join(';');
