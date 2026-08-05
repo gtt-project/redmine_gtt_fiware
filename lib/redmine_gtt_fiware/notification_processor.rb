@@ -25,11 +25,11 @@ module RedmineGttFiware
     # handling with no issue of its own.
     Result = Struct.new(:issue, :created, :saved, :suppressed, :federated, keyword_init: true) do
       def created?
-        created
+        created == true
       end
 
       def saved?
-        saved
+        saved == true
       end
 
       def suppressed?
@@ -116,7 +116,10 @@ module RedmineGttFiware
       end
       issue.reload
       issue.init_journal(User.current, "#{I18n.t(:text_federation_siblings_note)}\n\n#{lines.join("\n")}")
-      issue.save
+      unless issue.save
+        @logger.warn "[FIWARE] Sibling note on issue ##{issue.id} could not be saved: " \
+                     "#{issue.errors.full_messages.join(', ')}"
+      end
     end
 
     # Federation push updates (#70, 4c): the notified entity is a foreign
@@ -133,7 +136,7 @@ module RedmineGttFiware
       refers_to = entity.attributes.dig('refersTo', 'value').to_s
       return Result.new(federated: 0) if refers_to.blank?
 
-      org = entity.id.to_s[%r{\Aurn:ngsi-ld:Issue:redmine:([^:]+):}, 1] || 'external'
+      org = IssueUrn.instance_of(entity.id) || 'external'
       status = entity.attributes.dig('status', 'value').to_s
       status_label = entity.attributes.dig('statusLabel', 'value').to_s
       # The label wins when it only differs from the normalized status by
@@ -161,8 +164,7 @@ module RedmineGttFiware
     # The 4c echo guard: our own emitted work orders come back through a
     # watch subscription on the same tenant and must be ignored.
     def own_emission?(entity)
-      instance = Emitter.instance_id
-      instance.present? && entity.id.to_s.start_with?("urn:ngsi-ld:Issue:redmine:#{instance}:")
+      IssueUrn.own?(entity.id)
     end
 
     # Only when the policy asks for it, and never fatally: sibling lookup
@@ -317,6 +319,10 @@ module RedmineGttFiware
         next if url.empty?
 
         filename = spec['filename'].presence || File.basename(URI.parse(url).path.to_s)
+        # Compare what will actually be stored: Attachment#filename= sanitizes
+        # (spaces, special characters), so the raw spec name never matches the
+        # stored one and the same file would re-attach on every update.
+        filename = Attachment.new(filename: filename).filename.to_s
         next if filename.empty? || existing_filenames.include?(filename)
 
         result = fetcher.fetch(url)
@@ -327,6 +333,8 @@ module RedmineGttFiware
         existing_filenames << filename
       rescue RedmineGttFiware::AttachmentFetcher::RejectedError => e
         @logger.warn "[FIWARE] Rejected attachment download from #{url.inspect}: #{e.message}"
+      rescue RedmineGttFiware::AttachmentFetcher::FetchError => e
+        @logger.warn "[FIWARE] Attachment download from #{url.inspect} failed: #{e.message}"
       rescue StandardError => e
         @logger.warn "[FIWARE] Failed to attach file: #{e.message}"
       end

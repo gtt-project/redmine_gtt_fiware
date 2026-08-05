@@ -115,7 +115,10 @@ class SubscriptionTemplatesController < ApplicationController
     # before_action. presence: browser-mode unpublish PATCHes an empty string;
     # store nil so a cleared subscription looks the same regardless of which
     # mode cleared it.
-    @subscription_template.update(subscription_id: params[:subscription_id].presence)
+    unless @subscription_template.update(subscription_id: params[:subscription_id].presence)
+      Rails.logger.error "Subscription id for template #{@subscription_template.id} could not be stored: " \
+                         "#{@subscription_template.errors.full_messages.join(', ')}"
+    end
 
     @subscription_templates = subscription_template_scope
     respond_to do |format|
@@ -129,16 +132,22 @@ class SubscriptionTemplatesController < ApplicationController
       return
     end
 
-    @subscription_template = SubscriptionTemplate.find(params[:subscription_template_id])
+    @subscription_template = SubscriptionTemplate.find_by(id: params[:subscription_template_id])
+    if @subscription_template.nil?
+      render json: { error: 'Subscription template not found' }, status: :not_found
+      return
+    end
 
     unless User.current.allowed_to?(:manage_subscription_templates, @subscription_template.project)
       render json: { error: 'You do not have permission to manage subscription templates' }, status: :forbidden
       return
     end
 
-    @subscription_template.update(subscription_id: params[:subscription_id])
-
-    render json: { message: 'Subscription ID updated successfully' }, status: :ok
+    if @subscription_template.update(subscription_id: params[:subscription_id])
+      render json: { message: 'Subscription ID updated successfully' }, status: :ok
+    else
+      render json: { errors: @subscription_template.errors.full_messages }, status: :unprocessable_entity
+    end
   end
 
   def destroy
@@ -285,10 +294,7 @@ class SubscriptionTemplatesController < ApplicationController
       return
     end
 
-    # Reload: the just-saved instance carries alteration_types in its
-    # serialized (before_save) form, which would fail revalidation on the
-    # subscription-id update after publishing. A fresh load deserializes it.
-    @subscription_template = template.reload
+    @subscription_template = template
     @subscription_template.ensure_webhook_secret!
     @fiware_broker_auth_token = connection.auth_token
     prepare_payload
@@ -306,13 +312,19 @@ class SubscriptionTemplatesController < ApplicationController
     response = fetch_remote_subscription
     case response
     when Net::HTTPNotFound
-      @subscription_template.update(subscription_id: nil)
-      l(:subscription_sync_removed)
+      if @subscription_template.update(subscription_id: nil)
+        l(:subscription_sync_removed)
+      else
+        Rails.logger.error "FIWARE broker sync: clearing the removed subscription failed: " \
+                           "#{@subscription_template.errors.full_messages.join(', ')}"
+        l(:subscription_sync_error)
+      end
     when Net::HTTPSuccess
       if apply_remote_status(JSON.parse(response.body))
         l(:subscription_synced)
       else
-        Rails.logger.error 'FIWARE broker sync: unrecognized subscription status in response'
+        Rails.logger.error 'FIWARE broker sync: unrecognized subscription status in response, ' \
+                           'or the local status update failed validation'
         l(:subscription_sync_error)
       end
     else
@@ -355,7 +367,9 @@ class SubscriptionTemplatesController < ApplicationController
       end
     return nil if normalized.nil?
 
-    @subscription_template.update(status: normalized) unless normalized == @subscription_template.status
+    unless normalized == @subscription_template.status
+      return nil unless @subscription_template.update(status: normalized)
+    end
     normalized
   end
 
@@ -414,12 +428,13 @@ class SubscriptionTemplatesController < ApplicationController
     settings_project_path(@project, tab: 'subscription_templates')
   end
 
+  # find_project_by_project_id comes from core's ApplicationController,
+  # including its render_404 on an unknown project.
+
   def find_subscription_template
     @subscription_template = subscription_template_scope.find(params[:id])
-  end
-
-  def find_project_by_project_id
-    @project = Project.find(params[:project_id])
+  rescue ActiveRecord::RecordNotFound
+    render_404
   end
 
   def subscription_template_scope
@@ -600,7 +615,14 @@ class SubscriptionTemplatesController < ApplicationController
         return false
       end
     elsif response.code.to_i == 204 && action == 'unpublish'
-      @subscription_template.update(subscription_id: nil)
+      # The subscription is gone on the broker either way; failing to clear
+      # the local id must be surfaced, like the publish case above.
+      unless @subscription_template.update(subscription_id: nil)
+        Rails.logger.error "Subscription removed on the broker but the local id could not be cleared: " \
+                           "#{@subscription_template.errors.full_messages.join(', ')}"
+        @error_message = l(:general_action_error)
+        return false
+      end
       return true
     end
 

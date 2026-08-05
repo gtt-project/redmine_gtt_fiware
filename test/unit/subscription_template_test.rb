@@ -187,14 +187,18 @@ class SubscriptionTemplateTest < ActiveSupport::TestCase
     assert template.valid?, template.errors.full_messages.join(', ')
   end
 
-  # A template saved without alteration types stores nil; later validated
-  # updates (e.g. storing the broker's subscription id after publish) must
-  # still pass. Regression: the inclusion validation used to reject nil on
-  # persisted records, silently breaking the publish flow.
+  # A template saved without alteration types must stay valid across later
+  # updates (e.g. storing the broker's subscription id after publish).
+  # Regression: the inclusion validation used to reject the stored empty
+  # state on persisted records, silently breaking the publish flow.
   def test_persisted_template_without_alteration_types_stays_updatable
     template = SubscriptionTemplate.create!(valid_attributes(alteration_types: []))
     reloaded = SubscriptionTemplate.find(template.id)
-    assert_nil reloaded.alteration_types
+    assert_equal [], reloaded.alteration_types
+    # And the just-saved in-memory instance is usable without a reload: the
+    # old hand-rolled before_save serialization left a JSON string behind
+    # that failed revalidation until the record was reloaded.
+    assert template.valid?, template.errors.full_messages.join(', ')
     assert reloaded.update(subscription_id: 'sub-1'), reloaded.errors.full_messages.join(', ')
   end
 
@@ -247,11 +251,9 @@ class SubscriptionTemplateTest < ActiveSupport::TestCase
   # 'null' is what the picker serializes with no rows: it clears the stored
   # attachments instead of failing validation.
   def test_attachments_string_null_clears_attachments
-    # reload: the just-created instance carries alteration_types in its
-    # serialized (before_save) form, which would fail revalidation.
     template = SubscriptionTemplate.create!(
       valid_attributes(attachments_string: '[{"url": "https://example.com/a.jpg"}]')
-    ).reload
+    )
     assert_equal 1, template.attachments.size
 
     template.attachments_string = 'null'
@@ -312,6 +314,23 @@ class SubscriptionTemplateTest < ActiveSupport::TestCase
     template.threshold_create_hours = 2
     assert_equal 7200, template.threshold_create
     assert_equal 2, template.threshold_create_hours
+  end
+
+  # The getter must be exact: an API-set 5400s used to display as "1" and be
+  # silently rewritten to 3600 by the next unrelated form save.
+  def test_threshold_create_hours_round_trips_a_non_whole_hour_value
+    template = SubscriptionTemplate.new(valid_attributes(threshold_create: 5400))
+    assert_equal 1.5, template.threshold_create_hours
+    template.threshold_create_hours = template.threshold_create_hours
+    assert_equal 5400, template.threshold_create
+  end
+
+  def test_threshold_create_hours_accepts_fractions_and_blank
+    template = SubscriptionTemplate.new(valid_attributes)
+    template.threshold_create_hours = '0.5'
+    assert_equal 1800, template.threshold_create
+    template.threshold_create_hours = ''
+    assert_nil template.threshold_create
   end
 
   def test_geo_query_fields_must_be_all_or_none

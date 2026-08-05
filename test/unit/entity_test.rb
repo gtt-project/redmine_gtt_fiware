@@ -90,4 +90,40 @@ class EntityTest < ActiveSupport::TestCase
     assert_nil e.geometry
     assert_nil e.resolve('anything')
   end
+
+  # NGSI-LD multi-attribute: normalized form may deliver an attribute as an
+  # array of instances (datasetId). These used to be dropped silently, so
+  # every template referencing them rendered empty.
+  def test_ngsi_ld_multi_attribute_uses_the_default_instance
+    e = Entity.from({
+      'id' => 'urn:x', 'type' => 'Sensor',
+      'speed' => [
+        { 'type' => 'Property', 'value' => 55, 'datasetId' => 'urn:ngsi-ld:Dataset:gps' },
+        { 'type' => 'Property', 'value' => 60 }
+      ]
+    }, 'NGSI-LD')
+    assert_equal 60, e.resolve('attrs.speed.value')
+  end
+
+  def test_ngsi_ld_multi_attribute_falls_back_to_the_first_instance
+    e = Entity.from({
+      'id' => 'urn:x', 'type' => 'Sensor',
+      'speed' => [
+        { 'type' => 'Property', 'value' => 55, 'datasetId' => 'urn:ngsi-ld:Dataset:gps' },
+        { 'type' => 'Property', 'value' => 60, 'datasetId' => 'urn:ngsi-ld:Dataset:radar' }
+      ]
+    }, 'NGSI-LD')
+    assert_equal 55, e.resolve('attrs.speed.value')
+  end
+
+  # A LanguageProperty carries languageMap, not value; it used to normalize
+  # to a nil value.
+  def test_ngsi_ld_language_property_resolves_the_language_map
+    e = Entity.from({
+      'id' => 'urn:x', 'type' => 'Sensor',
+      'streetName' => { 'type' => 'LanguageProperty',
+                        'languageMap' => { 'ja' => '青山通り', 'en' => 'Aoyama-dori' } }
+    }, 'NGSI-LD')
+    assert_equal '青山通り', e.resolve('attrs.streetName.value.ja')
+  end
 end

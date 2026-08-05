@@ -31,13 +31,33 @@ module RedmineGttFiware
       geometry = nil
       entity.each do |key, raw|
         next if RESERVED_KEYS.include?(key)
+
+        # Multi-attribute (datasetId): normalized form may deliver an
+        # attribute as an array of instances; an unqualified template path
+        # means the default one.
+        raw = default_ld_instance(raw) if raw.is_a?(Array)
         next unless raw.is_a?(Hash)
 
-        value = raw.key?('object') ? raw['object'] : raw['value']
-        attributes[key] = { 'value' => value, 'type' => raw['type'] }
+        attributes[key] = { 'value' => ld_value(raw), 'type' => raw['type'] }
         geometry ||= raw['value'] if geo_property?(key, raw)
       end
       new(id: entity['id'], type: entity['type'], attributes: attributes, geometry: geometry)
+    end
+
+    # The instance without a datasetId is the default instance; when every
+    # instance is qualified, the first one stands in.
+    def self.default_ld_instance(instances)
+      hashes = instances.select { |instance| instance.is_a?(Hash) }
+      hashes.detect { |instance| !instance.key?('datasetId') } || hashes.first
+    end
+
+    # The attribute's payload member by kind: a Relationship carries object,
+    # a LanguageProperty carries languageMap, everything else carries value.
+    def self.ld_value(raw)
+      return raw['object'] if raw.key?('object')
+      return raw['languageMap'] if raw.key?('languageMap')
+
+      raw['value']
     end
 
     def self.from_ngsi_v2(entity)

@@ -1,7 +1,7 @@
 require 'securerandom'
 require 'active_support/security_utils'
 
-class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? ApplicationRecord : ActiveRecord::Base)
+class SubscriptionTemplate < ApplicationRecord
   self.table_name = "fiware_subscription_templates"
 
   # Number of random bytes for the per-template webhook secret. The broker
@@ -82,18 +82,17 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
     'entityDelete' => 'entityDeleted'
   }.freeze
 
-  validates :status, inclusion: { in: STATUS, message: I18n.t('model.subscription_template.valid_status') }
+  validates :status, inclusion: { in: STATUS, message: :invalid_status }
   validates :federation_policy, inclusion: { in: FEDERATION_POLICIES }
   validates :throttling, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
-  validates :expression_geometry, inclusion: { in: GEOMETRIES, message: I18n.t('model.subscription_template.valid_geometry') }, allow_blank: true
-  # allow_nil: a template saved with no alteration types stores nil (see
-  # serialize_alteration_types), which is valid persisted state - the
-  # builders simply omit the field. Without allow_nil every later validated
-  # update on such a template fails (new records are shielded only by the
-  # after_initialize default).
-  validates :alteration_types, inclusion: { in: ALTERATION_TYPES, message: I18n.t('model.subscription_template.valid_alteration_types') }, allow_nil: true
+  validates :expression_geometry, inclusion: { in: GEOMETRIES, message: :invalid_geometry }, allow_blank: true
+  # The jsonb column stores the array natively (older rows were JSON-string
+  # encoded; migration 20260805000000 unwrapped them). allow_nil: nil and []
+  # are both valid "no types chosen" states - the builders omit the field for
+  # either (present? is false for both).
+  validates :alteration_types, inclusion: { in: ALTERATION_TYPES, message: :invalid_alteration_types }, allow_nil: true
 
-  validates :name, presence: true
+  validates :name, presence: true, uniqueness: { scope: :project_id, case_sensitive: true }
   validates :subject, presence: true
   validates :description, presence: true
   validates :entities_string, presence: true
@@ -109,7 +108,6 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
   # unrelated project.
   validate :associations_must_belong_to_project
 
-  validate :name_uniqueness
   validate :take_json_entities
   validate :take_json_geometry
   validate :take_json_attachments
@@ -120,8 +118,6 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
   # (#103): the form hides the selects, but hidden inputs still submit, and
   # the form is not the only writer.
   before_validation :clear_tracker_disabled_fields
-  before_save :serialize_alteration_types
-  after_find :deserialize_alteration_types
 
   def self.generate_webhook_secret
     SecureRandom.hex(WEBHOOK_SECRET_BYTES)
@@ -182,15 +178,20 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
     ActiveSupport::SecurityUtils.secure_compare(secret, provided)
   end
 
-  attr_accessor :threshold_create_hours
-  # Override the getter for threshold_create_hours
+  # The form edits the create-vs-update window in hours; the column stores
+  # seconds (the API reads and writes threshold_create directly). The getter
+  # must be exact: a truncating division would display an API-set 5400s as
+  # "1" and silently rewrite the column to 3600 on the next unrelated form
+  # save. Whole hours read back as Integers so the form shows "2", not "2.0".
   def threshold_create_hours
-    threshold_create / 3600 if threshold_create
+    return nil if threshold_create.nil?
+
+    hours = threshold_create / 3600.0
+    hours % 1 == 0 ? hours.to_i : hours
   end
 
-  # Override the setter for threshold_create_hours
   def threshold_create_hours=(hours)
-    self.threshold_create = hours.to_i * 3600
+    self.threshold_create = hours.blank? ? nil : (hours.to_f * 3600).round
   end
 
   attr_writer :entities_string
@@ -285,14 +286,6 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
     end
   end
 
-  def serialize_alteration_types
-    self.alteration_types = alteration_types.empty? ? nil : alteration_types.to_json if alteration_types.is_a?(Array)
-  end
-
-  def deserialize_alteration_types
-    self.alteration_types = JSON.parse(alteration_types) if alteration_types.is_a?(String)
-  end
-
   def attrs_must_be_array_of_strings
     return if attrs.blank?
 
@@ -323,14 +316,6 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
     end
     if version && !project.shared_versions.include?(version)
       errors.add :version, :inclusion
-    end
-  end
-
-  def name_uniqueness
-    scope = SubscriptionTemplate.where.not(id: id).where(name: name, project_id: project_id)
-
-    if scope.any?
-      errors.add :name, I18n.t('model.subscription_template.name_uniqueness')
     end
   end
 

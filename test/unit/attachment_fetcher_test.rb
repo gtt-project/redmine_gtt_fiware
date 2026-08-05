@@ -130,6 +130,16 @@ class AttachmentFetcherTest < ActiveSupport::TestCase
     assert_rejected fetcher, 'https://broker.example.com/file.png', /302 \(redirects are not followed\)/
   end
 
+  # A network failure is not a policy rejection: it raises FetchError so the
+  # log does not blame the allowlist for a flaky broker.
+  def test_network_failures_raise_fetch_error_not_rejected_error
+    fetcher = build_fetcher(transport: lambda { |_uri, _ip, &_block| raise Timeout::Error, 'took too long' })
+    error = assert_raises(RedmineGttFiware::AttachmentFetcher::FetchError) do
+      fetcher.fetch('https://broker.example.com/file.png')
+    end
+    assert_match(/download failed/, error.message)
+  end
+
   def test_rejects_non_redirect_errors_without_redirect_wording
     fetcher = build_fetcher(transport: with_response(FakeResponse.new(code: '500')))
     error = assert_raises(RedmineGttFiware::AttachmentFetcher::RejectedError) do

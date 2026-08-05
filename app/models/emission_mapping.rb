@@ -3,7 +3,7 @@
 # declared a subclass of the core Issue type in the instance's published
 # context (design step 2); it travels as the `subtype` property because the
 # target brokers reject multi-type entities (spike on #69).
-class EmissionMapping < (defined?(ApplicationRecord) == 'constant' ? ApplicationRecord : ActiveRecord::Base)
+class EmissionMapping < ApplicationRecord
   self.table_name = 'fiware_emission_mappings'
 
   # A JSON-LD term: ASCII letters and digits, starting with a letter.
@@ -63,7 +63,7 @@ class EmissionMapping < (defined?(ApplicationRecord) == 'constant' ? Application
   belongs_to :tracker
 
   validates :subtype, presence: true,
-                      format: { with: SUBTYPE_PATTERN, message: I18n.t('model.emission_mapping.invalid_subtype') }
+                      format: { with: SUBTYPE_PATTERN, message: :invalid_subtype }
   validate :subtype_must_not_shadow_reserved_terms
   validate :custom_terms_must_be_valid
   validates :tracker_id, uniqueness: { scope: :broker_connection_id }

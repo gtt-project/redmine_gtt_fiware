@@ -218,24 +218,28 @@ ja:
 
     error_plugin_not_enabled: "GTT FIWARE plugin is not enabled for this project"
 
+  # Validation messages referenced by symbol from the models
+  # (message: :invalid_...), resolved lazily in the request locale.
+  activerecord:
+    errors:
+      messages:
+        invalid_standard: "%{value} は有効な標準ではありません"
+        invalid_status: "%{value} は有効なステータスではありません"
+        invalid_geometry: "%{value} は有効なジオメトリではありません"
+        invalid_alteration_types: "%{value} は有効な変更タイプではありません"
+        invalid_service: "は英数字とアンダースコアのみ使用できます（最大50文字）"
+        invalid_service_path: "は英数字とアンダースコアを/で区切った形式である必要があります（最大10階層）"
+        invalid_token_header: "は有効なHTTPヘッダー名である必要があります"
+        invalid_subtype: "はJSON-LDタームである必要があります（英字で始まる英数字のみ）"
   model:
     subscription_template:
-      name_uniqueness: A subscription template with that name already exists.
       attrs_must_be_array_of_strings: "Attributes must be an array of strings"
       must_be_valid_array_of_objects: "must be a valid array of objects"
       geo_query_fields_must_be_all_or_none: "All geo query fields (Georel, Geometry,
         Coordinates) must be provided or none of them"
-      valid_standard: "%{value} is not a valid standard"
-      valid_status: "%{value} is not a valid status"
-      valid_geometry: "%{value} is not a valid geometry"
-      valid_alteration_types: "%{value} is not a valid alteration type"
     broker_connection:
       invalid_url: "はhttp(s)のURLである必要があります"
-      invalid_service: "は英数字とアンダースコアのみ使用できます（最大50文字）"
-      invalid_service_path: "は英数字とアンダースコアを/で区切った形式である必要があります（最大10階層）"
-      invalid_token_header: "は有効なHTTPヘッダー名である必要があります"
     emission_mapping:
-      invalid_subtype: "はJSON-LDタームである必要があります（英字で始まる英数字のみ）"
       reserved_subtype: "は予約済みの語彙タームのためサブタイプとして使用できません"
       invalid_custom_term: "カスタムフィールドのターム %{term} は予約されていないJSON-LDタームである必要があります（英字で始まる英数字のみ）"
       duplicate_custom_term: "カスタムフィールドのタームはマッピング内で一意である必要があります"
