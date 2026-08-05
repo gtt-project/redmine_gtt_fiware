@@ -30,7 +30,7 @@ following minimal settings:
 | **Description**   | `The speed camera sensor ${id} detected a speed of ${speed} km/h.`|
 | **Issue geometry**| `{ "type": "Feature", "geometry": "${location}" }`        |
 | **Attachments**   | `[{"filename": "SC_${timestamp}.jpg", "url": "${image}"}]`|
-| **Sent from user**| `api_user` (select the user who will send the issue)      |
+| **Create issues as**| `api_user` (the member the created issues are authored as) |
 
 Create the subscription template and publish it.
 

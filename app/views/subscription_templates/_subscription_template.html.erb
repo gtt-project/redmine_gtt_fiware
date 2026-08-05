@@ -3,19 +3,19 @@
     <%= link_to subscription_template.name, edit_project_subscription_template_path(subscription_template.project, subscription_template) %>
   </td>
   <td>
-    <%= textilizable subscription_template.standard %>
+    <%= subscription_template.standard %>
   </td>
   <td class="text">
     <code><%= subscription_template.broker_url %></code>
   </td>
   <td>
-    <%= textilizable subscription_template.issue_status.name %>
+    <%= subscription_template.issue_status.name %>
   </td>
   <td>
-    <%= textilizable subscription_template.tracker.name %>
+    <%= subscription_template.tracker.name %>
   </td>
   <td>
-    <%= textilizable subscription_template.status %>
+    <%= subscription_template.status %>
   </td>
   <td>
     <%= link_to sprite_icon('fiware-clipboard', l(:link_to_copy), :plugin => :redmine_gtt_fiware), copy_project_subscription_template_path(@project, subscription_template),
@@ -26,10 +26,10 @@
       <%= link_to sprite_icon('fiware-sync', l(:link_to_sync), :plugin => :redmine_gtt_fiware), sync_project_subscription_template_path(@project, subscription_template),
           method: :post, remote: true, class: 'icon icon-reload', title: l(:link_to_sync_hint) %>
       <%= link_to sprite_icon('fiware-unpublish', l(:link_to_unpublish), :plugin => :redmine_gtt_fiware), unpublish_project_subscription_template_path(@project, subscription_template),
-          method: :post, remote: true, class: 'icon icon-shared' %>
+          method: :post, remote: true, class: 'icon icon-shared', title: l(:link_to_unpublish_hint) %>
     <% else %>
       <%= link_to sprite_icon('fiware-publish', l(:link_to_publish), :plugin => :redmine_gtt_fiware), publish_project_subscription_template_path(@project, subscription_template),
-          method: :post, remote: true, class: 'icon icon-shared' %>
+          method: :post, remote: true, class: 'icon icon-shared', title: l(:link_to_publish_hint) %>
     <% end %>
   </td>
   <td>

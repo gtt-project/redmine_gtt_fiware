@@ -62,7 +62,7 @@ class SubscriptionTemplatesController < ApplicationController
 
   # The statuses a new issue can take for a tracker/member pair (#103): the
   # same workflow data the regular issue form uses. Fetched by the form when
-  # the tracker or the "Sent from user" member changes.
+  # the tracker or the "Create issues as" member changes.
   def allowed_statuses
     tracker = @project.trackers.find_by(id: params[:tracker_id])
     member = @project.members.find_by(id: params[:member_id])

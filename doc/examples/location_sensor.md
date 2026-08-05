@@ -29,7 +29,7 @@ following minimal settings:
 | **Subject**       | `Location Alert`                                          |
 | **Description**   | `The location sensor ${id} entered the project area.`     |
 | **Issue geometry**| `{ "type": "Feature", "geometry": "${location}" }`        |
-| **Sent from user**| `api_user` (select the user who will send the issue)      |
+| **Create issues as**| `api_user` (the member the created issues are authored as) |
 
 Create the subscription template and publish it.
 
