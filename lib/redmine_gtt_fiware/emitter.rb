@@ -47,11 +47,11 @@ module RedmineGttFiware
         each_emission(issue) do |mapping, connection|
           entity = IssueEntity.new(issue, mapping).to_h
           response = request(connection, :post, 'entities', entity)
-          # 409: the entity exists - update its attributes instead. The id
-          # and type are immutable and must not be in the PATCH body.
+          # 409: the entity exists - EmissionRefresh updates its attributes
+          # and deletes the ones the current representation no longer
+          # carries (#146).
           if response.is_a?(Net::HTTPConflict)
-            attrs = entity.except('id', 'type')
-            response = request(connection, :patch, "entities/#{entity['id']}/attrs", attrs)
+            response = EmissionRefresh.new(connection, entity).call
           end
           log_failure(issue, connection, response) unless response.is_a?(Net::HTTPSuccess)
         end
