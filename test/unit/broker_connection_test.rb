@@ -168,4 +168,53 @@ class BrokerConnectionTest < ActiveSupport::TestCase
   ensure
     BrokerConnection.delete_all
   end
+
+  # --- api_base ------------------------------------------------------------
+  # Every broker request URL builds on api_base; the invariant under test is
+  # that an existing path prefix survives whether or not the URL already
+  # names an API version.
+
+  def connection_with(standard, url)
+    BrokerConnection.new(name: 'b', standard: standard, url: url, auth_mode: 'stored')
+  end
+
+  def test_api_base_appends_the_default_ld_prefix
+    assert_equal 'https://host.example.com/ngsi-ld/v1',
+                 connection_with('NGSI-LD', 'https://host.example.com').api_base
+  end
+
+  def test_api_base_appends_the_default_v2_prefix
+    assert_equal 'https://host.example.com/v2',
+                 connection_with('NGSIv2', 'https://host.example.com').api_base
+  end
+
+  def test_api_base_keeps_a_path_prefix_when_appending
+    assert_equal 'https://host.example.com/broker/ngsi-ld/v1',
+                 connection_with('NGSI-LD', 'https://host.example.com/broker').api_base
+    assert_equal 'https://host.example.com/orion/v2',
+                 connection_with('NGSIv2', 'https://host.example.com/orion/').api_base
+  end
+
+  def test_api_base_keeps_an_explicit_versioned_path
+    assert_equal 'https://host.example.com/broker/ngsi-ld/v1',
+                 connection_with('NGSI-LD', 'https://host.example.com/broker/ngsi-ld/v1/').api_base
+    assert_equal 'https://host.example.com/orion/v2',
+                 connection_with('NGSIv2', 'https://host.example.com/orion/v2').api_base
+    assert_equal 'https://host.example.com/orion/v2.1',
+                 connection_with('NGSIv2', 'https://host.example.com/orion/v2.1').api_base
+  end
+
+  def test_tenant_headers_by_standard
+    ld = connection_with('NGSI-LD', 'https://h.example.com')
+    ld.fiware_service = 'smartcity'
+    assert_equal({ 'NGSILD-Tenant' => 'smartcity' }, ld.tenant_headers)
+
+    v2 = connection_with('NGSIv2', 'https://h.example.com')
+    v2.fiware_service = 'smartcity'
+    v2.fiware_servicepath = '/roads'
+    assert_equal({ 'Fiware-Service' => 'smartcity', 'Fiware-ServicePath' => '/roads' },
+                 v2.tenant_headers)
+
+    assert_equal({}, connection_with('NGSIv2', 'https://h.example.com').tenant_headers)
+  end
 end

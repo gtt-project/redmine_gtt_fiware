@@ -95,6 +95,48 @@ class BrokerConnection < (defined?(ApplicationRecord) == 'constant' ? Applicatio
     standard.to_s.casecmp('NGSI-LD').zero?
   end
 
+  # Recognizes a version segment already present in the URL path, per
+  # standard. NGSIv2 accepts /v2 with or without a minor version (/v2.1).
+  VERSIONED_PATH_PATTERNS = {
+    'NGSI-LD' => %r{/ngsi-ld/v\d+(/|\z)},
+    'NGSIv2' => %r{/v2(\.\d+)?(/|\z)}
+  }.freeze
+
+  # Default version prefix appended when the URL does not name one.
+  DEFAULT_VERSION_PREFIXES = {
+    'NGSI-LD' => 'ngsi-ld/v1',
+    'NGSIv2' => 'v2'
+  }.freeze
+
+  # The API root every broker request builds on: the connection URL with the
+  # standard's version prefix, without a trailing slash. A URL that already
+  # carries a versioned path is used as-is; otherwise the default prefix is
+  # appended to the URL's path. Appended, never substituted: a broker mounted
+  # under a path prefix (https://host/broker) must keep that prefix
+  # (https://host/broker/ngsi-ld/v1), which absolute-path URI merging would
+  # silently drop.
+  def api_base
+    key = ngsi_ld? ? 'NGSI-LD' : 'NGSIv2'
+    uri = URI(url)
+    path = uri.path.chomp('/')
+    uri.path = path.match?(VERSIONED_PATH_PATTERNS[key]) ? path : "#{path}/#{DEFAULT_VERSION_PREFIXES[key]}"
+    uri.to_s
+  end
+
+  # Tenant headers for broker requests: NGSIv2 uses Fiware-Service /
+  # Fiware-ServicePath, NGSI-LD uses NGSILD-Tenant (no service path).
+  def tenant_headers
+    return {} if fiware_service.blank?
+
+    if ngsi_ld?
+      { 'NGSILD-Tenant' => fiware_service }
+    else
+      headers = { 'Fiware-Service' => fiware_service }
+      headers['Fiware-ServicePath'] = fiware_servicepath if fiware_servicepath.present?
+      headers
+    end
+  end
+
   # How the broker expects its token (#99). Blank token_header keeps the
   # Authorization: Bearer scheme; any other value names the header the raw
   # token is sent in (X-Api-Key, X-Auth-Token, ...).

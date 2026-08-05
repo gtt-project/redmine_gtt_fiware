@@ -1,6 +1,4 @@
-require 'cgi'
 require 'json'
-require 'uri'
 
 module RedmineGttFiware
   # Builds the broker subscription request (endpoints + JSON body) for a
@@ -29,17 +27,17 @@ module RedmineGttFiware
 
     # POST target that creates a subscription.
     def subscriptions_url
-      broker_uri.merge("#{version_path}subscriptions").to_s
+      "#{api_base}/subscriptions"
     end
 
     # DELETE target that removes the template's current subscription.
     def subscription_url
-      broker_uri.merge("#{version_path}subscriptions/#{@template.subscription_id}").to_s
+      "#{api_base}/subscriptions/#{@template.subscription_id}"
     end
 
     # Broker entities collection (used by the copy-as-curl helper).
     def entities_url
-      broker_uri.merge("#{version_path}entities").to_s
+      "#{api_base}/entities"
     end
 
     def to_json(*_args)
@@ -52,48 +50,22 @@ module RedmineGttFiware
       'application/json'
     end
 
-    # Tenant headers for broker requests. NGSIv2 uses Fiware-Service /
-    # Fiware-ServicePath; NGSI-LD uses NGSILD-Tenant (no service path).
+    # Tenant headers for broker requests, defined by the connection.
     def tenant_headers
-      service = @template.fiware_service
-      return {} if service.blank?
-
-      if @template.ngsi_ld?
-        { 'NGSILD-Tenant' => service }
-      else
-        headers = { 'Fiware-Service' => service }
-        headers['Fiware-ServicePath'] = @template.fiware_servicepath if @template.fiware_servicepath.present?
-        headers
-      end
+      @template.broker_connection&.tenant_headers || {}
     end
 
     private
 
-    # Preserve an explicit versioned API path in the broker URL, with or
-    # without a trailing slash (normalized to end with one), otherwise fall
-    # back to the standard's default prefix.
-    def version_path
-      path = broker_uri.path
-      return default_version_path unless path.match?(versioned_path_pattern)
-
-      path.end_with?('/') ? path : "#{path}/"
+    # The connection URL with the standard's version prefix
+    # (BrokerConnection#api_base handles preserving explicit versioned paths).
+    def api_base
+      @template.broker_connection.api_base
     end
 
-    # Subclasses implement these.
-    def default_version_path
-      raise NotImplementedError
-    end
-
-    def versioned_path_pattern
-      raise NotImplementedError
-    end
-
+    # Subclasses implement this.
     def payload
       raise NotImplementedError
-    end
-
-    def broker_uri
-      URI(@template.broker_url)
     end
 
     # Plain appends, not URI.join with an absolute path: joining "/fiware/..."

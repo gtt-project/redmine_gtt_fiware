@@ -229,19 +229,13 @@ class SubscriptionTemplatesController < ApplicationController
       return nil
     end
 
-    template = SubscriptionTemplate.new(broker_connection: connection)
-    request_builder = RedmineGttFiware::SubscriptionRequest.build(template, base_url: callback_base_url)
-    uri = URI(request_builder.entities_url)
-    uri.query = URI.encode_www_form(type: entity_type, limit: 1)
-
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = (uri.scheme == 'https')
-    headers = { 'Accept' => 'application/json' }
-    if connection.stored_auth? && (pair = connection.token_header_pair(connection.auth_token))
-      headers[pair.first] = pair.last
-    end
-    headers.merge!(request_builder.tenant_headers)
-    response = http.request(Net::HTTP::Get.new(uri.request_uri, headers))
+    url = "#{connection.api_base}/entities?#{URI.encode_www_form(type: entity_type, limit: 1)}"
+    response = RedmineGttFiware::BrokerHttp.request(
+      :get, url,
+      connection: connection,
+      token: connection.stored_auth? ? connection.auth_token : nil,
+      headers: { 'Accept' => 'application/json' }
+    )
 
     unless response.is_a?(Net::HTTPSuccess)
       @preview_error = l(:preview_broker_error, code: response.code)
@@ -334,17 +328,11 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def fetch_remote_subscription
-    uri = URI(@subscription_request.subscription_url)
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = (uri.scheme == 'https')
-
-    headers = {}
-    if (pair = @subscription_template.broker_connection.token_header_pair(@fiware_broker_auth_token))
-      headers[pair.first] = pair.last
-    end
-    headers.merge!(@subscription_request.tenant_headers)
-    # request_uri keeps any query string and never yields an empty path.
-    http.request(Net::HTTP::Get.new(uri.request_uri, headers))
+    RedmineGttFiware::BrokerHttp.request(
+      :get, @subscription_request.subscription_url,
+      connection: @subscription_template.broker_connection,
+      token: @fiware_broker_auth_token
+    )
   end
 
   # Maps the broker's reported subscription state onto the local status.
@@ -566,29 +554,22 @@ class SubscriptionTemplatesController < ApplicationController
       return false
     end
 
-    uri = URI(@broker_url)
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = (uri.scheme == 'https')
-
-    headers = {}
-    if (pair = @subscription_template.broker_connection.token_header_pair(@fiware_broker_auth_token))
-      headers[pair.first] = pair.last
-    end
-    headers['Content-Type'] = @subscription_request.content_type if action == 'publish'
-    headers.merge!(@subscription_request.tenant_headers)
-
-    request = case action
-              when 'publish'
-                Net::HTTP::Post.new(uri.path, headers).tap { |req| req.body = @json_payload }
-              when 'unpublish'
-                Net::HTTP::Delete.new(uri.path, headers)
-              else
-                Rails.logger.error "Unknown action: #{action}"
-                @error_message = l(:general_action_error)
-                return false
-              end
-
-    response = http.request(request)
+    connection = @subscription_template.broker_connection
+    response = case action
+               when 'publish'
+                 RedmineGttFiware::BrokerHttp.request(
+                   :post, @broker_url, connection: connection, token: @fiware_broker_auth_token,
+                   body: @json_payload, content_type: @subscription_request.content_type
+                 )
+               when 'unpublish'
+                 RedmineGttFiware::BrokerHttp.request(
+                   :delete, @broker_url, connection: connection, token: @fiware_broker_auth_token
+                 )
+               else
+                 Rails.logger.error "Unknown action: #{action}"
+                 @error_message = l(:general_action_error)
+                 return false
+               end
 
     Rails.logger.info "FIWARE Broker Response Code: #{response.code}"
     Rails.logger.info "FIWARE Broker Response Message: #{response.message}"

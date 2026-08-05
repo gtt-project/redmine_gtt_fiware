@@ -24,7 +24,10 @@ class SubscriptionIssuesController < ApplicationController
   skip_before_action :check_if_login_required, only: [:create]
   before_action :authenticate_webhook, only: [:create]
 
-  WEBHOOK_SECRET_HEADER = 'X-Gtt-Webhook-Secret'.freeze
+  # The header name is protocol shared with the broker: subscriptions embed it
+  # (SubscriptionRequest), notifications carry it back here. One definition,
+  # or the two sides drift and every new subscription fails authentication.
+  WEBHOOK_SECRET_HEADER = RedmineGttFiware::SubscriptionRequest::WEBHOOK_SECRET_HEADER
 
   # Processes every entity in the notification. Returns 200 with a summary when
   # at least one issue was persisted, and 422 only when the whole batch failed

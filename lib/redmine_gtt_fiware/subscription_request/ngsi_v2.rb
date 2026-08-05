@@ -4,21 +4,17 @@ module RedmineGttFiware
     # httpCustom block carries only the callback URL and auth headers; the
     # `json` field-templating block is gone (the plugin renders fields itself).
     class NgsiV2 < SubscriptionRequest
+      # Orion rejects strings containing its forbidden characters
+      # (<, >, ", ', =, ;, (, )) with an opaque 400, so they are stripped from
+      # the free-text description. Everything else, including non-ASCII text,
+      # passes through unchanged.
+      ORION_FORBIDDEN_CHARACTERS = /[<>"'=;()]/
+
       private
-
-      # An explicit versioned path in the broker URL (e.g. /orion/v2.1) is
-      # preserved by SubscriptionRequest#version_path; otherwise /v2/.
-      def default_version_path
-        '/v2/'
-      end
-
-      def versioned_path_pattern
-        %r{/v2\.\d+(/|\z)}
-      end
 
       def payload
         payload = {
-          description: CGI.escape(@template.name),
+          description: @template.name.to_s.gsub(ORION_FORBIDDEN_CHARACTERS, ''),
           subject: {
             entities: @template.entities,
             condition: {
