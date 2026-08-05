@@ -47,7 +47,8 @@ module RedmineGttFiware
         payload[:geoQ] = geo_q if geo_q
         triggers = @template.notification_triggers
         payload[:notificationTrigger] = triggers if triggers.present?
-        payload[:expiresAt] = expires_utc if expires_utc
+        expires = expires_utc
+        payload[:expiresAt] = expires if expires
 
         payload
       end
