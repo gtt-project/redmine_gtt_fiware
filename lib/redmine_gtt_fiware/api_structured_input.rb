@@ -16,13 +16,16 @@ module RedmineGttFiware
     module_function
 
     # Mutates the given ActionController::Parameters (or hash) in place.
+    # Parameters have indifferent access; a plain Hash may carry either key
+    # form, so both are looked up.
     def normalize!(attributes)
       return unless attributes.respond_to?(:key?)
 
       STRUCTURED_FIELDS.each do |structured, string_field|
-        next unless attributes.key?(structured)
+        key = [structured, structured.to_s].detect { |candidate| attributes.key?(candidate) }
+        next if key.nil?
 
-        value = attributes.delete(structured)
+        value = attributes.delete(key)
         # An explicit null carries no structure to convert; leave whatever
         # the client sent in the *_string field alone.
         next if value.nil?
@@ -30,7 +33,8 @@ module RedmineGttFiware
         attributes[string_field] = json_input(value)
       end
 
-      attributes[:attrs] = plain_structure(attributes[:attrs]).to_json if attributes[:attrs].is_a?(Array)
+      attrs_key = [:attrs, 'attrs'].detect { |candidate| attributes[candidate].is_a?(Array) }
+      attributes[attrs_key] = plain_structure(attributes[attrs_key]).to_json if attrs_key
       attributes
     end
 

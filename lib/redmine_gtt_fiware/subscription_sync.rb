@@ -74,7 +74,11 @@ module RedmineGttFiware
       end
 
       unless normalized == @template.status
-        return :subscription_sync_error unless @template.update(status: normalized)
+        unless @template.update(status: normalized)
+          Rails.logger.error 'FIWARE broker sync: applying the remote status failed: ' \
+                             "#{@template.errors.full_messages.join(', ')}"
+          return :subscription_sync_error
+        end
       end
       :subscription_synced
     end
