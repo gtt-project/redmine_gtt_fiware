@@ -81,6 +81,10 @@ class SubscriptionIssuesController < ApplicationController
   # empty list. Returns the :invalid_json sentinel for a malformed body so
   # #create can answer 400 (bad request) rather than 422 (well-formed but
   # unprocessable).
+  #
+  # Entities without an id are dropped: both standards require one, and an
+  # id-less entity cannot be deduplicated, so a broker redelivery would
+  # create a fresh duplicate issue on every attempt.
   def notification_entities
     body = JSON.parse(request.raw_post)
 
@@ -95,7 +99,7 @@ class SubscriptionIssuesController < ApplicationController
         []
       end
 
-    entities.select { |entity| entity.is_a?(Hash) }
+    entities.select { |entity| entity.is_a?(Hash) && entity['id'].present? }
   rescue JSON::ParserError
     :invalid_json
   end

@@ -16,6 +16,13 @@ module RedmineGttFiware
       # from broker notifications must not be emitted back (echo loop).
       # Restores the previous value so nested suppress blocks cannot
       # re-enable emission for an outer one.
+      #
+      # INVARIANT: emission fires from after_commit (IssuePatch), so the
+      # commit must happen inside the block. That holds because each save in
+      # the block commits its own transaction. Wrapping a whole notification
+      # batch in one ActiveRecord::Base.transaction would defer the commits
+      # (and the emission callbacks) past the ensure below and silently
+      # disable this echo-loop protection - do not add such a transaction.
       def suppress
         previous = Thread.current[:gtt_fiware_suppress_emission]
         Thread.current[:gtt_fiware_suppress_emission] = true

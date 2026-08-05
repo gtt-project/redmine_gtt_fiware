@@ -331,15 +331,25 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
     assert_equal 1, JSON.parse(response.body)['federated']
   end
 
-  # An entity without an id cannot be attributed (and must not turn the
-  # dedup into a match-everything pattern); it is handled, not journaled.
-  def test_watch_ignores_an_entity_without_an_id
+  # An entity without an id is dropped at the door: both standards require
+  # one, an id-less entity cannot be deduplicated (a broker redelivery would
+  # duplicate issues forever), and it cannot be attributed to a work order.
+  # A batch with nothing else usable is a permanent 422.
+  def test_entities_without_an_id_are_dropped
     watch_setup
     assert_no_difference 'Journal.count' do
       post_notification(entities: [foreign_work_order.except('id')])
     end
+    assert_response :unprocessable_entity
+  end
+
+  def test_entities_without_an_id_do_not_fail_the_rest_of_the_batch
+    watch_setup
+    assert_difference 'Journal.count', 1 do
+      post_notification(entities: [foreign_work_order.except('id'), foreign_work_order])
+    end
     assert_response :success
-    assert_equal 0, JSON.parse(response.body)['federated']
+    assert_equal 1, JSON.parse(response.body)['federated']
   end
 
   # A watch-only batch with nothing to annotate is still successful handling.

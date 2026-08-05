@@ -18,7 +18,14 @@ module RedmineGttFiware
   # - the body is streamed and the download aborted once it exceeds the
   #   size limit (Redmine's attachment size limit)
   class AttachmentFetcher
+    # Rejected by policy (allowlist, content type, size, non-public address):
+    # retrying the same URL cannot succeed.
     class RejectedError < StandardError; end
+
+    # A network or server failure: nothing was rejected, the download just
+    # did not work this time. Kept distinct so operators reading the log do
+    # not blame the allowlist for a flaky broker.
+    class FetchError < StandardError; end
 
     Result = Struct.new(:tempfile, :content_type, keyword_init: true)
 
@@ -84,7 +91,8 @@ module RedmineGttFiware
       @transport = transport || method(:start_request)
     end
 
-    # Returns a Result on success, raises RejectedError otherwise.
+    # Returns a Result on success; raises RejectedError for policy
+    # violations and FetchError for network/server failures.
     def fetch(url)
       uri = parse_https_uri(url)
       check_host!(uri)
@@ -92,6 +100,9 @@ module RedmineGttFiware
       @transport.call(uri, ip) do |response|
         process_response(response)
       end
+    rescue Timeout::Error, SystemCallError, SocketError, IOError,
+           OpenSSL::SSL::SSLError, Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError => e
+      raise FetchError, "download failed: #{e.class}: #{e.message}"
     end
 
     private
@@ -144,9 +155,6 @@ module RedmineGttFiware
           return yield(response)
         end
       end
-    rescue Timeout::Error, SystemCallError, SocketError, IOError,
-           OpenSSL::SSL::SSLError, Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError => e
-      raise RejectedError, "download failed: #{e.class}: #{e.message}"
     end
 
     def process_response(response)

@@ -25,11 +25,11 @@ module RedmineGttFiware
     # handling with no issue of its own.
     Result = Struct.new(:issue, :created, :saved, :suppressed, :federated, keyword_init: true) do
       def created?
-        created
+        created == true
       end
 
       def saved?
-        saved
+        saved == true
       end
 
       def suppressed?
@@ -116,7 +116,10 @@ module RedmineGttFiware
       end
       issue.reload
       issue.init_journal(User.current, "#{I18n.t(:text_federation_siblings_note)}\n\n#{lines.join("\n")}")
-      issue.save
+      unless issue.save
+        @logger.warn "[FIWARE] Sibling note on issue ##{issue.id} could not be saved: " \
+                     "#{issue.errors.full_messages.join(', ')}"
+      end
     end
 
     # Federation push updates (#70, 4c): the notified entity is a foreign
@@ -316,6 +319,10 @@ module RedmineGttFiware
         next if url.empty?
 
         filename = spec['filename'].presence || File.basename(URI.parse(url).path.to_s)
+        # Compare what will actually be stored: Attachment#filename= sanitizes
+        # (spaces, special characters), so the raw spec name never matches the
+        # stored one and the same file would re-attach on every update.
+        filename = Attachment.new(filename: filename).filename.to_s
         next if filename.empty? || existing_filenames.include?(filename)
 
         result = fetcher.fetch(url)
@@ -326,6 +333,8 @@ module RedmineGttFiware
         existing_filenames << filename
       rescue RedmineGttFiware::AttachmentFetcher::RejectedError => e
         @logger.warn "[FIWARE] Rejected attachment download from #{url.inspect}: #{e.message}"
+      rescue RedmineGttFiware::AttachmentFetcher::FetchError => e
+        @logger.warn "[FIWARE] Attachment download from #{url.inspect} failed: #{e.message}"
       rescue StandardError => e
         @logger.warn "[FIWARE] Failed to attach file: #{e.message}"
       end

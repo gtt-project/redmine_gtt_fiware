@@ -16,6 +16,10 @@ module RedmineGttFiware
     LINK_HEADER = %(<#{CONTEXT_URL}>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json").freeze
     CACHE_TTL = 60 # seconds; the issue-page panel refetches at most this often
 
+    # Explicit page size: brokers default to small pages (Orion-LD: 20) and
+    # would silently truncate the sibling list without it.
+    QUERY_LIMIT = 100
+
     Sibling = Struct.new(:urn, :org, :subtype, :status, :status_label, :title, :source, keyword_init: true) do
       def open?
         status == 'open'
@@ -38,9 +42,12 @@ module RedmineGttFiware
     def for_entity(entity_urn)
       return [] unless entity_urn.to_s.match?(QUERYABLE_URN_PATTERN)
 
-      Rails.cache.fetch(cache_key(entity_urn), expires_in: CACHE_TTL) do
+      # fetch returns nil on failure, and skip_nil keeps that out of the
+      # cache: one broker hiccup must not blank the issue-page panel for the
+      # whole TTL. A genuinely empty sibling list ([]) is cached as usual.
+      Rails.cache.fetch(cache_key(entity_urn), expires_in: CACHE_TTL, skip_nil: true) do
         fetch(entity_urn)
-      end
+      end || []
     end
 
     private
@@ -49,20 +56,23 @@ module RedmineGttFiware
       ['gtt_fiware_siblings', @connection.id, entity_urn]
     end
 
+    # Returns the siblings, or nil on failure (the caller treats nil as "no
+    # siblings" but keeps it out of the cache).
     def fetch(entity_urn)
-      query = Rack::Utils.build_query(type: 'Issue', q: %(refersTo=="#{entity_urn}"))
+      query = Rack::Utils.build_query(type: 'Issue', limit: QUERY_LIMIT,
+                                      q: %(refersTo=="#{entity_urn}"))
       response = BrokerHttp.request(:get, "#{@connection.api_base}/entities?#{query}",
                                     connection: @connection, token: @connection.auth_token,
                                     headers: { 'Accept' => 'application/ld+json', 'Link' => LINK_HEADER })
       unless response.is_a?(Net::HTTPSuccess)
         Rails.logger.warn "[FIWARE] Sibling query on #{@connection.name} answered #{response.code}"
-        return []
+        return nil
       end
 
       parse(response.body)
     rescue StandardError => e
       Rails.logger.warn "[FIWARE] Sibling query on #{@connection.name} failed: #{e.class}: #{e.message}"
-      []
+      nil
     end
 
     def parse(body)
