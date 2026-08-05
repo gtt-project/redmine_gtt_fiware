@@ -32,9 +32,94 @@
       var json = document.getElementById('gtt-fiware-' + target + '-json');
       if (!rows || !json) { return; }
       var showJson = json.classList.contains('hidden');
-      if (showJson) { serialize(); }
+      if (showJson) {
+        serialize();
+      } else if (!restoreRows(target)) {
+        // The JSON cannot be shown by the picker; leaving JSON mode would
+        // overwrite the hand-edited JSON with stale rows on submit, so the
+        // form stays in JSON mode.
+        return;
+      }
       json.classList.toggle('hidden', !showJson);
       rows.style.display = showJson ? 'none' : '';
+    }
+
+    // Rebuilds the picker rows from the JSON field when leaving JSON mode.
+    // Returns false when the JSON is not representable by the picker
+    // (unparsable, non-array, extra keys, non-string values); the caller
+    // then keeps JSON mode, so hand-edited JSON is never lost.
+    function restoreRows(target) {
+      var config = target === 'entities' ? {
+        fieldId: 'subscription_template_entities_string',
+        containerId: 'gtt-fiware-entity-rows',
+        prototypeId: 'gtt-fiware-entity-prototype',
+        rowClass: 'gtt-fiware-entity-row',
+        addId: 'gtt-fiware-entity-add',
+        rowValues: entityRowValues
+      } : {
+        fieldId: 'subscription_template_attachments_string',
+        containerId: 'gtt-fiware-attachment-rows',
+        prototypeId: 'gtt-fiware-attachment-prototype',
+        rowClass: 'gtt-fiware-attachment-row',
+        addId: 'gtt-fiware-attachment-add',
+        rowValues: attachmentRowValues
+      };
+      var field = document.getElementById(config.fieldId);
+      var container = document.getElementById(config.containerId);
+      var prototype = document.getElementById(config.prototypeId);
+      if (!field || !container || !prototype) { return false; }
+
+      var text = field.value.trim();
+      var parsed = [];
+      if (text !== '' && text !== 'null') {
+        try { parsed = JSON.parse(text); } catch (err) { return false; }
+        if (!Array.isArray(parsed)) { return false; }
+      }
+      var rows = parsed.map(config.rowValues);
+      if (rows.some(function(values) { return values === null; })) { return false; }
+
+      container.querySelectorAll('.' + config.rowClass).forEach(function(row) { row.remove(); });
+      rows.forEach(function(values) {
+        var clone = prototype.content.firstElementChild.cloneNode(true);
+        Object.keys(values).forEach(function(selector) {
+          var el = clone.querySelector(selector);
+          if (el) { el.value = values[selector]; }
+        });
+        container.insertBefore(clone, document.getElementById(config.addId));
+      });
+      return true;
+    }
+
+    // One picker row per entity selector: a type plus at most one
+    // id/idPattern member.
+    function entityRowValues(obj) {
+      if (!obj || typeof obj !== 'object' || typeof obj.type !== 'string') { return null; }
+      var rest = Object.keys(obj).filter(function(key) { return key !== 'type'; });
+      // Always set all three inputs: the cloned prototype row carries a
+      // default match value that must not leak into a restored row.
+      if (rest.length === 0) {
+        return { '.js-entity-type': obj.type, '.js-entity-match-kind': 'idPattern', '.js-entity-match-value': '' };
+      }
+      if (rest.length > 1 || (rest[0] !== 'id' && rest[0] !== 'idPattern')) { return null; }
+      if (typeof obj[rest[0]] !== 'string') { return null; }
+      return {
+        '.js-entity-type': obj.type,
+        '.js-entity-match-kind': rest[0],
+        '.js-entity-match-value': obj[rest[0]]
+      };
+    }
+
+    function attachmentRowValues(obj) {
+      if (!obj || typeof obj !== 'object' || typeof obj.url !== 'string') { return null; }
+      var allowed = ['url', 'filename', 'description'];
+      var keys = Object.keys(obj);
+      if (keys.some(function(key) { return allowed.indexOf(key) === -1; })) { return null; }
+      if (keys.some(function(key) { return typeof obj[key] !== 'string'; })) { return null; }
+      return {
+        '.js-attachment-url': obj.url,
+        '.js-attachment-filename': obj.filename || '',
+        '.js-attachment-description': obj.description || ''
+      };
     }
 
     function rowValues(row, selectors) {
@@ -98,10 +183,24 @@
       var georel = document.getElementById('subscription_template_expression_georel');
       var geometry = document.getElementById('subscription_template_expression_geometry');
       var coords = document.getElementById('subscription_template_expression_coords');
+      if (!georel || !geometry || !coords) { return; }
       if (mode.value === 'anywhere') {
         georel.value = ''; geometry.value = ''; coords.value = '';
       } else if (mode.value === 'boundary') {
-        var geom = JSON.parse(mode.dataset.geom).geometry.coordinates[0]
+        var ring;
+        try {
+          ring = JSON.parse(mode.dataset.geom).geometry.coordinates[0];
+        } catch (err) {
+          ring = null;
+        }
+        // data-geom is server-rendered; if it is missing, malformed or not
+        // a ring of number pairs, leave the stored triple untouched rather
+        // than throwing from inside the submit listener.
+        var isPair = function(c) {
+          return Array.isArray(c) && typeof c[0] === 'number' && typeof c[1] === 'number';
+        };
+        if (!Array.isArray(ring) || ring.length === 0 || !ring.every(isPair)) { return; }
+        var geom = ring
           .map(function(c) { return [Number(c[1].toFixed(5)), Number(c[0].toFixed(5))]; })
           .join(';');
         georel.value = 'coveredBy'; geometry.value = 'polygon'; coords.value = geom;
@@ -250,14 +349,22 @@
       });
     }
 
+    // Guards against out-of-order responses: rapid tracker/member changes
+    // fire concurrent fetches, and without the token the last response to
+    // ARRIVE would rebuild the select, which may belong to the first
+    // request SENT (a stale tracker's statuses shown for the current one).
+    var statusRequestToken = 0;
+
     function refreshIssueStatuses() {
       if (!issueStatusSelect || !issueStatusSelect.dataset.statusesUrl) { return; }
       var url = issueStatusSelect.dataset.statusesUrl +
         '?tracker_id=' + encodeURIComponent(trackerSelect ? trackerSelect.value : '') +
         '&member_id=' + encodeURIComponent(memberSelect ? memberSelect.value : '');
+      var token = ++statusRequestToken;
       fetch(url, { headers: { 'Accept': 'application/json' } })
         .then(function(response) { return response.json(); })
         .then(function(statuses) {
+          if (token !== statusRequestToken) { return; }
           var current = issueStatusSelect.value;
           var currentText = issueStatusSelect.selectedOptions[0] ?
             issueStatusSelect.selectedOptions[0].textContent : '';
@@ -312,10 +419,15 @@
     }
 
     var previewButton = document.getElementById('gtt-fiware-preview-button');
+    // Same out-of-order guard as the status refetch: a double-click fires
+    // two requests, and only the latest one may write the result box.
+    var previewRequestToken = 0;
     if (previewButton) {
       previewButton.addEventListener('click', function(e) {
         e.preventDefault();
         var out = document.getElementById('gtt-fiware-preview-result');
+        if (!out) { return; }
+        var token = ++previewRequestToken;
         out.style.display = '';
         out.textContent = previewButton.dataset.loading;
 
@@ -342,6 +454,7 @@
         }).then(function(response) {
           return response.json().then(function(json) { return { ok: response.ok, json: json }; });
         }).then(function(result) {
+          if (token !== previewRequestToken) { return; }
           if (!result.ok) {
             out.textContent = result.json.error || previewButton.dataset.error;
             return;
@@ -359,6 +472,7 @@
             (result.json.has_geometry ? ', ' + previewButton.dataset.geometryLabel : '');
           out.appendChild(em);
         }).catch(function() {
+          if (token !== previewRequestToken) { return; }
           out.textContent = previewButton.dataset.error;
         });
       });

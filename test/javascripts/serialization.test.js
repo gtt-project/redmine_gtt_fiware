@@ -139,6 +139,19 @@ describe('geographic area', () => {
       .toBe('35.67,139.69;35.68,139.7;35.675,139.695;35.67,139.69');
   });
 
+  // data-geom is server-rendered, but a malformed value must not throw from
+  // inside the submit listener (the submit proceeds regardless), and must
+  // leave the stored triple alone rather than half-writing it.
+  it('boundary with a malformed data-geom leaves the triple untouched', () => {
+    buildForm({ geoMode: 'boundary' });
+    initForm();
+    document.querySelector('input[value="boundary"]').dataset.geom = '{"geometry":{"coordinates":[]}}';
+    field('subscription_template_expression_georel').value = 'kept';
+    expect(() => submitForm()).not.toThrow();
+    expect(field('subscription_template_expression_georel').value).toBe('kept');
+    expect(field('subscription_template_expression_geometry').value).toBe('');
+  });
+
   it('custom leaves the triple untouched', () => {
     buildForm({ geoMode: 'custom' });
     initForm();

@@ -125,4 +125,34 @@ describe('status refetch', () => {
     await tick();
     expect(Array.from(statusSelect().options)).toHaveLength(2);
   });
+
+  // Rapid tracker changes fire concurrent fetches. When the first request's
+  // response arrives last, it must not overwrite the newer one: the select
+  // would show a stale tracker's statuses for the current tracker.
+  it('ignores an out-of-order response', async () => {
+    buildForm();
+    initForm();
+    const pending = [];
+    vi.stubGlobal('fetch', (url) => new Promise((resolve) => {
+      pending.push({
+        url,
+        respond(statuses) {
+          resolve({ json: () => Promise.resolve(statuses) });
+        }
+      });
+    }));
+
+    changeTracker('2');
+    changeTracker('1');
+    expect(pending).toHaveLength(2);
+
+    pending[1].respond([{ id: 5, name: 'Current Tracker Status' }]);
+    await tick();
+    pending[0].respond([{ id: 9, name: 'Stale Tracker Status' }]);
+    await tick();
+
+    const names = Array.from(statusSelect().options).map((o) => o.textContent);
+    expect(names).toContain('Current Tracker Status');
+    expect(names).not.toContain('Stale Tracker Status');
+  });
 });

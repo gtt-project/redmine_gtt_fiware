@@ -44,15 +44,8 @@ function copyToClipboard(command) {
   }
 }
 
-// Function to display notification
-function showNotification(message) {
-  var notification = document.getElementById('temporaryNotification');
-  notification.textContent = message;
-  notification.classList.add('visible');
-  setTimeout(function() {
-    notification.classList.remove('visible');
-  }, 3000);
-}
+// showNotification comes from the shared gtt_fiware.js asset, loaded on
+// every page by the layout hook.
 
 // Copy the cURL command to the clipboard
 copyToClipboard(command);
