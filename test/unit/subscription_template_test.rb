@@ -2,7 +2,7 @@ require File.expand_path('../../test_helper', __FILE__)
 
 class SubscriptionTemplateTest < ActiveSupport::TestCase
   fixtures :projects, :trackers, :issue_statuses, :users, :members,
-           :member_roles, :roles, :enumerations
+           :member_roles, :roles, :enumerations, :issue_categories, :versions
 
   def broker_connection(attributes = {})
     @broker_connection ||= BrokerConnection.create!(
@@ -354,5 +354,40 @@ class SubscriptionTemplateTest < ActiveSupport::TestCase
     template.webhook_secret = nil
     assert_not template.valid_webhook_secret?('anything')
     assert_not template.valid_webhook_secret?(nil)
+  end
+
+  # --- project scoping -------------------------------------------------------
+  # The member is the sharpest edge: the webhook acts as the member's user,
+  # so a foreign member_id would author issues as a user from an unrelated
+  # project. Category and version follow core's Issue scoping.
+
+  def test_member_must_belong_to_the_project
+    foreign_member = Member.where.not(project_id: 1).first
+    template = SubscriptionTemplate.new(valid_attributes(member_id: foreign_member.id))
+    assert_not template.valid?
+    assert template.errors[:member].any?
+  end
+
+  def test_issue_category_must_belong_to_the_project
+    foreign_category = IssueCategory.where.not(project_id: 1).first
+    template = SubscriptionTemplate.new(valid_attributes(issue_category_id: foreign_category.id))
+    assert_not template.valid?
+    assert template.errors[:issue_category].any?
+  end
+
+  def test_version_must_be_available_to_the_project
+    foreign_version = Version.where.not(project_id: 1).where(sharing: 'none').first
+    template = SubscriptionTemplate.new(valid_attributes(version_id: foreign_version.id))
+    assert_not template.valid?
+    assert template.errors[:version].any?
+  end
+
+  def test_own_project_associations_are_accepted
+    category = IssueCategory.find_by(project_id: 1)
+    version = Version.find_by(project_id: 1)
+    template = SubscriptionTemplate.new(
+      valid_attributes(issue_category_id: category.id, version_id: version.id)
+    )
+    assert template.valid?, template.errors.full_messages.join(', ')
   end
 end

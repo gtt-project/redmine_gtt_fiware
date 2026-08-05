@@ -26,10 +26,17 @@ module RedmineGttFiware
       @connection = connection
     end
 
+    # Characters legal in the URNs this plugin queries by. The entity id
+    # comes from an untrusted notification payload and is interpolated into
+    # the quoted NGSI-LD q literal below, so anything that could break out of
+    # the quotes (") or alter the query grammar (;|()<>= ...) is rejected
+    # here rather than escaped: no real URN contains such characters.
+    QUERYABLE_URN_PATTERN = /\A[A-Za-z0-9:._~-]+\z/
+
     # Foreign Issue entities whose refersTo points at entity_urn, own
     # instance excluded (that is what makes them *siblings*).
     def for_entity(entity_urn)
-      return [] if entity_urn.blank?
+      return [] unless entity_urn.to_s.match?(QUERYABLE_URN_PATTERN)
 
       Rails.cache.fetch(cache_key(entity_urn), expires_in: CACHE_TTL) do
         fetch(entity_urn)
