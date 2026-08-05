@@ -1,7 +1,7 @@
 require 'securerandom'
 require 'active_support/security_utils'
 
-class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? ApplicationRecord : ActiveRecord::Base)
+class SubscriptionTemplate < ApplicationRecord
   self.table_name = "fiware_subscription_templates"
 
   # Number of random bytes for the per-template webhook secret. The broker
@@ -92,7 +92,7 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
   # either (present? is false for both).
   validates :alteration_types, inclusion: { in: ALTERATION_TYPES, message: :invalid_alteration_types }, allow_nil: true
 
-  validates :name, presence: true
+  validates :name, presence: true, uniqueness: { scope: :project_id, case_sensitive: true }
   validates :subject, presence: true
   validates :description, presence: true
   validates :entities_string, presence: true
@@ -108,7 +108,6 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
   # unrelated project.
   validate :associations_must_belong_to_project
 
-  validate :name_uniqueness
   validate :take_json_entities
   validate :take_json_geometry
   validate :take_json_attachments
@@ -317,14 +316,6 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
     end
     if version && !project.shared_versions.include?(version)
       errors.add :version, :inclusion
-    end
-  end
-
-  def name_uniqueness
-    scope = SubscriptionTemplate.where.not(id: id).where(name: name, project_id: project_id)
-
-    if scope.any?
-      errors.add :name, I18n.t('model.subscription_template.name_uniqueness')
     end
   end
 

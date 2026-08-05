@@ -3,7 +3,7 @@
 # declared a subclass of the core Issue type in the instance's published
 # context (design step 2); it travels as the `subtype` property because the
 # target brokers reject multi-type entities (spike on #69).
-class EmissionMapping < (defined?(ApplicationRecord) == 'constant' ? ApplicationRecord : ActiveRecord::Base)
+class EmissionMapping < ApplicationRecord
   self.table_name = 'fiware_emission_mappings'
 
   # A JSON-LD term: ASCII letters and digits, starting with a letter.

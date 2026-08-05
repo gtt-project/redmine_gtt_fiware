@@ -59,7 +59,6 @@ de:
   model:
     subscription_template:
       attrs_must_be_array_of_strings: 'Attribute müssen ein Array aus Strings sein'
-      name_uniqueness: 'Eine Subscription-Vorlage mit diesem Namen existiert bereits.'
       geo_query_fields_must_be_all_or_none: 'Alle Geoabfrage-Felder (Georel, Geometrie,
         Koordinaten) müssen angegeben werden oder keines von ihnen'
       must_be_valid_array_of_objects: 'muss ein gültiges Array von Objekten sein'

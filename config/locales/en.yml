@@ -257,7 +257,6 @@ en:
         invalid_subtype: "must be a JSON-LD term: letters and digits, starting with a letter"
   model:
     subscription_template:
-      name_uniqueness: A subscription with that name already exists.
       attrs_must_be_array_of_strings: "Attributes must be an array of strings"
       must_be_valid_array_of_objects: "must be a valid array of objects"
       geo_query_fields_must_be_all_or_none: "All geo query fields (Georel, Geometry,

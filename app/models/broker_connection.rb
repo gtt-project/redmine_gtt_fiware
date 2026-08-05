@@ -10,7 +10,7 @@
 # 'browser' keeps the pre-#67 behaviour for deployments that do not want the
 # server to hold broker credentials: the token is supplied in the browser on
 # every publish/unpublish and never stored.
-class BrokerConnection < (defined?(ApplicationRecord) == 'constant' ? ApplicationRecord : ActiveRecord::Base)
+class BrokerConnection < ApplicationRecord
   include Redmine::Ciphering
 
   self.table_name = 'fiware_broker_connections'
