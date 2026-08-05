@@ -31,7 +31,7 @@ class SubscriptionTemplatesController < ApplicationController
       # The HTML surface for the list is the project's FIWARE tab.
       format.html { redirect_to index_path }
       format.api do
-        scope = subscription_template_scope
+        scope = subscription_templates_for_rendering
         @subscription_template_count = scope.count
         @offset, @limit = api_offset_and_limit
         @subscription_templates = scope.offset(@offset).limit(@limit).to_a
@@ -115,7 +115,7 @@ class SubscriptionTemplatesController < ApplicationController
                          "#{@subscription_template.errors.full_messages.join(', ')}"
     end
 
-    @subscription_templates = subscription_template_scope
+    @subscription_templates = subscription_templates_for_rendering
     respond_to do |format|
       format.js { render partial: 'subscription_templates/subscription_template', collection: @subscription_templates, as: :subscription_template }
     end
@@ -188,7 +188,7 @@ class SubscriptionTemplatesController < ApplicationController
     ).call
     @sync_message = l(message_key)
 
-    @subscription_templates = subscription_template_scope
+    @subscription_templates = subscription_templates_for_rendering
     respond_to do |format|
       format.js { render 'sync' }
     end
@@ -307,7 +307,7 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def render_subscription_templates(message)
-    @subscription_templates = subscription_template_scope
+    @subscription_templates = subscription_templates_for_rendering
     respond_to do |format|
       format.html {
         response.headers['X-Redmine-Message'] = message
@@ -363,12 +363,16 @@ class SubscriptionTemplatesController < ApplicationController
     render_404
   end
 
-  # Preloads what the list partial and the API render per row.
   def subscription_template_scope
-    SubscriptionTemplate.where(project_id: @project.id)
-                        .includes(:project, :broker_connection, :tracker, :issue_status,
-                                  :issue_priority, :issue_category, :version, :member)
-                        .order(name: :asc)
+    SubscriptionTemplate.where(project_id: @project.id).order(name: :asc)
+  end
+
+  # The scope plus the associations the list partial and the API render per
+  # row. Split from the bare scope so single-record finds (edit, publish,
+  # sync) do not pay for preloads they never read.
+  def subscription_templates_for_rendering
+    subscription_template_scope.includes(:project, :broker_connection, :tracker, :issue_status,
+                                         :issue_priority, :issue_category, :version, :member)
   end
 
   # The status list the form renders initially (#103): workflow-allowed for
