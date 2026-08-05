@@ -89,20 +89,6 @@
   </div>
 </div>
 
-<%= javascript_tag do %>
-(function() {
-  var standardSelect = document.getElementById('broker_connection_standard');
-  if (!standardSelect) return;
-  function applyStandard() {
-    var isLd = standardSelect.value === 'NGSI-LD';
-    document.querySelectorAll('.js-ngsi-v2-only').forEach(function(el) {
-      el.style.display = isLd ? 'none' : '';
-    });
-    document.querySelectorAll('.js-ngsi-ld-only').forEach(function(el) {
-      el.style.display = isLd ? '' : 'none';
-    });
-  }
-  standardSelect.addEventListener('change', applyStandard);
-  applyStandard();
-})();
-<% end %>
+<%# Standard-aware field toggling lives in the asset, where the Vitest suite
+    covers it (#145). %>
+<%= javascript_include_tag 'gtt_fiware_connection_form', plugin: 'redmine_gtt_fiware' %>
