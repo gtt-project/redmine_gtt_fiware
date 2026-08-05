@@ -459,7 +459,10 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def get_issue_categories
-    @issue_categories = IssueCategory.all
+    # Scoped to the project: categories are project-local in core, and the
+    # unscoped list both leaked other projects' category names and offered
+    # ids the model now rejects.
+    @issue_categories = @project.issue_categories
   end
 
   def get_issue_priorities
@@ -518,19 +521,24 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def subscription_template_params
+    # require first: a request without the root key must answer 400
+    # (ParameterMissing), not crash on the normalization below.
+    attributes = params.require(:subscription_template)
     if api_request?
       normalize_api_structures
     else
       # The form omits unchecked boxes, so an absent value means "none".
       # An API client that omits the key means "leave it alone", and on
       # create the model's default applies.
-      params[:subscription_template][:alteration_types] ||= []
+      attributes[:alteration_types] ||= []
     end
     # project_id is deliberately not permitted: the project comes from the
     # route, and SaveSubscriptionTemplate assigns it before the attributes, so
     # a permitted project_id would let a request move a subscription into
     # another project (a real hole once the API can send arbitrary fields).
-    params.require(:subscription_template).permit(:broker_connection_id, :subscription_id, :name, :expires, :status, :federation_policy, :federation_watch, :throttling, :context, :entities_string, :attrs, :expression_query, :expression_georel, :expression_geometry, :expression_coords, :notify_on_metadata_change, :subject, :description, :attachments_string, :is_private, :tracker_id, :version_id, :issue_status_id, :issue_category_id, :issue_priority_id, :member_id, :comment, :threshold_create, :threshold_create_hours, :notes, :geometry, :geometry_string, :geofence_notes, alteration_types: [], issue_custom_field_values: {})
+    # geometry is likewise only writable through geometry_string, which is
+    # parsed and validated; the raw serialized column stays unassignable.
+    attributes.permit(:broker_connection_id, :subscription_id, :name, :expires, :status, :federation_policy, :federation_watch, :throttling, :context, :entities_string, :attrs, :expression_query, :expression_georel, :expression_geometry, :expression_coords, :notify_on_metadata_change, :subject, :description, :attachments_string, :is_private, :tracker_id, :version_id, :issue_status_id, :issue_category_id, :issue_priority_id, :member_id, :comment, :threshold_create, :threshold_create_hours, :notes, :geometry_string, :geofence_notes, alteration_types: [], issue_custom_field_values: {})
   end
 
   # Stored connections supply their encrypted token server-side; browser-mode

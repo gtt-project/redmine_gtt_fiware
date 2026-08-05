@@ -96,4 +96,20 @@ class FederationSiblingsTest < ActiveSupport::TestCase
     Net::HTTP.any_instance.stubs(:request).raises('must not be called')
     assert_equal [], RedmineGttFiware::FederationSiblings.new(@connection).for_entity('')
   end
+
+  # The entity id comes from an untrusted notification payload and is
+  # interpolated into the quoted q literal; an id that could break out of the
+  # quotes or alter the query grammar must never reach the broker.
+  def test_urn_with_query_grammar_characters_queries_nothing
+    Net::HTTP.any_instance.stubs(:request).raises('must not be called')
+    [
+      %(urn:x";title!="),        # quote break-out
+      'urn:x|urn:y',             # OR pattern
+      'urn:x;attrs=*',           # statement separator
+      "urn:x\nurn:y"             # header/newline smuggling
+    ].each do |bad|
+      assert_equal [], RedmineGttFiware::FederationSiblings.new(@connection).for_entity(bad),
+                   "expected #{bad.inspect} to be rejected"
+    end
+  end
 end

@@ -101,6 +101,14 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
   # template must have one: its own or the connection's default.
   validates :effective_context, presence: true, if: :ngsi_ld?
 
+  # The member, category and version must belong to the template's project,
+  # like core scopes them on Issue. Without this, a permitted foreign id
+  # crosses project boundaries; the member is the sharpest edge, because the
+  # webhook acts as the member's user (SubscriptionIssuesController), so a
+  # foreign member_id would let notifications author issues as a user from an
+  # unrelated project.
+  validate :associations_must_belong_to_project
+
   validate :name_uniqueness
   validate :take_json_entities
   validate :take_json_geometry
@@ -298,6 +306,20 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
     geo_query_fields = [expression_georel, expression_geometry, expression_coords]
     if geo_query_fields.any?(&:present?) && geo_query_fields.any?(&:blank?)
       errors.add :base, I18n.t('model.subscription_template.geo_query_fields_must_be_all_or_none')
+    end
+  end
+
+  def associations_must_belong_to_project
+    return if project_id.nil?
+
+    if member && member.project_id != project_id
+      errors.add :member, :inclusion
+    end
+    if issue_category && issue_category.project_id != project_id
+      errors.add :issue_category, :inclusion
+    end
+    if version && !project.shared_versions.include?(version)
+      errors.add :version, :inclusion
     end
   end
 

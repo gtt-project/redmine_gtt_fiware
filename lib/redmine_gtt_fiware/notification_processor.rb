@@ -125,6 +125,9 @@ module RedmineGttFiware
     # guard the design demands), and a repeated unchanged status adds no
     # second note.
     def process_federation_update(entity)
+      # An id-less entity cannot be attributed to a work order (and would
+      # turn the journal dedup below into a match-everything pattern).
+      return Result.new(federated: 0) if entity.id.blank?
       return Result.new(federated: 0) if own_emission?(entity)
 
       refers_to = entity.attributes.dig('refersTo', 'value').to_s
@@ -142,8 +145,11 @@ module RedmineGttFiware
       annotated = 0
       Issue.where(fiware_entity: refers_to, project_id: @template.project_id).find_each do |issue|
         # One note per state: skip when the latest federation note for this
-        # foreign work order already says the same thing.
-        last = issue.journals.where('notes LIKE ?', "%#{entity.id}%").order(id: :desc).first
+        # foreign work order already says the same thing. The id is untrusted
+        # payload data; unescaped, a % or _ in it would turn the LIKE pattern
+        # into a wildcard and match unrelated journals.
+        pattern = "%#{Issue.sanitize_sql_like(entity.id.to_s)}%"
+        last = issue.journals.where('notes LIKE ?', pattern).order(id: :desc).first
         next if last && last.notes == note
 
         issue.init_journal(User.current, note)

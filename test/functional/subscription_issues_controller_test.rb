@@ -316,6 +316,32 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
     assert_equal 0, JSON.parse(response.body)['federated']
   end
 
+  # The one-note-per-state dedup matches journals by the foreign entity's id.
+  # That id is untrusted payload data: a % in it must be a literal, not a SQL
+  # LIKE wildcard that matches every journal and suppresses legitimate notes.
+  def test_watch_dedup_treats_percent_in_the_entity_id_as_a_literal
+    watch_setup
+    @local_issue.init_journal(User.find(2), 'unrelated note mentioning nothing')
+    @local_issue.save!
+
+    assert_difference 'Journal.count', 1 do
+      post_notification(entities: [foreign_work_order(id: 'urn:ngsi-ld:Issue:redmine:nexco-east:%')])
+    end
+    assert_response :success
+    assert_equal 1, JSON.parse(response.body)['federated']
+  end
+
+  # An entity without an id cannot be attributed (and must not turn the
+  # dedup into a match-everything pattern); it is handled, not journaled.
+  def test_watch_ignores_an_entity_without_an_id
+    watch_setup
+    assert_no_difference 'Journal.count' do
+      post_notification(entities: [foreign_work_order.except('id')])
+    end
+    assert_response :success
+    assert_equal 0, JSON.parse(response.body)['federated']
+  end
+
   # A watch-only batch with nothing to annotate is still successful handling.
   def test_watch_without_correlated_issues_is_a_200
     watch_setup

@@ -234,6 +234,17 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
 
   # The new-template form renders the happy path plus three collapsed sections
   # and prefills defaults so the template is publishable without opening them.
+  # Categories are project-local in core; the select must not offer (or leak
+  # the names of) other projects' categories.
+  def test_new_offers_only_the_projects_issue_categories
+    foreign = IssueCategory.where.not(project_id: @project.id).first
+    get :new, params: { project_id: @project.id }
+    assert_response :success
+    assert_select 'select[name=?]', 'subscription_template[issue_category_id]' do
+      assert_select 'option', text: foreign.name, count: 0
+    end
+  end
+
   def test_new_renders_progressive_disclosure_form_with_defaults
     get :new, params: { project_id: @project.id }
     assert_response :success
