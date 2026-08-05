@@ -70,6 +70,8 @@ de:
   field_subscription_template_watched_attrs_placeholder: 'temperature, humidity'
   field_attachment_url_placeholder: 'https://example.com/photo.jpg'
   field_attachment_filename_placeholder: 'photo-${id}.jpg'
+  label_attachment_url: "Anhang-URL"
+  label_attachment_filename: "Dateiname"
 
   model:
     subscription_template:
@@ -183,6 +185,9 @@ de:
   field_subscription_template_entity_type_placeholder: 'TemperatureSensor'
   label_entity_match_pattern: 'ID-Muster'
   label_entity_match_id: 'Exakte ID'
+  label_entity_type: "Entitätstyp"
+  label_entity_match_kind: "Zuordnung nach"
+  label_entity_match_value: "ID oder Muster"
   label_entity_filter_add: 'Entitätsfilter hinzufügen'
   label_edit_as_json: 'Als JSON bearbeiten'
   field_subscription_template_watched_attributes: 'Beobachtete Attribute'

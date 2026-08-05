@@ -4,6 +4,10 @@ require 'uri'
 class SubscriptionTemplatesController < ApplicationController
   layout 'base'
 
+  # Redmine only auto-includes the helper matching the controller name, so
+  # the form-state helper (#145) needs an explicit declaration.
+  helper SubscriptionTemplateFormHelper
+
   # See SubscriptionIssuesController: the explicit declaration keeps the
   # framework-default forgery protection visible to static analysis.
   protect_from_forgery with: :exception

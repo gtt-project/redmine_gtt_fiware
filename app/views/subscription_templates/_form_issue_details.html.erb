@@ -1,26 +1,6 @@
 <%
-  # Issue geometry radio: the common case is mapping the entity's location
-  # GeoProperty; custom keeps a raw GeoJSON template; none clears it.
-  # New templates default to the entity's location (#102): mapping the
-  # GeoProperty is the overwhelmingly common case. A stored blank stays None.
-  geometry_mode =
-    if @subscription_template.geometry.blank?
-      @subscription_template.new_record? ? 'location' : 'none'
-    elsif @subscription_template.geometry == '${location}'
-      'location'
-    else
-      'custom'
-    end
-
-  attachments = @subscription_template.attachments.is_a?(Array) ? @subscription_template.attachments : []
-  attachments_pickerable = attachments.all? do |a|
-    a.is_a?(Hash) && (a.keys - %w[url filename description]).empty?
-  end
-  attachment_rows = attachments_pickerable ? attachments : []
-  # A blank starter row, like the entity picker: the add link clones the last
-  # row, so with zero rows it would silently do nothing. Rows with a blank URL
-  # are skipped on serialization.
-  attachment_rows = [{}] if attachment_rows.empty? && attachments_pickerable
+  geometry_mode = gtt_fiware_geometry_mode(@subscription_template)
+  attachment_picker = gtt_fiware_attachment_picker(@subscription_template)
 %>
 
 <div class="box tabular">
@@ -46,8 +26,8 @@
   <%# Attachment rows (#66); serialized into attachments_string on submit. %>
   <p>
     <%= content_tag :label, l(:field_subscription_template_attachments) %>
-    <span id="gtt-fiware-attachment-rows" <%= 'style=display:none;'.html_safe unless attachments_pickerable %>>
-      <% attachment_rows.each do |attachment| %>
+    <span id="gtt-fiware-attachment-rows" <%= 'style=display:none;'.html_safe unless attachment_picker.pickerable? %>>
+      <% attachment_picker.rows.each do |attachment| %>
         <%= render 'attachment_row', attachment: attachment %>
       <% end %>
       <a href="#" id="gtt-fiware-attachment-add"><%= l(:label_attachment_template_add) %></a>
@@ -57,7 +37,7 @@
     </span>
     <a href="#" class="js-json-toggle" data-target="attachments" style="font-size: 0.9em;"><%= l(:label_edit_as_json) %></a>
   </p>
-  <p id="gtt-fiware-attachments-json" <%= 'class=hidden'.html_safe if attachments_pickerable %>>
+  <p id="gtt-fiware-attachments-json" <%= 'class=hidden'.html_safe if attachment_picker.pickerable? %>>
     <%= f.text_area :attachments_string, rows: 4,
           placeholder: JSON.pretty_generate(JSON.parse(l(:field_subscription_template_attachments_placeholder))),
           value: (@subscription_template.attachments.presence ? JSON.pretty_generate(@subscription_template.attachments) : '') %>
@@ -67,20 +47,20 @@
       workflow-allowed for the tracker/member pair (refetched by the form JS
       on change), and core fields the tracker disables are hidden. %>
   <p class="min-width">
-    <%= content_tag :label, l(:label_issue_status) %>
+    <%= content_tag :label, l(:label_issue_status), for: 'subscription_template_issue_status_id' %>
     <%= f.collection_select :issue_status_id, form_issue_statuses, :id, :name, {},
           data: { statuses_url: allowed_statuses_project_subscription_templates_path(@project) } %>
   </p>
   <p class="min-width js-issue-core-field" data-field="priority_id">
-    <%= content_tag :label, l(:field_priority) %>
+    <%= content_tag :label, l(:field_priority), for: 'subscription_template_issue_priority_id' %>
     <%= f.collection_select :issue_priority_id, @issue_priorities, :id, :name %>
   </p>
   <p class="min-width js-issue-core-field" data-field="category_id">
-    <%= content_tag :label, l(:label_issue_category) %>
+    <%= content_tag :label, l(:label_issue_category), for: 'subscription_template_issue_category_id' %>
     <%= f.collection_select :issue_category_id, @issue_categories, :id, :name, include_blank: true %>
   </p>
   <p class="min-width js-issue-core-field" data-field="fixed_version_id">
-    <%= content_tag :label, l(:label_version) %>
+    <%= content_tag :label, l(:label_version), for: 'subscription_template_version_id' %>
     <%= f.collection_select :version_id, @project.versions, :id, :name, include_blank: true %>
   </p>
   <%# Per-tracker custom fields (#103, phase 2): every tracker's fields are
@@ -110,7 +90,7 @@
   <% end %>
 
   <p class="min-width">
-    <%= content_tag :label, l(:field_subscription_template_notification_user) %>
+    <%= content_tag :label, l(:field_subscription_template_notification_user), for: 'subscription_template_member_id' %>
     <%= f.collection_select :member_id, @project.members, :id, :name %>
     <em class="info"><%= l(:text_subscription_template_member_info) %></em>
   </p>
