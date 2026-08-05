@@ -28,16 +28,6 @@ module RedmineGttFiware
 
       private
 
-      # An explicit /ngsi-ld/v1-style path in the broker URL is preserved by
-      # SubscriptionRequest#version_path; otherwise the standard prefix.
-      def default_version_path
-        '/ngsi-ld/v1/'
-      end
-
-      def versioned_path_pattern
-        %r{/ngsi-ld/v\d+(/|\z)}
-      end
-
       def payload
         payload = {
           type: 'Subscription',

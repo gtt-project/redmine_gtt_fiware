@@ -86,6 +86,27 @@ class SubscriptionRequestTest < ActiveSupport::TestCase
     assert_equal 'https://broker.example.com/broker/ngsi-ld/v1/subscriptions', req.subscriptions_url
   end
 
+  # A broker mounted under a path prefix without a version segment gets the
+  # default prefix appended to its path, not substituted for it. Absolute-path
+  # URI merging used to drop the prefix and target the wrong URL.
+  def test_ngsi_ld_appends_the_prefix_to_a_broker_path_without_a_version
+    req = build('NGSI-LD', broker_url: 'https://broker.example.com/context-broker')
+    assert_equal 'https://broker.example.com/context-broker/ngsi-ld/v1/subscriptions', req.subscriptions_url
+  end
+
+  def test_ngsi_v2_appends_the_prefix_to_a_broker_path_without_a_version
+    req = build('NGSIv2', broker_url: 'https://broker.example.com/orion')
+    assert_equal 'https://broker.example.com/orion/v2/subscriptions', req.subscriptions_url
+  end
+
+  # /v2 without a minor version is the common spelling and counts as an
+  # explicit versioned path (it used to be unrecognized, which both doubled
+  # the version segment and dropped any prefix before it).
+  def test_ngsi_v2_recognizes_a_plain_v2_path
+    req = build('NGSIv2', broker_url: 'https://broker.example.com/orion/v2')
+    assert_equal 'https://broker.example.com/orion/v2/subscriptions', req.subscriptions_url
+  end
+
   # --- NGSIv2 payload -------------------------------------------------------
 
   def test_ngsi_v2_payload_shape
@@ -94,6 +115,19 @@ class SubscriptionRequestTest < ActiveSupport::TestCase
     assert_equal %w[entityCreate entityChange], p.dig('subject', 'condition', 'alterationTypes')
     assert_equal 3, p['throttling']
     assert_equal 'active', p['status']
+  end
+
+  # The description is the template name with only Orion's forbidden
+  # characters removed: readable on the broker, and non-ASCII (Japanese
+  # names) untouched. It used to be URL-encoded wholesale.
+  def test_ngsi_v2_description_strips_only_orion_forbidden_characters
+    p = payload('NGSIv2', name: %(Road damage (Aoyama) <test> "quoted" 道路損傷))
+    assert_equal 'Road damage Aoyama test quoted 道路損傷', p['description']
+  end
+
+  def test_ngsi_ld_description_is_the_name_verbatim
+    p = payload('NGSI-LD', name: 'Road damage (Aoyama)')
+    assert_equal 'Road damage (Aoyama)', p['description']
   end
 
   # Setting.host_name may carry a sub-URI path ("example.com/redmine"); the

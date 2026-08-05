@@ -7,8 +7,9 @@ module RedmineGttFiware
   # broker must never block saving an issue. This class is the seam for a
   # later job-based backend.
   class Emitter
-    OPEN_TIMEOUT = 5
-    READ_TIMEOUT = 10
+    # URN-safe slug; anything else counts as unset so a stray value cannot
+    # produce malformed entity ids.
+    INSTANCE_ID_PATTERN = /\A[A-Za-z0-9_-]+\z/
 
     class << self
       # Wraps NotificationProcessor issue writes: issues created or updated
@@ -26,10 +27,6 @@ module RedmineGttFiware
       def suppressed?
         Thread.current[:gtt_fiware_suppress_emission] == true
       end
-
-      # URN-safe slug; anything else counts as unset so a stray value cannot
-      # produce malformed entity ids.
-      INSTANCE_ID_PATTERN = /\A[A-Za-z0-9_-]+\z/
 
       # The instance identifier baked into every emitted URN. Emission is off
       # until the admin sets it (and it must stay stable once set - changing
@@ -88,37 +85,14 @@ module RedmineGttFiware
         end
       end
 
-      def request(connection, method, resource, body = nil)
-        uri = URI(connection.url)
-        http = Net::HTTP.new(uri.host, uri.port)
-        http.use_ssl = (uri.scheme == 'https')
-        http.open_timeout = OPEN_TIMEOUT
-        http.read_timeout = READ_TIMEOUT
-
-        klass = { post: Net::HTTP::Post, patch: Net::HTTP::Patch, delete: Net::HTTP::Delete }.fetch(method)
-        req = klass.new("#{ld_path(uri)}/#{resource}", headers(connection, body))
-        req.body = body.to_json if body
-        http.request(req)
-      end
-
       # The payload embeds @context (PATCH bodies inherit the entity's), so
       # bodies are declared as JSON-LD. Server-side emission can only use a
       # stored token; a token-less or browser-mode connection emits
       # unauthenticated (fine for open brokers, 401s are logged otherwise).
-      def headers(connection, body)
-        result = {}
-        result['Content-Type'] = 'application/ld+json' if body
-        result['NGSILD-Tenant'] = connection.fiware_service if connection.fiware_service.present?
-        pair = connection.token_header_pair(connection.auth_token)
-        result[pair.first] = pair.last if pair
-        result
-      end
-
-      # Preserve an explicit /ngsi-ld/v1 path in the connection URL, append
-      # the default prefix otherwise (same convention as SubscriptionRequest).
-      def ld_path(uri)
-        path = uri.path.chomp('/')
-        path.match?(%r{/ngsi-ld/v1\z}) ? path : "#{path}/ngsi-ld/v1"
+      def request(connection, method, resource, body = nil)
+        BrokerHttp.request(method, "#{connection.api_base}/#{resource}",
+                           connection: connection, token: connection.auth_token,
+                           body: body, content_type: body ? 'application/ld+json' : nil)
       end
 
       def log_failure(issue, connection, response)

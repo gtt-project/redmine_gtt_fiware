@@ -14,8 +14,6 @@ module RedmineGttFiware
     # The published core vocabulary, usable as a JSON-LD @context.
     CONTEXT_URL = 'https://gtt-project.org/ns/fiware.jsonld'.freeze
     LINK_HEADER = %(<#{CONTEXT_URL}>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json").freeze
-    OPEN_TIMEOUT = 5
-    READ_TIMEOUT = 10
     CACHE_TTL = 60 # seconds; the issue-page panel refetches at most this often
 
     Sibling = Struct.new(:urn, :org, :subtype, :status, :status_label, :title, :source, keyword_init: true) do
@@ -45,15 +43,10 @@ module RedmineGttFiware
     end
 
     def fetch(entity_urn)
-      uri = URI(@connection.url)
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = (uri.scheme == 'https')
-      http.open_timeout = OPEN_TIMEOUT
-      http.read_timeout = READ_TIMEOUT
-
       query = Rack::Utils.build_query(type: 'Issue', q: %(refersTo=="#{entity_urn}"))
-      request = Net::HTTP::Get.new("#{ld_path(uri)}/entities?#{query}", headers)
-      response = http.request(request)
+      response = BrokerHttp.request(:get, "#{@connection.api_base}/entities?#{query}",
+                                    connection: @connection, token: @connection.auth_token,
+                                    headers: { 'Accept' => 'application/ld+json', 'Link' => LINK_HEADER })
       unless response.is_a?(Net::HTTPSuccess)
         Rails.logger.warn "[FIWARE] Sibling query on #{@connection.name} answered #{response.code}"
         return []
@@ -63,22 +56,6 @@ module RedmineGttFiware
     rescue StandardError => e
       Rails.logger.warn "[FIWARE] Sibling query on #{@connection.name} failed: #{e.class}: #{e.message}"
       []
-    end
-
-    # Preserve an explicit /ngsi-ld/v1 path in the connection URL, append the
-    # default prefix otherwise (same convention as Emitter and
-    # SubscriptionRequest).
-    def ld_path(uri)
-      path = uri.path.chomp('/')
-      path.match?(%r{/ngsi-ld/v1\z}) ? path : "#{path}/ngsi-ld/v1"
-    end
-
-    def headers
-      result = { 'Accept' => 'application/ld+json', 'Link' => LINK_HEADER }
-      result['NGSILD-Tenant'] = @connection.fiware_service if @connection.fiware_service.present?
-      pair = @connection.token_header_pair(@connection.auth_token)
-      result[pair.first] = pair.last if pair
-      result
     end
 
     def parse(body)
