@@ -13,11 +13,11 @@ if [ -n "$BROKER_TOKEN" ]; then
 fi
 
 # Check if FIWARE_SERVICE and FIWARE_SERVICEPATH are provided
-if [ -z "$FIWARE_SERVICE" ]; then
+if [ -n "$FIWARE_SERVICE" ]; then
   HEADERS+=(-H "Fiware-Service: $FIWARE_SERVICE")
 fi
 
-if [ -z "$FIWARE_SERVICEPATH" ]; then
+if [ -n "$FIWARE_SERVICEPATH" ]; then
   HEADERS+=(-H "Fiware-ServicePath: $FIWARE_SERVICEPATH")
 fi
 

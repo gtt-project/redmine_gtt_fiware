@@ -33,14 +33,14 @@ function copyToClipboard(command) {
   if (navigator.clipboard) {
     // If Clipboard API is available
     navigator.clipboard.writeText(command).then(function() {
-      showNotification('Command copied!'); // Show success message
+      showNotification("<%= raw j l(:command_copied) %>"); // Show success message
     }).catch(function(err) {
       console.error('Could not copy cURL command to clipboard: ', err);
-      showNotification('Failed to copy command'); // Show error message
+      showNotification("<%= raw j l(:command_copy_failed) %>"); // Show error message
     });
   } else {
     // If Clipboard API is not available
-    showNotification('Clipboard API not available, see console for cURL command');
+    showNotification("<%= raw j l(:command_clipboard_unavailable) %>");
   }
 }
 

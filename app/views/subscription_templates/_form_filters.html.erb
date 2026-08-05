@@ -27,7 +27,7 @@
   <%# Comma-separated watched attributes; serialized into the attrs JSON array. %>
   <p>
     <%= content_tag :label, l(:field_subscription_template_watched_attributes) %>
-    <input type="text" id="gtt-fiware-attrs-input" size="75" value="<%= attrs_list %>" placeholder="temperature, humidity" />
+    <input type="text" id="gtt-fiware-attrs-input" size="75" value="<%= attrs_list %>" placeholder="<%= l(:field_subscription_template_watched_attrs_placeholder) %>" />
     <em class="info"><%= l(:text_watched_attributes_info) %></em>
   </p>
   <%= f.hidden_field :attrs %>

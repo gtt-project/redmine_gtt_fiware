@@ -43,7 +43,7 @@ fetch('<%= raw j(@broker_url) %>', requestOptions)
     });
 
     if (!locationHeader) {
-      throw new Error('Location header is missing in the response');
+      throw new Error("<%= raw j l(:subscription_published_error) %>");
     }
 
     var parts = locationHeader.split('/');

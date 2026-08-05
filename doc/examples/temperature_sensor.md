@@ -13,7 +13,7 @@ following minimal settings:
 | Field             | Value                                                     |
 |-------------------|-----------------------------------------------------------|
 | **Name**    | `Temperature Alert > 30°C`                                      |
-| **Broker URL** | `your_broker_url` (e.g., `http://127.0.0.1:1026`)            |
+| **Connection** | select the FIWARE Connection for your broker (an administrator creates these, see [broker_connections.md](../broker_connections.md)) |
 
 ### Subscription Settings
 
@@ -30,7 +30,7 @@ following minimal settings:
 | **Description**   | `The temperature sensor ${id} recorded a temperature of ${temperature}°C.`|
 | **Notes**         | `The temperature reading has been updated to ${temperature}°C.`|
 | **Threshold (h)** | `24` (new issue if temperature remains high after 24h)    |
-| **Sent from user**| `api_user` (select the user who will send the issue)      |
+| **Create issues as**| `api_user` (the member the created issues are authored as) |
 
 Create the subscription template and publish it.
 

@@ -17,9 +17,9 @@ FIWARE plugin and its API endpoints.
 Use a dedicated user with just the needed permissions as the subscription
 author, not an administrator.
 
-If you need a test broker, [FIWARE-Small-Bang](https://github.com/lets-fiware/FIWARE-Small-Bang)
+If you need a test broker, use [FIWARE-Small-Bang](https://github.com/lets-fiware/FIWARE-Small-Bang)
 (local) or [FIWARE-Big-Bang](https://github.com/lets-fiware/FIWARE-Big-Bang)
-(server) set one up.
+(server) to set one up.
 
 ### Redmine Permissions
 
@@ -99,14 +99,13 @@ curl -sX GET "${BROKER_URL}/v2/subscriptions" \
 - The coordinates in the location examples are in `[longitude, latitude]` format.
 - The `jq` command is used to format the JSON output for better readability.
 
-These cURL commands should help you interact with the FIWARE broker and test the
-Redmine GTT FIWARE plugin effectively. If you encounter any issues or need
-further assistance, please let us know!
+If something does not behave as described here, please open an issue in the
+[tracker](https://github.com/gtt-project/redmine_gtt_fiware/issues).
 
 #### CORS Issues
 
 If you encounter CORS issues, for example when you use FIWARE-Big-Bang, you can extend
-the Ngix configuration as follows:
+the Nginx configuration as follows:
 
 ```nginx
 [snip]

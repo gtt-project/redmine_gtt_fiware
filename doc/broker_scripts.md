@@ -1,6 +1,6 @@
 # FIWARE Broker Scripts
 
-This document describes the scripts available in the `scripts` directory that
+This document describes the scripts available in the `doc/scripts` directory that
 help manage the FIWARE context broker.
 
 - [Register All Subscriptions](#register-all-subscriptions)
@@ -18,7 +18,7 @@ URL specified in the header for each subscription.
 **Usage:**
 
 ```bash
-./scripts/register_all_subscriptions.sh <api_key>
+./doc/scripts/register_all_subscriptions.sh <api_key>
 ```
 
 **Arguments:**
@@ -45,7 +45,7 @@ To prepend an environment variable to a command in the terminal, you can do so
 like this:
 
 ```bash
-BROKER_URL=your_broker_url ./scripts/register_all_subscriptions.sh <redmine_api_key>
+BROKER_URL=your_broker_url ./doc/scripts/register_all_subscriptions.sh <redmine_api_key>
 ```
 
 Replace `redmine_api_key` with your actual Redmine API key and `your_broker_url`
@@ -64,7 +64,7 @@ subscriptions, and then makes DELETE requests to the
 **Usage:**
 
 ```bash
-./scripts/delete_all_subscriptions.sh
+./doc/scripts/delete_all_subscriptions.sh
 ```
 
 **Environment Variables:**
@@ -84,9 +84,9 @@ To prepend an environment variable to a command in the terminal, you can do so
 like this:
 
 ```bash
-BROKER_URL=your_broker_url ./scripts/delete_all_subscriptions.sh
+BROKER_URL=your_broker_url ./doc/scripts/delete_all_subscriptions.sh
 ```
 
-Replace `your_broker_url` with your actual Redmine API key. This will set the
+Replace `your_broker_url` with your broker URL. This will set the
 `BROKER_URL` environment variable for the duration of the
 `delete_all_subscriptions.sh` script.

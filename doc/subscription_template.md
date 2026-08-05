@@ -56,7 +56,7 @@ visible fields.
 
 The fields follow the selected tracker: fields the tracker disables are
 hidden, the status list offers what the tracker's workflow allows for the
-*Sent from user* member, and the tracker's own custom fields appear.
+*Create issues as* member, and the tracker's own custom fields appear.
 
 - **Description** and **Issue notes** templates (`${...}` placeholders work
   here too). The notes template is used when a notification updates an
@@ -80,7 +80,7 @@ hidden, the status list offers what the tracker's workflow allows for the
 
   ![Custom field templates](subscription_form_custom_fields.png)
 
-- **Sent from user** (required): the member the issues are authored as. It
+- **Create issues as** (required): the member the issues are authored as. It
   decides the author, the permissions the issue is created with, and the
   workflow statuses offered above, so use a dedicated user with just the
   needed permissions, not an administrator.

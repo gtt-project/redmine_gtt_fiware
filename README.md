@@ -37,12 +37,31 @@ After restarting Redmine, you should be able to see the Redmine GTT FIWARE
 plugin in the Plugins page.
 
 More information on installing (and uninstalling) Redmine plugins can be found
-[here](http://www.redmine.org/wiki/redmine/Plugins).
+[here](https://www.redmine.org/wiki/redmine/Plugins).
 
 ## How to use
 
 Detailed instructions on how to use the plugin and its API endpoints can be
 found in the [documentation](doc/index.md).
+
+## Development
+
+Run the Ruby test suite from the Redmine root, against a PostGIS test
+database (CI runs the same suites across Redmine 6.0 to 7.0, see
+`.github/workflows/test-postgis.yml`):
+
+```sh
+bundle exec rails test plugins/redmine_gtt_fiware/test/unit
+bundle exec rails test plugins/redmine_gtt_fiware/test/functional
+```
+
+The subscription form's JavaScript has its own Vitest suite, runnable from
+the plugin directory without a Redmine installation:
+
+```sh
+npm ci
+npm test
+```
 
 ## Contributing and Support
 

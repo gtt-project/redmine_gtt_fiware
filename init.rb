@@ -12,6 +12,10 @@ Redmine::Plugin.register :redmine_gtt_fiware do
 
   # Specify the minimum required Redmine version
   requires_redmine :version_or_higher => '6.0.0'
+  # redmine_gtt is a hard dependency (README always said so, but it was not
+  # enforced): geometry conversion goes through RedmineGtt::Conversions, and
+  # the subscription form reads the project boundary its migration adds.
+  requires_redmine_plugin :redmine_gtt, :version_or_higher => '0.0.1'
 
   # Plugin settings with default values and partial view for settings
   settings(

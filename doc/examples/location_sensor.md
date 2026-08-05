@@ -13,14 +13,14 @@ following minimal settings:
 | Field             | Value                                                     |
 |-------------------|-----------------------------------------------------------|
 | **Name**    | `Location Alert`                                                |
-| **Broker URL** | `your_broker_url` (e.g., `http://127.0.0.1:1026`)            |
+| **Connection** | select the FIWARE Connection for your broker (an administrator creates these, see [broker_connections.md](../broker_connections.md)) |
 
 ### Subscription Settings
 
 | Field               | Value                                                   |
 |---------------------|---------------------------------------------------------|
 | **Entities**        | `[{ "idPattern": ".*", "type": "LocationSensor" }]`     |
-| **Geospatial Query**| Apply the project boundary by clicking "Insert project boundary"|
+| **Area** | select *Within the project boundary* (the project needs a boundary drawn in its GTT settings) |
 
 ### Issue Settings
 
@@ -29,7 +29,7 @@ following minimal settings:
 | **Subject**       | `Location Alert`                                          |
 | **Description**   | `The location sensor ${id} entered the project area.`     |
 | **Issue geometry**| `{ "type": "Feature", "geometry": "${location}" }`        |
-| **Sent from user**| `api_user` (select the user who will send the issue)      |
+| **Create issues as**| `api_user` (the member the created issues are authored as) |
 
 Create the subscription template and publish it.
 

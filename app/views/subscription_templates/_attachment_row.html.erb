@@ -2,8 +2,8 @@
     once inside the picker's <template> prototype, which the add link clones
     -- so adding still works when every row has been removed. %>
 <span class="gtt-fiware-attachment-row" style="display: block; margin-bottom: 4px;">
-  <input type="text" class="js-attachment-url" value="<%= attachment['url'] %>" placeholder="https://example.com/photo.jpg" size="35" />
-  <input type="text" class="js-attachment-filename" value="<%= attachment['filename'] %>" placeholder="photo-${id}.jpg" size="20" />
+  <input type="text" class="js-attachment-url" value="<%= attachment['url'] %>" placeholder="<%= l(:field_attachment_url_placeholder) %>" size="35" />
+  <input type="text" class="js-attachment-filename" value="<%= attachment['filename'] %>" placeholder="<%= l(:field_attachment_filename_placeholder) %>" size="20" />
   <input type="text" class="js-attachment-description" value="<%= attachment['description'] %>" placeholder="<%= l(:field_description) %>" size="20" />
   <%# Redmine 6 icons are SVG sprites; a bare icon-del anchor renders 0x0. %>
   <a href="#" class="js-attachment-remove icon-only icon-del" title="<%= l(:button_delete) %>" aria-label="<%= l(:button_delete) %>"><%= sprite_icon('del') %></a>

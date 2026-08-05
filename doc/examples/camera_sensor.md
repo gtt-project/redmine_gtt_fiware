@@ -13,7 +13,7 @@ following minimal settings:
 | Field             | Value                                                     |
 |-------------------|-----------------------------------------------------------|
 | **Name**          | `Speed Alert > 80 km/h`                                   |
-| **Broker URL**    | `your_broker_url` (e.g., `http://127.0.0.1:1026`)         |
+| **Connection** | select the FIWARE Connection for your broker (an administrator creates these, see [broker_connections.md](../broker_connections.md)) |
 
 ### Subscription Settings
 
@@ -30,7 +30,7 @@ following minimal settings:
 | **Description**   | `The speed camera sensor ${id} detected a speed of ${speed} km/h.`|
 | **Issue geometry**| `{ "type": "Feature", "geometry": "${location}" }`        |
 | **Attachments**   | `[{"filename": "SC_${timestamp}.jpg", "url": "${image}"}]`|
-| **Sent from user**| `api_user` (select the user who will send the issue)      |
+| **Create issues as**| `api_user` (the member the created issues are authored as) |
 
 Create the subscription template and publish it.
 
