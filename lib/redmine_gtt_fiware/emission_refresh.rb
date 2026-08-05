@@ -1,3 +1,6 @@
+require 'erb'
+require 'net/http'
+
 module RedmineGttFiware
   # Brings an already-existing broker entity in line with the current local
   # representation (#146). The Emitter lands here when its create attempt
