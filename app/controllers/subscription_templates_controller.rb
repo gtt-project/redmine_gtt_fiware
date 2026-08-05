@@ -4,16 +4,14 @@ require 'uri'
 class SubscriptionTemplatesController < ApplicationController
   layout 'base'
 
-  # See the note in SubscriptionIssuesController: Redmine relies on Rails'
-  # default forgery protection, which static analysis cannot see. Declaring it
-  # explicitly changes no behaviour (CodeQL rb/csrf-protection-not-enabled).
+  # See SubscriptionIssuesController: the explicit declaration keeps the
+  # framework-default forgery protection visible to static analysis.
   protect_from_forgery with: :exception
 
   # index is nested under a project since #22 (the REST API), so it needs the
   # project too; only the broker's registration callback is project-less.
   before_action :find_project_by_project_id, except: [:set_subscription_id]
-  before_action :get_issue_priorities, only: [:new, :create, :edit, :update]
-  before_action :get_issue_categories, only: [:new, :create, :edit, :update]
+  before_action :load_form_collections, only: [:new, :create, :edit, :update]
   before_action :find_subscription_template, only: [:edit, :update, :destroy, :copy, :publish, :unpublish, :sync, :update_subscription_id]
   before_action :check_fiware_broker_auth_token, only: [:publish, :unpublish, :sync]
 
@@ -33,13 +31,10 @@ class SubscriptionTemplatesController < ApplicationController
       # The HTML surface for the list is the project's FIWARE tab.
       format.html { redirect_to index_path }
       format.api do
-        scope = subscription_template_scope
+        scope = subscription_templates_for_rendering
         @subscription_template_count = scope.count
         @offset, @limit = api_offset_and_limit
-        # Preload everything the API renders as a reference.
-        @subscription_templates = scope.includes(:project, :broker_connection, :tracker, :issue_status,
-                                                 :issue_priority, :issue_category, :version, :member)
-                                       .offset(@offset).limit(@limit).to_a
+        @subscription_templates = scope.offset(@offset).limit(@limit).to_a
       end
     end
   end
@@ -120,7 +115,7 @@ class SubscriptionTemplatesController < ApplicationController
                          "#{@subscription_template.errors.full_messages.join(', ')}"
     end
 
-    @subscription_templates = subscription_template_scope
+    @subscription_templates = subscription_templates_for_rendering
     respond_to do |format|
       format.js { render partial: 'subscription_templates/subscription_template', collection: @subscription_templates, as: :subscription_template }
     end
@@ -180,21 +175,20 @@ class SubscriptionTemplatesController < ApplicationController
     handle_publish_unpublish('unpublish', l(:subscription_unpublished), 'unpublish')
   end
 
-  # Reconciles local state with the broker (#13). Always runs server-side:
-  # 404 from the broker clears the stored subscription id (the subscription is
-  # gone, e.g. a oneshot fired or it expired and was purged); 200 updates the
-  # local status from the broker's. The auth token comes from the stored
-  # connection or, in browser/proxy mode, the request header.
+  # Reconciles local state with the broker (#13). Always runs server-side;
+  # the auth token comes from the stored connection or, in browser/proxy
+  # mode, the request header. The reconciliation rules live in
+  # RedmineGttFiware::SubscriptionSync.
   def sync
     @subscription_request = subscription_request
-    @sync_message =
-      if @subscription_template.subscription_id.blank?
-        l(:subscription_sync_no_subscription)
-      else
-        perform_sync
-      end
+    message_key = RedmineGttFiware::SubscriptionSync.new(
+      @subscription_template,
+      subscription_request: @subscription_request,
+      token: @fiware_broker_auth_token
+    ).call
+    @sync_message = l(message_key)
 
-    @subscription_templates = subscription_template_scope
+    @subscription_templates = subscription_templates_for_rendering
     respond_to do |format|
       format.js { render 'sync' }
     end
@@ -305,74 +299,6 @@ class SubscriptionTemplatesController < ApplicationController
     end
   end
 
-  # Queries the broker for the template's subscription and reconciles local
-  # state. Returns the user-facing message. A 200 whose status the plugin
-  # cannot interpret is reported as an error, not a successful sync.
-  def perform_sync
-    response = fetch_remote_subscription
-    case response
-    when Net::HTTPNotFound
-      if @subscription_template.update(subscription_id: nil)
-        l(:subscription_sync_removed)
-      else
-        Rails.logger.error "FIWARE broker sync: clearing the removed subscription failed: " \
-                           "#{@subscription_template.errors.full_messages.join(', ')}"
-        l(:subscription_sync_error)
-      end
-    when Net::HTTPSuccess
-      if apply_remote_status(JSON.parse(response.body))
-        l(:subscription_synced)
-      else
-        Rails.logger.error 'FIWARE broker sync: unrecognized subscription status in response, ' \
-                           'or the local status update failed validation'
-        l(:subscription_sync_error)
-      end
-    else
-      Rails.logger.error "FIWARE broker sync failed: #{response.code} #{response.message}"
-      l(:subscription_sync_error)
-    end
-  rescue JSON::ParserError
-    Rails.logger.error 'FIWARE broker sync returned an unparsable body'
-    l(:subscription_sync_error)
-  rescue StandardError => e
-    Rails.logger.error "Error syncing subscription: #{e.message}"
-    l(:subscription_sync_error)
-  end
-
-  def fetch_remote_subscription
-    RedmineGttFiware::BrokerHttp.request(
-      :get, @subscription_request.subscription_url,
-      connection: @subscription_template.broker_connection,
-      token: @fiware_broker_auth_token
-    )
-  end
-
-  # Maps the broker's reported subscription state onto the local status.
-  # NGSIv2 reports status active/inactive/oneshot/expired/failed ('failed'
-  # means the last notification failed but the subscription is still active);
-  # NGSI-LD reports status active/paused/expired plus isActive. Returns the
-  # recognized status, or nil when the response carries none the plugin
-  # understands (the caller reports that as an error).
-  def apply_remote_status(subscription)
-    remote = subscription['status'].to_s
-    if remote.empty? && @subscription_template.ngsi_ld? && subscription.key?('isActive')
-      remote = subscription['isActive'] == false ? 'paused' : 'active'
-    end
-
-    normalized =
-      case remote
-      when 'active', 'inactive', 'oneshot' then remote
-      when 'failed' then 'active'
-      when 'paused', 'expired' then 'inactive'
-      end
-    return nil if normalized.nil?
-
-    unless normalized == @subscription_template.status
-      return nil unless @subscription_template.update(status: normalized)
-    end
-    normalized
-  end
-
   # Whether the broker call runs on the server is now a property of the
   # connection (#95): 'stored' and 'proxied' both run server-side, 'browser'
   # calls the broker straight from the browser.
@@ -381,7 +307,7 @@ class SubscriptionTemplatesController < ApplicationController
   end
 
   def render_subscription_templates(message)
-    @subscription_templates = subscription_template_scope
+    @subscription_templates = subscription_templates_for_rendering
     respond_to do |format|
       format.html {
         response.headers['X-Redmine-Message'] = message
@@ -441,6 +367,14 @@ class SubscriptionTemplatesController < ApplicationController
     SubscriptionTemplate.where(project_id: @project.id).order(name: :asc)
   end
 
+  # The scope plus the associations the list partial and the API render per
+  # row. Split from the bare scope so single-record finds (edit, publish,
+  # sync) do not pay for preloads they never read.
+  def subscription_templates_for_rendering
+    subscription_template_scope.includes(:project, :broker_connection, :tracker, :issue_status,
+                                         :issue_priority, :issue_category, :version, :member)
+  end
+
   # The status list the form renders initially (#103): workflow-allowed for
   # the template's tracker and member, falling back to the full list when the
   # pair is not known yet. Lazy (helper_method) because @subscription_template
@@ -473,66 +407,12 @@ class SubscriptionTemplatesController < ApplicationController
     statuses
   end
 
-  def get_issue_categories
-    # Scoped to the project: categories are project-local in core, and the
-    # unscoped list both leaked other projects' category names and offered
-    # ids the model now rejects.
+  # The form's select collections. Categories are scoped to the project:
+  # they are project-local in core, and the unscoped list both leaked other
+  # projects' category names and offered ids the model rejects.
+  def load_form_collections
     @issue_categories = @project.issue_categories
-  end
-
-  def get_issue_priorities
     @issue_priorities = IssuePriority.all.sorted
-  end
-
-  # API clients naturally send structures where the form sends JSON strings
-  # (the textareas are a UI detail): entities/attachments/geometry as objects
-  # and arrays, attrs as an array of names. Convert them to the *_string
-  # inputs the model already validates, so both shapes work and the
-  # validation stays in one place. The converted values are re-parsed and
-  # shape-checked by the model before landing in the serialized columns, so
-  # this is not a mass-assignment path.
-  def normalize_api_structures
-    attributes = params[:subscription_template]
-    return unless attributes.respond_to?(:key?)
-
-    { entities: :entities_string, attachments: :attachments_string, geometry: :geometry_string }
-      .each do |structured, string_field|
-        next unless attributes.key?(structured)
-
-        value = attributes.delete(structured)
-        # An explicit null carries no structure to convert; leave whatever the
-        # client sent in the *_string field alone.
-        next if value.nil?
-
-        attributes[string_field] = json_input(value)
-      end
-
-    attributes[:attrs] = structured_to_json(attributes[:attrs]) if attributes[:attrs].is_a?(Array)
-  end
-
-  # The model parses the *_string fields as JSON. A structure is dumped; a
-  # string that already is JSON passes through; anything else is a scalar
-  # template value and gets encoded as the JSON string it stands for, so
-  # geometry: "${location}" works as documented instead of failing to parse.
-  def json_input(value)
-    return structured_to_json(value) unless value.is_a?(String)
-
-    JSON.parse(value)
-    value
-  rescue JSON::ParserError
-    value.to_json
-  end
-
-  def structured_to_json(value)
-    plain_structure(value).to_json
-  end
-
-  def plain_structure(value)
-    case value
-    when ActionController::Parameters then value.to_unsafe_h
-    when Array then value.map { |element| plain_structure(element) }
-    else value
-    end
   end
 
   def subscription_template_params
@@ -540,7 +420,9 @@ class SubscriptionTemplatesController < ApplicationController
     # (ParameterMissing), not crash on the normalization below.
     attributes = params.require(:subscription_template)
     if api_request?
-      normalize_api_structures
+      # Structured API inputs (entities/attachments/geometry/attrs) become
+      # the *_string inputs the model validates.
+      RedmineGttFiware::ApiStructuredInput.normalize!(attributes)
     else
       # The form omits unchecked boxes, so an absent value means "none".
       # An API client that omits the key means "leave it alone", and on
