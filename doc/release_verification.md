@@ -116,9 +116,19 @@ Same shape as layer 2 against an NGSI-LD broker (hosted or local). Watch for:
 - broker callbacks need a publicly reachable Redmine URL (a
   `cloudflared tunnel --url http://127.0.0.1:3000` quick tunnel works; Rails
   host authorization must allow the tunnel host in development)
-- **known upstream gap:** some brokers accept `q`/`geoQ` on subscriptions but
-  do not apply them to notifications — run the layer 2 three-phase test here
-  too and record the result
+- **filter enforcement varies by broker:** some brokers accept `q`/`geoQ` on
+  subscriptions but do not apply them to notifications. Run the layer 2
+  three-phase test here too and record the result. Recorded for GeonicDB
+  (2026-08-05, plugin 3.3.0): `geoQ` is applied to notifications when sent in
+  NGSI-LD syntax (`within` with a GeoJSON polygon in lon, lat order); an
+  entity inside the polygon produced exactly one notification and one entity
+  far outside produced none, with the subscription's `timesSent` staying at
+  1. Earlier
+  runs that saw `geoQ` ignored were caused by the pre-3.3.0 payloads in
+  NGSIv2 syntax, which the broker accepted on the subscription but could
+  never match. The `q` gap is real on GeonicDB: accepted on subscriptions,
+  not applied to notifications, so `watchedAttributes` and `geoQ` are the
+  filters that take effect there
 
 ## Cleanup
 
