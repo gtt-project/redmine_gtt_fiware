@@ -53,13 +53,24 @@ class FederationControllerTest < ActionController::TestCase
     assert_response :no_content
   end
 
-  # The panel shows broker data correlated to the issue, so seeing the issue
-  # is the requirement.
-  def test_invisible_issue_is_404
+  # Core redirects anonymous requests to login before this controller runs.
+  def test_anonymous_request_is_redirected_to_login_when_login_is_required
     @request.session[:user_id] = nil
     with_settings login_required: '1' do
       get :show, params: { id: @issue.id }
-      assert_response 302 # redirected to login by check_if_login_required
+      assert_response 302
     end
+  end
+
+  # The panel shows broker data correlated to the issue, so seeing the issue
+  # is the requirement: an authenticated user without visibility gets a 404,
+  # and critically, the broker is never queried for an issue the user cannot
+  # see.
+  def test_invisible_issue_is_404_and_never_queries_the_broker
+    @issue.project.update_columns(is_public: false)
+    @request.session[:user_id] = 7 # someone, not a member of project 1
+    RedmineGttFiware::FederationSiblings.any_instance.expects(:for_entity).never
+    get :show, params: { id: @issue.id }
+    assert_response :not_found
   end
 end

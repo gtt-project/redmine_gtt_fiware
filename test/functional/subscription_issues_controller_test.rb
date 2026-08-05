@@ -557,6 +557,51 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
     assert_response :unprocessable_entity
   end
 
+  # 422 when the whole batch failed validation: a permanent error the broker
+  # should not retry, carrying the validation messages.
+  def test_create_answers_422_with_errors_when_the_whole_batch_fails_validation
+    # A subject template resolving to nothing renders a blank subject, which
+    # Issue validation rejects.
+    @template.update_columns(subject: '${attrs.nonexistent.value}')
+    assert_no_difference 'Issue.count' do
+      post_notification
+    end
+    assert_response :unprocessable_entity
+    body = JSON.parse(response.body)
+    assert body['errors'].any?, 'the response must carry the validation messages'
+  end
+
+  # One bad geometry never fails the whole notification: the conversion
+  # degrades to no geometry with a warning, and the issue is still created.
+  def test_an_unconvertible_geometry_does_not_fail_the_notification
+    project = Project.find(1)
+    project.enabled_module_names = project.enabled_module_names | ['gtt']
+    @template.update!(geometry_string: '"${location}"')
+
+    broken_location = { 'type' => 'geo:json', 'value' => { 'type' => 'Point' } } # no coordinates
+    assert_difference 'Issue.count', 1 do
+      post_notification(entities: [entity('location' => broken_location)])
+    end
+    assert_response :success
+  end
+
+  # A mixed batch is a 200: at least one issue persisted, and a retry would
+  # duplicate it. The failures are visible in the counts.
+  def test_create_answers_200_for_a_mixed_batch
+    @template.update_columns(subject: '${attrs.subject_source.value}')
+    good = entity('id' => 'urn:ngsi-ld:TemperatureSensor:good',
+                  'subject_source' => { 'type' => 'Text', 'value' => 'Renders fine' })
+    bad = entity('id' => 'urn:ngsi-ld:TemperatureSensor:bad')
+
+    assert_difference 'Issue.count', 1 do
+      post_notification(entities: [good, bad])
+    end
+    assert_response :success
+    body = JSON.parse(response.body)
+    assert_equal 2, body['processed']
+    assert_equal 1, body['created']
+  end
+
   # A malformed body is a 400 (bad request), distinct from a well-formed
   # notification that simply carries no entities (422). Sent without a JSON
   # content type so the controller's own parse (not Rails' params middleware,

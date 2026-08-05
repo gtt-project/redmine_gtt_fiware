@@ -168,4 +168,85 @@ class EmitterTest < ActiveSupport::TestCase
     end
     assert issue.persisted?
   end
+
+  def error_response
+    response = Net::HTTPInternalServerError.new('1.1', '500', 'Internal Server Error')
+    response.stubs(:body).returns('broker exploded')
+    response
+  end
+
+  # A broker rejection is logged (including a body excerpt) and the save
+  # still succeeds: log_failure must not itself raise on the response.
+  def test_broker_error_response_is_logged_and_does_not_block_the_save
+    stub_broker(error_response)
+    issue = nil
+    with_settings plugin_redmine_gtt_fiware: EMISSION_SETTINGS do
+      Rails.logger.expects(:error).with { |msg| msg.include?('answered 500') && msg.include?('broker exploded') }
+      issue = build_issue
+      issue.save!
+    end
+    assert issue.persisted?
+  end
+
+  # 409 -> PATCH fallback where the PATCH also fails: the failure of the
+  # second request is the one reported.
+  def test_conflict_then_failed_patch_is_logged
+    conflict = Net::HTTPConflict.new('1.1', '409', 'Conflict')
+    responses = [conflict, error_response]
+    requests = []
+    Net::HTTP.any_instance.stubs(:request).with { |req| requests << req; true }
+             .returns(*responses)
+    with_settings plugin_redmine_gtt_fiware: EMISSION_SETTINGS do
+      Rails.logger.expects(:error).with { |msg| msg.include?('answered 500') }
+      build_issue.save!
+    end
+    assert requests.any? { |r| r.is_a?(Net::HTTP::Patch) }, 'the 409 must trigger the PATCH fallback'
+  end
+
+  # DELETE answering 404 means "never emitted or already gone": deliberately
+  # not a failure, so nothing is logged.
+  def test_delete_tolerates_a_404
+    not_found = Net::HTTPNotFound.new('1.1', '404', 'Not Found')
+    issue = nil
+    with_settings plugin_redmine_gtt_fiware: EMISSION_SETTINGS do
+      stub_broker(created_response)
+      issue = build_issue
+      issue.save!
+    end
+
+    stub_broker(not_found)
+    with_settings plugin_redmine_gtt_fiware: EMISSION_SETTINGS do
+      Rails.logger.expects(:error).never
+      issue.destroy
+    end
+  end
+
+  # One failing connection neither raises nor blocks the others.
+  def test_a_failing_connection_does_not_block_the_next_one
+    second = BrokerConnection.create!(
+      name: 'Second broker', standard: 'NGSI-LD',
+      url: 'https://other.example.com', auth_mode: 'stored'
+    )
+    EmissionMapping.create!(broker_connection: second, tracker: Tracker.find(1), subtype: 'WorkOrder')
+
+    attempts = []
+    # One stub: the matcher counts attempts and raises on the first, so the
+    # first connection fails and the second is the one that must still run.
+    Net::HTTP.any_instance.stubs(:request).with do |_req|
+      attempts << 1
+      raise Errno::ECONNREFUSED if attempts.length == 1
+
+      true
+    end.returns(created_response)
+
+    issue = nil
+    with_settings plugin_redmine_gtt_fiware: EMISSION_SETTINGS do
+      assert_nothing_raised do
+        issue = build_issue
+        issue.save!
+      end
+    end
+    assert issue.persisted?
+    assert_equal 2, attempts.length, 'the second connection must still be attempted'
+  end
 end

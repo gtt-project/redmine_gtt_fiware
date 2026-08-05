@@ -204,6 +204,96 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     assert_equal 'sub-777', @template.reload.subscription_id
   end
 
+  # --- server-side publish/unpublish failure matrix -------------------------
+  # The sync action has one of these for every failure shape; publish and
+  # unpublish get the same treatment. In every case the local subscription_id
+  # must not change and the response must carry the error message header.
+
+  def stored_template
+    connection = BrokerConnection.create!(
+      name: "Failure broker #{SecureRandom.hex(2)}", standard: 'NGSIv2',
+      url: 'https://broker.example.com', auth_mode: 'stored', auth_token: 'tok'
+    )
+    @template.update_column(:broker_connection_id, connection.id)
+    @template
+  end
+
+  def error_message_header
+    response.headers['X-Redmine-Message']
+  end
+
+  def test_publish_reports_a_broker_error_and_stores_no_id
+    stored_template
+    error = Net::HTTPBadRequest.new('1.1', '400', 'Bad Request')
+    error.stubs(:body).returns('{"error":"BadRequest"}')
+    Net::HTTP.any_instance.stubs(:request).returns(error)
+
+    post :publish, params: { project_id: @project.id, id: @template.id }, xhr: true
+    assert_response :success
+    assert_equal I18n.t(:general_action_error), error_message_header
+    assert_nil @template.reload.subscription_id
+  end
+
+  def test_publish_reports_a_missing_location_header_and_stores_no_id
+    stored_template
+    created = Net::HTTPCreated.new('1.1', '201', 'Created')
+    Net::HTTP.any_instance.stubs(:request).returns(created)
+
+    post :publish, params: { project_id: @project.id, id: @template.id }, xhr: true
+    assert_response :success
+    assert_equal I18n.t(:general_action_error), error_message_header
+    assert_nil @template.reload.subscription_id
+  end
+
+  def test_publish_reports_a_network_failure_and_stores_no_id
+    stored_template
+    Net::HTTP.any_instance.stubs(:request).raises(Errno::ECONNREFUSED)
+
+    post :publish, params: { project_id: @project.id, id: @template.id }, xhr: true
+    assert_response :success
+    assert_equal I18n.t(:general_action_error), error_message_header
+    assert_nil @template.reload.subscription_id
+  end
+
+  def test_unpublish_server_side_clears_the_id_on_204
+    stored_template.update_column(:subscription_id, 'sub-gone')
+    no_content = Net::HTTPNoContent.new('1.1', '204', 'No Content')
+    Net::HTTP.any_instance.stubs(:request).returns(no_content)
+
+    post :unpublish, params: { project_id: @project.id, id: @template.id }, xhr: true
+    assert_response :success
+    assert_equal I18n.t(:subscription_unpublished), error_message_header
+    assert_nil @template.reload.subscription_id
+  end
+
+  def test_unpublish_keeps_the_id_when_the_broker_errors
+    stored_template.update_column(:subscription_id, 'sub-stays')
+    error = Net::HTTPInternalServerError.new('1.1', '500', 'Internal Server Error')
+    error.stubs(:body).returns('boom')
+    Net::HTTP.any_instance.stubs(:request).returns(error)
+
+    post :unpublish, params: { project_id: @project.id, id: @template.id }, xhr: true
+    assert_response :success
+    assert_equal I18n.t(:general_action_error), error_message_header
+    assert_equal 'sub-stays', @template.reload.subscription_id
+  end
+
+  # Proxied mode relays a browser-supplied token; without the header token
+  # the broker is never called.
+  def test_proxied_publish_without_a_header_token_is_an_error
+    connection = BrokerConnection.create!(
+      name: 'Proxied broker', standard: 'NGSIv2',
+      url: 'https://broker.example.com', auth_mode: 'proxied'
+    )
+    @template.update_column(:broker_connection_id, connection.id)
+    Net::HTTP.any_instance.expects(:request).never
+
+    post :publish, params: { project_id: @project.id, id: @template.id }, xhr: true
+    assert_response :success
+    assert_equal I18n.t(:subscription_unauthorized_error), error_message_header
+    assert_nil @template.reload.subscription_id
+  end
+
   # A connection with a custom token header (#99) sends the raw token in that
   # header instead of Authorization: Bearer (API-key brokers like GeonicDB).
   def test_publish_uses_the_connection_token_header
@@ -584,6 +674,31 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     post :preview, params: preview_params
     assert_response :unprocessable_entity
     assert_includes JSON.parse(response.body)['error'], '401'
+  end
+
+  # A broker answering 200 with a body that is not JSON is an error, not a
+  # 500 from the parse.
+  def test_preview_reports_an_unparsable_broker_body
+    response_stub = Net::HTTPOK.new('1.1', '200', 'OK')
+    response_stub.stubs(:body).returns('<html>gateway error page</html>')
+    Net::HTTP.any_instance.stubs(:request).returns(response_stub)
+
+    post :preview, params: preview_params
+    assert_response :unprocessable_entity
+    assert JSON.parse(response.body)['error'].present?
+  end
+
+  # authorize guards every action here; preview matters most because it
+  # makes outbound broker calls with stored tokens.
+  def test_actions_are_denied_without_the_permission
+    Role.find(1).remove_permission!(:manage_subscription_templates)
+
+    post :preview, params: preview_params
+    assert_response :forbidden
+
+    Net::HTTP.any_instance.expects(:request).never
+    post :publish, params: { project_id: @project.id, id: @template.id }, xhr: true
+    assert_response :forbidden
   end
 
   def test_preview_requires_a_connection_and_an_entity_type
