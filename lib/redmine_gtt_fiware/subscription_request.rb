@@ -68,6 +68,18 @@ module RedmineGttFiware
       raise NotImplementedError
     end
 
+    # Both standards want subscription expiry as an ISO 8601 UTC timestamp
+    # ("YYYY-MM-DDThh:mm:ssZ", CIM 009 clause 4.6.3; Orion: "in ISO8601
+    # format"). A raw TimeWithZone in the payload would be serialized by
+    # JSON.generate as its to_s ("2026-08-05 12:00:00 UTC"), which brokers
+    # reject; an offset-local iso8601 deviates from the mandated UTC form.
+    def expires_utc
+      return nil if @template.expires.blank?
+
+      time = @template.expires
+      time.respond_to?(:utc) ? time.utc.iso8601 : time.to_s
+    end
+
     # Plain appends, not URI.join with an absolute path: joining "/fiware/..."
     # discards any path in the base, which breaks sub-URI deployments
     # (Setting.host_name may legitimately be "example.com/redmine", #101).

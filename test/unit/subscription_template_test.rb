@@ -375,6 +375,72 @@ class SubscriptionTemplateTest < ActiveSupport::TestCase
     assert_not template.valid_webhook_secret?(nil)
   end
 
+  # --- standard-specific validation ------------------------------------------
+  # The NGSI-LD EntitySelector is stricter than NGSIv2's: type required, id a
+  # URI, no typePattern. A selector only NGSIv2 accepts must fail at save
+  # time with a clear message, not at publish time with an opaque broker 400.
+
+  def ld_connection
+    @ld_connection ||= BrokerConnection.create!(
+      name: 'LD validation broker', standard: 'NGSI-LD',
+      url: 'https://broker.example.com', auth_mode: 'browser',
+      context: 'https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld'
+    )
+  end
+
+  def test_ld_entity_selectors_require_a_type
+    template = SubscriptionTemplate.new(valid_attributes(
+      broker_connection_id: ld_connection.id, entities_string: '[{"idPattern": ".*"}]'
+    ))
+    assert_not template.valid?
+    assert template.errors[:entities_string].any?
+  end
+
+  def test_ld_entity_selectors_reject_type_pattern
+    template = SubscriptionTemplate.new(valid_attributes(
+      broker_connection_id: ld_connection.id,
+      entities_string: '[{"typePattern": "Temp.*"}]'
+    ))
+    assert_not template.valid?
+    assert template.errors[:entities_string].any?
+  end
+
+  def test_ld_entity_selectors_require_uri_ids
+    template = SubscriptionTemplate.new(valid_attributes(
+      broker_connection_id: ld_connection.id,
+      entities_string: '[{"type": "Sensor", "id": "not a uri"}]'
+    ))
+    assert_not template.valid?
+    assert template.errors[:entities_string].any?
+
+    template = SubscriptionTemplate.new(valid_attributes(
+      broker_connection_id: ld_connection.id,
+      entities_string: '[{"type": "Sensor", "id": "urn:ngsi-ld:Sensor:001"}]'
+    ))
+    assert template.valid?, template.errors.full_messages.join(', ')
+  end
+
+  def test_v2_entity_selectors_stay_permissive
+    template = SubscriptionTemplate.new(valid_attributes(entities_string: '[{"idPattern": ".*"}]'))
+    assert template.valid?, template.errors.full_messages.join(', ')
+  end
+
+  # oneshot is NGSIv2 only; published to an LD broker it would become a
+  # paused subscription that never fires. The form hides the option, this
+  # covers the API and direct writes.
+  def test_oneshot_is_rejected_on_an_ngsi_ld_connection
+    template = SubscriptionTemplate.new(valid_attributes(
+      broker_connection_id: ld_connection.id,
+      entities_string: '[{"type": "Sensor"}]',
+      status: 'oneshot'
+    ))
+    assert_not template.valid?
+    assert template.errors[:status].any?
+
+    template.status = 'active'
+    assert template.valid?, template.errors.full_messages.join(', ')
+  end
+
   # --- project scoping -------------------------------------------------------
   # The member is the sharpest edge: the webhook acts as the member's user,
   # so a foreign member_id would author issues as a user from an unrelated

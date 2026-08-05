@@ -32,8 +32,10 @@ module RedmineGttFiware
           status: @template.status
         }
 
-        payload[:id] = @template.subscription_id if @template.subscription_id.present?
-        payload[:expires] = @template.expires if @template.expires.present?
+        # No payload[:id]: NGSIv2 subscription ids are broker-assigned
+        # ("Automatically created at creation time"), and Orion rejects a
+        # client-supplied one on POST. (NGSI-LD allows it; see NgsiLd.)
+        payload[:expires] = expires_utc if @template.expires.present?
 
         condition = payload[:subject][:condition]
         condition[:expression] = expression if expression.present?
