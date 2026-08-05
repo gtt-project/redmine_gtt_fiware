@@ -34,10 +34,12 @@ module RedmineGttFiware
           description: @template.name,
           entities: @template.entities,
           notification: notification,
-          isActive: @template.status == 'active',
-          throttling: @throttling
+          isActive: @template.status == 'active'
         }
 
+        # CIM 009 requires throttling "greater than 0"; 0 means "no
+        # throttling" in this plugin and is expressed by omitting the field.
+        payload[:throttling] = @throttling if @throttling.to_i.positive?
         payload[:id] = @template.subscription_id if @template.subscription_id.present?
         payload['@context'] = ld_context if ld_context
         payload[:watchedAttributes] = parsed_attrs if parsed_attrs.present?
@@ -45,7 +47,8 @@ module RedmineGttFiware
         payload[:geoQ] = geo_q if geo_q
         triggers = @template.notification_triggers
         payload[:notificationTrigger] = triggers if triggers.present?
-        payload[:expiresAt] = expires_at if expires_at
+        expires = expires_utc
+        payload[:expiresAt] = expires if expires
 
         payload
       end
@@ -64,6 +67,15 @@ module RedmineGttFiware
         }
       end
 
+      # The stored geo filter uses NGSIv2 syntax (the form and the Area
+      # picker write it, and it predates LD support): georel `coveredBy`,
+      # near modifiers with `:`, and coordinates as "lat,lon;lat,lon" pairs.
+      # NGSI-LD (CIM 009 clause 4.10 / Table 5.2.13-1) has no coveredBy
+      # (within is the equivalent), near modifiers use `==`, and coordinates
+      # are a GeoJSON coordinates array in lon,lat order. Translate here so
+      # the same stored triple publishes correctly to both standards.
+      GEOREL_MAP = { 'coveredBy' => 'within' }.freeze
+
       def geo_q
         return nil unless @template.expression_georel.present? &&
                           @template.expression_geometry.present? &&
@@ -71,10 +83,46 @@ module RedmineGttFiware
 
         geometry = @template.expression_geometry
         {
-          georel: @template.expression_georel,
+          georel: ld_georel(@template.expression_georel),
           geometry: GEOMETRY_TYPE_MAP.fetch(geometry, geometry),
-          coordinates: @template.expression_coords
+          coordinates: ld_coordinates(@template.expression_coords, geometry)
         }
+      end
+
+      def ld_georel(georel)
+        base, modifier = georel.to_s.split(';', 2)
+        base = GEOREL_MAP.fetch(base, base)
+        return base if modifier.nil?
+
+        "#{base};#{modifier.sub(/\A(maxDistance|minDistance):/, '\1==')}"
+      end
+
+      # v2 pair syntax converts to the GeoJSON nesting for the geometry
+      # type; anything else (including box, which NGSI-LD does not have)
+      # passes through verbatim so the broker reports it instead of the
+      # plugin guessing.
+      def ld_coordinates(coords, geometry)
+        pairs = v2_coordinate_pairs(coords)
+        return coords if pairs.nil?
+
+        case geometry
+        when 'point' then pairs.first
+        when 'line' then pairs
+        when 'polygon' then [pairs]
+        else coords
+        end
+      end
+
+      # "lat1,lon1;lat2,lon2" (the v2/Orion order) as [[lon, lat], ...]
+      # (GeoJSON order), or nil when the string is not that syntax.
+      def v2_coordinate_pairs(coords)
+        number = /\A-?\d+(\.\d+)?\z/
+        coords.to_s.strip.split(';').map do |pair|
+          lat, lon, extra = pair.split(',').map(&:strip)
+          return nil unless extra.nil? && lat&.match?(number) && lon&.match?(number)
+
+          [Float(lon), Float(lat)]
+        end.presence
       end
 
       # @context may be a single URL or a JSON array/object of contexts. Parse
@@ -97,11 +145,6 @@ module RedmineGttFiware
         nil
       end
 
-      def expires_at
-        return nil if @template.expires.blank?
-
-        @template.expires.respond_to?(:iso8601) ? @template.expires.iso8601 : @template.expires.to_s
-      end
     end
   end
 end

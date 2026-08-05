@@ -219,6 +219,70 @@ class SubscriptionRequestTest < ActiveSupport::TestCase
     assert_nil geo_q['coords']
   end
 
+  # The stored geo triple uses NGSIv2 syntax (the Area picker writes
+  # coveredBy + "lat,lon;..." pairs). NGSI-LD has no coveredBy (within is
+  # the equivalent), near modifiers use ==, and coordinates are a GeoJSON
+  # array in lon,lat order; the builder translates.
+  def test_ngsi_ld_translates_a_v2_style_boundary_triple
+    p = payload('NGSI-LD',
+                expression_georel: 'coveredBy',
+                expression_geometry: 'polygon',
+                expression_coords: '35.0,135.0;35.0,136.0;36.0,136.0;35.0,135.0')
+    geo_q = p['geoQ']
+    assert_equal 'within', geo_q['georel']
+    assert_equal 'Polygon', geo_q['geometry']
+    assert_equal [[[135.0, 35.0], [136.0, 35.0], [136.0, 36.0], [135.0, 35.0]]],
+                 geo_q['coordinates']
+  end
+
+  def test_ngsi_ld_translates_a_v2_style_near_point
+    p = payload('NGSI-LD',
+                expression_georel: 'near;maxDistance:2000',
+                expression_geometry: 'point',
+                expression_coords: '35.68,139.69')
+    geo_q = p['geoQ']
+    assert_equal 'near;maxDistance==2000', geo_q['georel']
+    assert_equal [139.69, 35.68], geo_q['coordinates']
+  end
+
+  # The same stored triple stays untouched for NGSIv2 (Orion wants exactly
+  # this syntax).
+  def test_ngsi_v2_keeps_the_boundary_triple_verbatim
+    p = payload('NGSIv2',
+                expression_georel: 'coveredBy',
+                expression_geometry: 'polygon',
+                expression_coords: '35.0,135.0;35.0,136.0;36.0,136.0;35.0,135.0')
+    expression = p.dig('subject', 'condition', 'expression')
+    assert_equal 'coveredBy', expression['georel']
+    assert_equal '35.0,135.0;35.0,136.0;36.0,136.0;35.0,135.0', expression['coords']
+  end
+
+  # Expiry must be an ISO 8601 UTC timestamp in both standards; a raw
+  # TimeWithZone serialized through JSON.generate is "2026-01-01 00:00:00
+  # +0900", which brokers reject.
+  def test_expires_is_iso8601_utc_in_both_standards
+    time = Time.utc(2027, 1, 2, 3, 4, 5)
+    assert_equal '2027-01-02T03:04:05Z', payload('NGSIv2', expires: time)['expires']
+    assert_equal '2027-01-02T03:04:05Z', payload('NGSI-LD', expires: time)['expiresAt']
+  end
+
+  # CIM 009 requires throttling > 0; "no throttling" (0) is expressed by
+  # omitting the field. NGSIv2/Orion accepts 0.
+  def test_ngsi_ld_omits_zero_throttling
+    builder = RedmineGttFiware::SubscriptionRequest.build(template('NGSI-LD'), base_url: BASE_URL, throttling: 0)
+    assert_not JSON.parse(builder.to_json).key?('throttling')
+    assert_equal 0, JSON.parse(RedmineGttFiware::SubscriptionRequest.build(template('NGSIv2'), base_url: BASE_URL, throttling: 0).to_json)['throttling']
+  end
+
+  # NGSIv2 subscription ids are broker-assigned; Orion rejects a
+  # client-supplied id on POST. NGSI-LD allows one.
+  def test_only_ngsi_ld_carries_a_client_supplied_id
+    v2 = payload('NGSIv2', subscription_id: 'sub-1')
+    assert_not v2.key?('id')
+    ld = payload('NGSI-LD', subscription_id: 'urn:ngsi-ld:Subscription:1')
+    assert_equal 'urn:ngsi-ld:Subscription:1', ld['id']
+  end
+
   def test_ngsi_ld_maps_line_and_polygon_geometry_names
     line = payload('NGSI-LD', expression_georel: 'intersects', expression_geometry: 'line', expression_coords: '[[0,0],[1,1]]')
     assert_equal 'LineString', line.dig('geoQ', 'geometry')

@@ -83,6 +83,11 @@ class SubscriptionTemplate < ApplicationRecord
   }.freeze
 
   validates :status, inclusion: { in: STATUS, message: :invalid_status }
+  # oneshot is an NGSIv2/Orion status; NGSI-LD has none (CIM 009 Table
+  # 5.2.12-2), and publishing it as isActive: false would silently create a
+  # subscription that never fires. The form hides the option for LD
+  # connections; this covers the API and direct writes.
+  validate :oneshot_only_on_ngsi_v2
   validates :federation_policy, inclusion: { in: FEDERATION_POLICIES }
   validates :throttling, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
   validates :expression_geometry, inclusion: { in: GEOMETRIES, message: :invalid_geometry }, allow_blank: true
@@ -237,9 +242,37 @@ class SubscriptionTemplate < ApplicationRecord
       errors.add :entities_string, I18n.t('model.subscription_template.must_be_valid_array_of_objects')
       return
     end
+    validate_ld_entity_selectors(parsed) if ngsi_ld?
+    return if errors[:entities_string].any?
+
     self.entities = parsed
   rescue JSON::ParserError
     errors.add :entities_string, I18n.t(:error_invalid_json)
+  end
+
+  # The NGSI-LD EntitySelector (CIM 009 Table 5.2.33-1) is stricter than the
+  # NGSIv2 one: type is required, id must be a URI, and typePattern does not
+  # exist. A selector that only NGSIv2 accepts must fail here with a clear
+  # message, not at publish time with an opaque broker 400.
+  def validate_ld_entity_selectors(selectors)
+    selectors.each do |selector|
+      if selector['type'].to_s.strip.empty?
+        errors.add :entities_string, I18n.t('model.subscription_template.ld_entities_require_type')
+      end
+      if selector.key?('typePattern')
+        errors.add :entities_string, I18n.t('model.subscription_template.ld_entities_no_type_pattern')
+      end
+      if selector.key?('id') && !selector['id'].to_s.match?(/\A\S+:\S+\z/)
+        errors.add :entities_string, I18n.t('model.subscription_template.ld_entities_id_must_be_uri')
+      end
+    end
+    errors[:entities_string].uniq!
+  end
+
+  def oneshot_only_on_ngsi_v2
+    return unless status == 'oneshot' && ngsi_ld?
+
+    errors.add :status, I18n.t('model.subscription_template.oneshot_is_ngsi_v2_only')
   end
 
   def take_json_geometry

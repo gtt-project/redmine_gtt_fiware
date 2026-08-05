@@ -257,6 +257,10 @@ en:
         invalid_subtype: "must be a JSON-LD term: letters and digits, starting with a letter"
   model:
     subscription_template:
+      ld_entities_require_type: "each NGSI-LD entity selector needs a \"type\""
+      ld_entities_no_type_pattern: "\"typePattern\" is NGSIv2 only; NGSI-LD selects by \"type\""
+      ld_entities_id_must_be_uri: "NGSI-LD entity ids must be URIs (for example urn:ngsi-ld:Sensor:001)"
+      oneshot_is_ngsi_v2_only: "oneshot is NGSIv2 only; NGSI-LD subscriptions have no one-time mode"
       attrs_must_be_array_of_strings: "Attributes must be an array of strings"
       must_be_valid_array_of_objects: "must be a valid array of objects"
       geo_query_fields_must_be_all_or_none: "All geo query fields (Georel, Geometry,
