@@ -5,10 +5,8 @@ class BrokerConnectionsController < ApplicationController
   layout 'admin'
   self.main_menu = false
 
-  # Redmine's ApplicationController already enables forgery protection; this
-  # explicit call makes it visible to static analysis (CodeQL cannot see the
-  # parent class, which lives outside the plugin repository) and pins the
-  # strategy to :exception for this admin-only form controller.
+  # See SubscriptionIssuesController: the explicit declaration keeps the
+  # framework-default forgery protection visible to static analysis.
   protect_from_forgery with: :exception
 
   before_action :require_admin
