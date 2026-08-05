@@ -752,4 +752,18 @@ class SubscriptionTemplatesControllerTest < ActionController::TestCase
     assert_response :success
     assert_equal 'urn:sub:123', @template.reload.subscription_id
   end
+
+  # An unknown template id answers a JSON 404, not an unrescued
+  # RecordNotFound (the caller is broker-side tooling expecting JSON).
+  def test_set_subscription_id_for_an_unknown_template_is_a_json_404
+    @request.session[:user_id] = nil
+    with_settings rest_api_enabled: '1' do
+      post :set_subscription_id, params: {
+        subscription_template_id: 987_654, subscription_id: 'urn:sub:123',
+        key: User.find(2).api_key, format: :json
+      }
+    end
+    assert_response :not_found
+    assert JSON.parse(response.body).key?('error')
+  end
 end
