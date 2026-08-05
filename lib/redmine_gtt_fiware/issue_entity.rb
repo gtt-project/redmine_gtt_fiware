@@ -9,7 +9,7 @@ module RedmineGttFiware
     # Stable across any reconfiguration (subtype renames never change ids);
     # the federation keystone (#70).
     def self.urn(issue)
-      "urn:ngsi-ld:Issue:redmine:#{Emitter.instance_id}:#{issue.id}"
+      IssueUrn.build(issue)
     end
 
     # mapping may be nil for pull-side rendering (#4): the representation is

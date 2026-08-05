@@ -79,7 +79,7 @@ module RedmineGttFiware
     # as foreign too: someone else works on it, whoever they are.
     def sibling(entity)
       urn = entity['id'].to_s
-      org = urn[%r{\Aurn:ngsi-ld:Issue:redmine:([^:]+):}, 1]
+      org = IssueUrn.instance_of(urn)
       return nil if org.present? && org == Emitter.instance_id
 
       Sibling.new(

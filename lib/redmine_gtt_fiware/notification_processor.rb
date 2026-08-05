@@ -133,7 +133,7 @@ module RedmineGttFiware
       refers_to = entity.attributes.dig('refersTo', 'value').to_s
       return Result.new(federated: 0) if refers_to.blank?
 
-      org = entity.id.to_s[%r{\Aurn:ngsi-ld:Issue:redmine:([^:]+):}, 1] || 'external'
+      org = IssueUrn.instance_of(entity.id) || 'external'
       status = entity.attributes.dig('status', 'value').to_s
       status_label = entity.attributes.dig('statusLabel', 'value').to_s
       # The label wins when it only differs from the normalized status by
@@ -161,8 +161,7 @@ module RedmineGttFiware
     # The 4c echo guard: our own emitted work orders come back through a
     # watch subscription on the same tenant and must be ignored.
     def own_emission?(entity)
-      instance = Emitter.instance_id
-      instance.present? && entity.id.to_s.start_with?("urn:ngsi-ld:Issue:redmine:#{instance}:")
+      IssueUrn.own?(entity.id)
     end
 
     # Only when the policy asks for it, and never fatally: sibling lookup
