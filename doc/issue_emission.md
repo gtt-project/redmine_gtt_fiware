@@ -77,6 +77,8 @@ them. For federation, configure the host name.
 ## Issues as NGSI-LD on demand
 
 Every issue is also available as an NGSI-LD entity at
-`GET /fiware/issues/<id>/entity` (session or API key). The issue page links to
-it from its "Also available in" list, next to PDF and Atom. This returns the
-same representation the emitter publishes.
+`GET /fiware/issues/<id>/entity` (session or API key). Like emission itself,
+this needs the instance identifier to be set; without it the endpoint answers
+404 and the link is not shown. The issue page links to it from its
+"Also available in" list, next to PDF and Atom. This returns the same
+representation the emitter publishes.

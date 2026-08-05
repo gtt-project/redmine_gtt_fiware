@@ -81,8 +81,10 @@ podman run -d --name orion-v2 --network <redmine-network> -p 1026:1026 \
    token — an open broker also verifies the token-less stored path).
 2. Create a template with a query filter (e.g. `severity>3`) and geometry
    "Entity location", then publish it. The notification callback URL must be
-   reachable **from the Orion container** (see #101: the URL is built from the
-   publishing request's host, so publish from a host/alias Orion can resolve).
+   reachable **from the Orion container**. The URL is built from
+   Administration > Settings > Host name; when no host name is configured it
+   falls back to the publishing request's host, so make sure whichever
+   applies resolves from inside the Orion container.
 3. Three-phase filter test — create an entity below the threshold, update it
    to the boundary, then past it:
 

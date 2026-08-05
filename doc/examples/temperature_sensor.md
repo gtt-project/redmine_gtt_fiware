@@ -13,7 +13,7 @@ following minimal settings:
 | Field             | Value                                                     |
 |-------------------|-----------------------------------------------------------|
 | **Name**    | `Temperature Alert > 30°C`                                      |
-| **Broker URL** | `your_broker_url` (e.g., `http://127.0.0.1:1026`)            |
+| **Connection** | select the FIWARE Connection for your broker (an administrator creates these, see [broker_connections.md](../broker_connections.md)) |
 
 ### Subscription Settings
 
