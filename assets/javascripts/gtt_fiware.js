@@ -1,15 +1,21 @@
-function showNotification(message) {
-  // Get the notification box
-  var notification = document.getElementById('temporaryNotification');
+/* Shared page helpers, loaded on every page via the layout hook.
+ *
+ * showNotification is a deliberate global: the publish/unpublish/copy/sync
+ * js.erb responses and the subscription list call it by name. It writes to
+ * the #temporaryNotification box the list view renders; on pages without
+ * that box the call is a no-op rather than a TypeError.
+ */
+(function() {
+  'use strict';
 
-  // Change the text of the notification box
-  notification.textContent = message;
+  window.showNotification = function(message) {
+    var notification = document.getElementById('temporaryNotification');
+    if (!notification) { return; }
 
-  // Show the notification box
-  notification.classList.add('visible');
-
-  // Hide the notification box after 3 seconds
-  setTimeout(function() {
-    notification.classList.remove('visible');
-  }, 3000);
-}
+    notification.textContent = message;
+    notification.classList.add('visible');
+    setTimeout(function() {
+      notification.classList.remove('visible');
+    }, 3000);
+  };
+})();

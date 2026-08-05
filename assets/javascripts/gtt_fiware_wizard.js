@@ -58,7 +58,7 @@
         li.classList.toggle('active', Number(li.dataset.step) === step);
       });
       var activeItem = nav.querySelector('li[data-step="' + step + '"]');
-      help.textContent = activeItem ? activeItem.dataset.help : '';
+      if (help) { help.textContent = activeItem ? activeItem.dataset.help : ''; }
       back.disabled = step === 1;
       next.style.display = step === TOTAL_STEPS ? 'none' : '';
       // The preview result manages its own visibility (the preview button

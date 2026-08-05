@@ -2,7 +2,7 @@
 // field, hides the rows, and switching back restores the picker.
 
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { buildForm, initForm, loadScript } from './support/form_fixture.js';
+import { buildForm, initForm, loadScript, submitForm } from './support/form_fixture.js';
 
 beforeAll(loadScript);
 
@@ -33,12 +33,39 @@ describe('entities JSON mode', () => {
     expect(rows.style.display).toBe('');
   });
 
-  it('does not overwrite hand-edited JSON when toggling back and forth', () => {
+  it('rebuilds the rows from hand-edited JSON when toggling back', () => {
+    toggle('entities');
+    const field = document.getElementById('subscription_template_entities_string');
+    field.value = '[{"type":"HandEdited","id":"urn:x:1"}]';
+    toggle('entities');
+    const row = document.querySelector('.gtt-fiware-entity-row');
+    expect(row.querySelector('.js-entity-type').value).toBe('HandEdited');
+    expect(row.querySelector('.js-entity-match-kind').value).toBe('id');
+    expect(row.querySelector('.js-entity-match-value').value).toBe('urn:x:1');
+  });
+
+  // The regression this pins: the field used to survive the toggle-back
+  // only until submit, when the stale rows overwrote it.
+  it('keeps hand-edited JSON through toggle-back and submit', () => {
     toggle('entities');
     const field = document.getElementById('subscription_template_entities_string');
     field.value = '[{"type":"HandEdited"}]';
-    toggle('entities'); // back to rows: serialize skips, JSON mode was on
-    expect(field.value).toBe('[{"type":"HandEdited"}]');
+    toggle('entities');
+    submitForm();
+    expect(JSON.parse(field.value)).toEqual([{ type: 'HandEdited' }]);
+  });
+
+  // JSON the picker cannot show (extra members) must never be replaced by
+  // stale rows: the form refuses to leave JSON mode.
+  it('stays in JSON mode when the JSON is not representable by the picker', () => {
+    toggle('entities');
+    const field = document.getElementById('subscription_template_entities_string');
+    field.value = '[{"type":"Sensor","id":"urn:x:1","extra":"member"}]';
+    toggle('entities');
+    const json = document.getElementById('gtt-fiware-entities-json');
+    expect(json.classList.contains('hidden')).toBe(false);
+    submitForm();
+    expect(field.value).toBe('[{"type":"Sensor","id":"urn:x:1","extra":"member"}]');
   });
 });
 

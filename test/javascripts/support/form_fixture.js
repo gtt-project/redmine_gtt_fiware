@@ -171,6 +171,17 @@ export function buildForm({
         <input type="text" name="subscription_template[issue_custom_field_values][8]" value="" />
       </fieldset>
 
+      <input type="text" id="subscription_template_subject" value="\${type} \${id}" />
+      <textarea id="subscription_template_description">\${attrs.temperature.value}</textarea>
+      <textarea id="subscription_template_notes"></textarea>
+      <a href="#" id="gtt-fiware-preview-button"
+         data-url="/projects/demo/subscription_templates/preview"
+         data-loading="Loading preview..."
+         data-entity-label="Rendered against"
+         data-geometry-label="geometry included"
+         data-error="Preview failed">Preview</a>
+      <div id="gtt-fiware-preview-result" class="box" style="display: none;"></div>
+
       <input type="submit" name="publish_after_create" value="Create and publish" />
     </form>`;
 }
