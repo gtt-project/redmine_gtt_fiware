@@ -23,10 +23,7 @@ module SubscriptionTemplatesHelper
     api.expression_georel template.expression_georel
     api.expression_geometry template.expression_geometry
     api.expression_coords template.expression_coords
-    # alteration_types is an Array after a find but still the serialized
-    # string on a just-saved record (see the model's before_save/after_find),
-    # so it goes through the same tolerant conversion as attrs.
-    api.alteration_types api_json_array(template.alteration_types)
+    api.alteration_types template.alteration_types || []
     api.notify_on_metadata_change template.notify_on_metadata_change
     api.throttling template.throttling
     api.expires template.expires

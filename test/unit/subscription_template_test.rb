@@ -187,14 +187,18 @@ class SubscriptionTemplateTest < ActiveSupport::TestCase
     assert template.valid?, template.errors.full_messages.join(', ')
   end
 
-  # A template saved without alteration types stores nil; later validated
-  # updates (e.g. storing the broker's subscription id after publish) must
-  # still pass. Regression: the inclusion validation used to reject nil on
-  # persisted records, silently breaking the publish flow.
+  # A template saved without alteration types must stay valid across later
+  # updates (e.g. storing the broker's subscription id after publish).
+  # Regression: the inclusion validation used to reject the stored empty
+  # state on persisted records, silently breaking the publish flow.
   def test_persisted_template_without_alteration_types_stays_updatable
     template = SubscriptionTemplate.create!(valid_attributes(alteration_types: []))
     reloaded = SubscriptionTemplate.find(template.id)
-    assert_nil reloaded.alteration_types
+    assert_equal [], reloaded.alteration_types
+    # And the just-saved in-memory instance is usable without a reload: the
+    # old hand-rolled before_save serialization left a JSON string behind
+    # that failed revalidation until the record was reloaded.
+    assert template.valid?, template.errors.full_messages.join(', ')
     assert reloaded.update(subscription_id: 'sub-1'), reloaded.errors.full_messages.join(', ')
   end
 
@@ -247,11 +251,9 @@ class SubscriptionTemplateTest < ActiveSupport::TestCase
   # 'null' is what the picker serializes with no rows: it clears the stored
   # attachments instead of failing validation.
   def test_attachments_string_null_clears_attachments
-    # reload: the just-created instance carries alteration_types in its
-    # serialized (before_save) form, which would fail revalidation.
     template = SubscriptionTemplate.create!(
       valid_attributes(attachments_string: '[{"url": "https://example.com/a.jpg"}]')
-    ).reload
+    )
     assert_equal 1, template.attachments.size
 
     template.attachments_string = 'null'

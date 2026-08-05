@@ -86,11 +86,10 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
   validates :federation_policy, inclusion: { in: FEDERATION_POLICIES }
   validates :throttling, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
   validates :expression_geometry, inclusion: { in: GEOMETRIES, message: I18n.t('model.subscription_template.valid_geometry') }, allow_blank: true
-  # allow_nil: a template saved with no alteration types stores nil (see
-  # serialize_alteration_types), which is valid persisted state - the
-  # builders simply omit the field. Without allow_nil every later validated
-  # update on such a template fails (new records are shielded only by the
-  # after_initialize default).
+  # The jsonb column stores the array natively (older rows were JSON-string
+  # encoded; migration 20260805000000 unwrapped them). allow_nil: nil and []
+  # are both valid "no types chosen" states - the builders omit the field for
+  # either (present? is false for both).
   validates :alteration_types, inclusion: { in: ALTERATION_TYPES, message: I18n.t('model.subscription_template.valid_alteration_types') }, allow_nil: true
 
   validates :name, presence: true
@@ -120,8 +119,6 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
   # (#103): the form hides the selects, but hidden inputs still submit, and
   # the form is not the only writer.
   before_validation :clear_tracker_disabled_fields
-  before_save :serialize_alteration_types
-  after_find :deserialize_alteration_types
 
   def self.generate_webhook_secret
     SecureRandom.hex(WEBHOOK_SECRET_BYTES)
@@ -283,14 +280,6 @@ class SubscriptionTemplate < (defined?(ApplicationRecord) == 'constant' ? Applic
       allowed = tracker.custom_field_ids.map(&:to_s)
       self.issue_custom_field_values = issue_custom_field_values.slice(*allowed)
     end
-  end
-
-  def serialize_alteration_types
-    self.alteration_types = alteration_types.empty? ? nil : alteration_types.to_json if alteration_types.is_a?(Array)
-  end
-
-  def deserialize_alteration_types
-    self.alteration_types = JSON.parse(alteration_types) if alteration_types.is_a?(String)
   end
 
   def attrs_must_be_array_of_strings

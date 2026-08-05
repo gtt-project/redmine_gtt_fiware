@@ -285,10 +285,7 @@ class SubscriptionTemplatesController < ApplicationController
       return
     end
 
-    # Reload: the just-saved instance carries alteration_types in its
-    # serialized (before_save) form, which would fail revalidation on the
-    # subscription-id update after publishing. A fresh load deserializes it.
-    @subscription_template = template.reload
+    @subscription_template = template
     @subscription_template.ensure_webhook_secret!
     @fiware_broker_auth_token = connection.auth_token
     prepare_payload
