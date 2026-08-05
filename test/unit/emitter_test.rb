@@ -58,12 +58,28 @@ class EmitterTest < ActiveSupport::TestCase
     assert_equal 'WorkOrder', body.dig('subtype', 'value')
   end
 
-  # 409 means the entity exists: update its attributes, without the immutable
-  # id/type in the PATCH body.
-  def test_conflict_falls_back_to_a_patch
+  def remote_entity_response(extra_attributes = {})
+    entity = {
+      'id' => 'urn:ngsi-ld:Issue:redmine:test-town:1', 'type' => 'Issue',
+      'title' => { 'type' => 'Property', 'value' => 'Emitted issue' },
+      'createdAt' => '2026-08-01T00:00:00Z', 'modifiedAt' => '2026-08-01T00:00:00Z'
+    }.merge(extra_attributes)
+    response = Net::HTTPOK.new('1.1', '200', 'OK')
+    response.stubs(:body).returns(entity.to_json)
+    response
+  end
+
+  def no_content_response
+    Net::HTTPNoContent.new('1.1', '204', 'No Content')
+  end
+
+  # 409 means the entity exists: read it back, bring its attributes in line
+  # via append (POST ../attrs, which unlike PATCH also lands attributes the
+  # broker did not have yet), without the immutable id/type in the body.
+  def test_conflict_falls_back_to_an_attribute_append
     conflict = Net::HTTPConflict.new('1.1', '409', 'Conflict')
     requests = []
-    responses = [conflict, Net::HTTPNoContent.new('1.1', '204', 'No Content')]
+    responses = [conflict, remote_entity_response, no_content_response]
     Net::HTTP.any_instance.stubs(:request).with { |req| requests << req; true }
              .returns(*responses)
 
@@ -71,13 +87,89 @@ class EmitterTest < ActiveSupport::TestCase
       build_issue.save!
     end
 
-    patch = requests.find { |r| r.is_a?(Net::HTTP::Patch) }
-    assert_not_nil patch, '409 must be followed by a PATCH'
-    assert_match %r{/ngsi-ld/v1/entities/urn:ngsi-ld:Issue:redmine:test-town:\d+/attrs\z}, patch.path
-    body = JSON.parse(patch.body)
+    get = requests.find { |r| r.is_a?(Net::HTTP::Get) }
+    assert_not_nil get, 'the 409 must trigger a read-back of the broker entity'
+    append = requests.find { |r| r.is_a?(Net::HTTP::Post) && r.path.end_with?('/attrs') }
+    assert_not_nil append, '409 must be followed by an attribute append'
+    assert_match %r{/ngsi-ld/v1/entities/urn:ngsi-ld:Issue:redmine:test-town:\d+/attrs\z}, append.path
+    body = JSON.parse(append.body)
     assert_nil body['id']
     assert_nil body['type']
     assert body.key?('status')
+    assert_not requests.any? { |r| r.is_a?(Net::HTTP::Delete) },
+               'nothing was stale, so no attribute must be deleted'
+  end
+
+  # Attributes the broker still has but the current representation no longer
+  # carries are removed with per-attribute DELETEs (#146).
+  def test_conflict_deletes_stale_broker_attributes
+    conflict = Net::HTTPConflict.new('1.1', '409', 'Conflict')
+    remote = remote_entity_response(
+      'assignee' => { 'type' => 'Property', 'value' => 'Former Assignee' },
+      'refersTo' => { 'type' => 'Relationship', 'object' => 'urn:x:gone' }
+    )
+    requests = []
+    responses = [conflict, remote, no_content_response, no_content_response, no_content_response]
+    Net::HTTP.any_instance.stubs(:request).with { |req| requests << req; true }
+             .returns(*responses)
+
+    with_settings plugin_redmine_gtt_fiware: EMISSION_SETTINGS do
+      build_issue.save!
+    end
+
+    deletes = requests.select { |r| r.is_a?(Net::HTTP::Delete) }.map(&:path)
+    assert_equal 2, deletes.length, 'each stale attribute must be deleted individually'
+    assert deletes.any? { |path| path.end_with?('/attrs/assignee') }
+    assert deletes.any? { |path| path.end_with?('/attrs/refersTo') }
+    assert_not deletes.any? { |path| path.include?('/attrs/title') },
+               'attributes the representation still carries must not be deleted'
+  end
+
+  # A stale attribute already gone on the broker (deleted concurrently) is
+  # the desired state, not a failure.
+  def test_stale_attribute_deletion_tolerates_a_404
+    conflict = Net::HTTPConflict.new('1.1', '409', 'Conflict')
+    remote = remote_entity_response('assignee' => { 'type' => 'Property', 'value' => 'x' })
+    not_found = Net::HTTPNotFound.new('1.1', '404', 'Not Found')
+    Net::HTTP.any_instance.stubs(:request)
+             .returns(conflict, remote, no_content_response, not_found)
+
+    with_settings plugin_redmine_gtt_fiware: EMISSION_SETTINGS do
+      Rails.logger.expects(:error).never
+      build_issue.save!
+    end
+  end
+
+  # A failing deletion is reported like any other broker failure.
+  def test_failed_stale_attribute_deletion_is_logged
+    conflict = Net::HTTPConflict.new('1.1', '409', 'Conflict')
+    remote = remote_entity_response('assignee' => { 'type' => 'Property', 'value' => 'x' })
+    Net::HTTP.any_instance.stubs(:request)
+             .returns(conflict, remote, no_content_response, error_response)
+
+    with_settings plugin_redmine_gtt_fiware: EMISSION_SETTINGS do
+      Rails.logger.expects(:error).with { |msg| msg.include?('answered 500') }
+      build_issue.save!
+    end
+  end
+
+  # An unreadable broker entity skips the deletion pass for this run (the
+  # next update gets another chance); the append itself must still happen.
+  def test_conflict_with_a_failed_read_back_still_appends
+    conflict = Net::HTTPConflict.new('1.1', '409', 'Conflict')
+    requests = []
+    responses = [conflict, error_response, no_content_response]
+    Net::HTTP.any_instance.stubs(:request).with { |req| requests << req; true }
+             .returns(*responses)
+
+    with_settings plugin_redmine_gtt_fiware: EMISSION_SETTINGS do
+      Rails.logger.expects(:error).never
+      build_issue.save!
+    end
+
+    assert requests.any? { |r| r.is_a?(Net::HTTP::Post) && r.path.end_with?('/attrs') },
+           'the append must run even when the read-back failed'
+    assert_not requests.any? { |r| r.is_a?(Net::HTTP::Patch) }
   end
 
   def test_issue_destroy_emits_a_delete
@@ -188,11 +280,11 @@ class EmitterTest < ActiveSupport::TestCase
     assert issue.persisted?
   end
 
-  # 409 -> PATCH fallback where the PATCH also fails: the failure of the
-  # second request is the one reported.
-  def test_conflict_then_failed_patch_is_logged
+  # 409 -> append fallback where the append also fails: the failure of the
+  # update request is the one reported.
+  def test_conflict_then_failed_append_is_logged
     conflict = Net::HTTPConflict.new('1.1', '409', 'Conflict')
-    responses = [conflict, error_response]
+    responses = [conflict, remote_entity_response, error_response]
     requests = []
     Net::HTTP.any_instance.stubs(:request).with { |req| requests << req; true }
              .returns(*responses)
@@ -200,7 +292,8 @@ class EmitterTest < ActiveSupport::TestCase
       Rails.logger.expects(:error).with { |msg| msg.include?('answered 500') }
       build_issue.save!
     end
-    assert requests.any? { |r| r.is_a?(Net::HTTP::Patch) }, 'the 409 must trigger the PATCH fallback'
+    assert requests.any? { |r| r.is_a?(Net::HTTP::Post) && r.path.end_with?('/attrs') },
+           'the 409 must trigger the append fallback'
   end
 
   # DELETE answering 404 means "never emitted or already gone": deliberately
