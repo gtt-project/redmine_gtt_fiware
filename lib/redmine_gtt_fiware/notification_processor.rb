@@ -42,7 +42,11 @@ module RedmineGttFiware
     end
 
     # The entity types this plugin emits issues as: Issue in the GTT core
-    # vocabulary, Task in the task vocabulary (#152).
+    # vocabulary, Task in the task vocabulary (#152). Both count as work
+    # orders whichever vocabulary this instance emits: suppressing only its
+    # own type would be loop-free for one instance, but two instances with
+    # different vocabularies watching each other would ping-pong (an Issue
+    # becomes a Task becomes an Issue ...).
     WORK_ORDER_TYPES = %w[Issue Task].freeze
 
     def initialize(template, logger: Rails.logger)

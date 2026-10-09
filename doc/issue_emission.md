@@ -197,6 +197,11 @@ still sent as the `subtype` value but is not defined in the task context.
   `name`, `progress`).
 - [Federation](federation.md) works between instances that use different
   vocabularies, with one extra watch subscription; see there.
+- An issue created from a notified work order, an `Issue` or a `Task`, is
+  not emitted, whichever vocabulary the instance uses. Suppressing only the
+  instance's own type would not loop on one instance, but two instances with
+  different vocabularies that watch each other would pass the same work
+  order back and forth (`Issue` → `Task` → `Issue` …).
 
 ## Issues as NGSI-LD on demand
 
