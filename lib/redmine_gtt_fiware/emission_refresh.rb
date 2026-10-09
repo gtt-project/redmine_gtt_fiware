@@ -36,8 +36,10 @@ module RedmineGttFiware
   # (`progress`, not `https://datamodels.jp/ns/task/progress`) and a deletion
   # by short name hits the right attribute. Without it, every attribute
   # looked stale and was deleted right after the append. A name the broker
-  # still answers as a full IRI (it could not compact it) is never taken as
-  # stale: deleting too little is harmless, deleting too much is not.
+  # did not compact to a term (a full IRI such as https://... or urn:..., or a
+  # prefixed name such as gttfiware:status: anything with a colon, which the
+  # terms we emit never have) is never taken as stale: deleting too little is
+  # harmless, deleting too much is not.
   #
   # One divergence attributes cannot fix: the entity type. An append never
   # changes it, so after the admin switched the emission vocabulary (#152,
@@ -77,11 +79,11 @@ module RedmineGttFiware
     private
 
     # The broker's attribute names minus the current local ones, leaving out
-    # names the broker answered as full IRIs (see the class comment).
+    # names it did not compact to a term (see the class comment).
     def stale_attribute_names(remote)
       return [] if remote.nil?
 
-      (remote.keys - NON_ATTRIBUTE_KEYS - @entity.keys).reject { |name| name.include?('://') }
+      (remote.keys - NON_ATTRIBUTE_KEYS - @entity.keys).reject { |name| name.include?(':') }
     end
 
     # A broker that cannot compact with our context may answer the type as a

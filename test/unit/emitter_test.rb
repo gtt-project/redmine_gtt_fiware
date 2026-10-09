@@ -197,13 +197,15 @@ class EmitterTest < ActiveSupport::TestCase
   end
 
   # A broker that answers expanded names (it did not compact with our
-  # context) must not make every attribute look stale (#156): names it
-  # answers as full IRIs are never deleted.
+  # context) must not make every attribute look stale (#156): full IRIs
+  # (https:, urn:) and prefixed names are never deleted.
   def test_expanded_names_in_the_read_back_are_never_deleted
     conflict = Net::HTTPConflict.new('1.1', '409', 'Conflict')
     remote = remote_entity_response(
       'https://gtt-project.org/ns/fiware#status' => { 'type' => 'Property', 'value' => 'open' },
-      'https://uri.etsi.org/ngsi-ld/default-context/title' => { 'type' => 'Property', 'value' => 'x' }
+      'https://uri.etsi.org/ngsi-ld/default-context/title' => { 'type' => 'Property', 'value' => 'x' },
+      'urn:example:term:assignee' => { 'type' => 'Property', 'value' => 'x' },
+      'gttfiware:category' => { 'type' => 'Property', 'value' => 'x' }
     )
     requests = []
     Net::HTTP.any_instance.stubs(:request).with { |req| requests << req; true }
@@ -215,7 +217,7 @@ class EmitterTest < ActiveSupport::TestCase
     end
 
     assert_not requests.any? { |r| r.is_a?(Net::HTTP::Delete) },
-               'attributes named by full IRIs must not be deleted'
+               'attributes named by IRIs or prefixed names must not be deleted'
   end
 
   # With only the core context there is nothing to send: brokers apply it anyway.
