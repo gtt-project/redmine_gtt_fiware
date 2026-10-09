@@ -180,6 +180,20 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
     assert_response :success
   end
 
+  # The same loop exists with the task vocabulary (#152), where work orders
+  # are Task entities.
+  def test_task_typed_notifications_are_not_emitted_back
+    enable_emission
+    Net::HTTP.any_instance.expects(:request).never
+    with_settings plugin_redmine_gtt_fiware: { 'fiware_instance_id' => 'test-town',
+                                               'fiware_emission_vocabulary' => 'task' } do
+      assert_difference 'Issue.count', 1 do
+        post_notification(entities: [entity('id' => 'urn:ngsi-ld:Issue:redmine:other-org:5', 'type' => 'Task')])
+      end
+    end
+    assert_response :success
+  end
+
   # --- federation awareness (#70, 4a) ----------------------------------------
 
   def sibling(status: 'open')
@@ -290,6 +304,23 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
     note = @local_issue.journals.last.notes
     assert_includes note, 'nexco-east'
     assert_includes note, 'Closed'
+  end
+
+  # A work order of an instance emitting the task vocabulary (#152) carries
+  # progress instead of status; it reads as the same open/closed.
+  def test_watch_journals_the_progress_of_a_foreign_task
+    watch_setup
+    task = foreign_work_order.except('status').merge(
+      'type' => 'Task',
+      'progress' => { 'type' => 'Property', 'value' => 'completed' },
+      'statusLabel' => { 'type' => 'Property', 'value' => 'Done' }
+    )
+    post_notification(entities: [task])
+    assert_response :success
+    assert_equal 1, JSON.parse(response.body)['federated']
+    note = @local_issue.journals.last.notes
+    assert_includes note, 'nexco-east'
+    assert_includes note, 'Done / closed'
   end
 
   # One note per state: the same status arriving again adds nothing.

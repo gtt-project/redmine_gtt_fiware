@@ -3,6 +3,9 @@ module RedmineGttFiware
   #
   #   urn:ngsi-ld:Issue:redmine:<instance identifier>:<issue id>
   #
+  # Task entities of the task vocabulary (#152) keep this id too: switching
+  # the emission vocabulary never re-identifies an entity.
+  #
   # This is wire protocol shared between federating instances, so building
   # and parsing live here in one place: a format change that misses a call
   # site silently breaks the emission echo guard or the organization

@@ -119,4 +119,80 @@ class FiwareContextsControllerTest < ActionController::TestCase
       assert_equal 'http://test.host/fiware/vocab#', body['@context']['inst']
     end
   end
+
+  # --- the task vocabulary context (#152) -------------------------------------
+
+  def test_task_context_is_public
+    @request.session[:user_id] = nil
+    with_settings login_required: '1' do
+      get :task_context
+      assert_response :success
+      assert_equal 'application/ld+json', response.media_type
+    end
+  end
+
+  # The task terms come from GTT's extension context, imported first; the
+  # inline object adds only instance terms under the instance namespace.
+  def test_task_context_imports_the_gtt_task_extension
+    with_settings host_name: 'redmine.public.example', protocol: 'https' do
+      get :task_context
+    end
+    context = JSON.parse(response.body)['@context']
+    assert_kind_of Array, context
+    assert_equal 'https://gtt-project.org/ns/fiware-task.jsonld', context.first
+    inline = context.last
+    assert_equal 'https://redmine.public.example/fiware/vocab#', inline['inst']
+    # No GTT core term is defined here: the instance emits task terms.
+    %w[Issue title status gttfiware].each { |term| assert_not inline.key?(term), term }
+  end
+
+  def test_task_context_declares_subtypes_subclasses_of_task
+    EmissionMapping.create!(broker_connection: @connection, tracker: Tracker.find(1), subtype: 'WorkOrder')
+
+    get :task_context
+    body = JSON.parse(response.body)
+    assert_equal 'inst:WorkOrder', body['@context'].last['WorkOrder']
+    work_order = body['@graph'].detect { |node| node['@id'] == 'inst:WorkOrder' }
+    assert_equal 'https://datamodels.jp/ns/task/Task', work_order.dig('rdfs:subClassOf', '@id')
+    assert_includes work_order['rdfs:label'], Tracker.find(1).name
+  end
+
+  def test_task_context_publishes_custom_field_terms
+    custom_field = IssueCustomField.create!(name: 'Road surface', field_format: 'string',
+                                            is_for_all: true, trackers: Tracker.all)
+    mapping = EmissionMapping.create!(broker_connection: @connection, tracker: Tracker.find(1), subtype: 'WorkOrder')
+    mapping.exposed_custom_fields = { custom_field.id => 'roadSurface' }
+    mapping.save!
+
+    get :task_context
+    body = JSON.parse(response.body)
+    assert_equal 'inst:roadSurface', body['@context'].last['roadSurface']
+    assert body['@graph'].any? { |node| node['@id'] == 'inst:roadSurface' && node['@type'] == 'rdf:Property' }
+  end
+
+  # Rows saved while the instance emitted the GTT vocabulary may use a term
+  # the task vocabulary defines; the published task context never redefines
+  # it.
+  def test_task_context_never_redefines_task_terms
+    custom_field = IssueCustomField.create!(name: 'Deadline note', field_format: 'string',
+                                            is_for_all: true, trackers: Tracker.all)
+    mapping = EmissionMapping.create!(broker_connection: @connection, tracker: Tracker.find(1), subtype: 'Project')
+    mapping.exposed_custom_fields = { custom_field.id => 'due' }
+    mapping.save!
+
+    get :task_context
+    inline = JSON.parse(response.body)['@context'].last
+    assert_not inline.key?('Project')
+    assert_not inline.key?('due')
+  end
+
+  # The GTT context stays exactly as it was, whichever vocabulary is chosen.
+  def test_gtt_context_is_unchanged_in_task_mode
+    get :show
+    gtt = JSON.parse(response.body)
+    with_settings plugin_redmine_gtt_fiware: { 'fiware_emission_vocabulary' => 'task' } do
+      get :show
+    end
+    assert_equal gtt, JSON.parse(response.body)
+  end
 end

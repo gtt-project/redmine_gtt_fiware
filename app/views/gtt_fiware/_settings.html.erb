@@ -12,6 +12,20 @@
   <em class="info"><%= l(:text_fiware_instance_id_info) %></em>
 </p>
 
+<%# The emission vocabulary (#152): gtt, the frozen core, stays the default
+    so existing instances emit exactly what they did before. %>
+<p>
+  <%= content_tag(:label, l(:field_fiware_emission_vocabulary),
+                  for: 'settings_fiware_emission_vocabulary') %>
+  <%= select_tag 'settings[fiware_emission_vocabulary]',
+    options_for_select(
+      [[l(:label_fiware_emission_vocabulary_gtt), RedmineGttFiware::EmissionVocabulary::GTT],
+       [l(:label_fiware_emission_vocabulary_task), RedmineGttFiware::EmissionVocabulary::TASK]],
+      RedmineGttFiware::EmissionVocabulary.current),
+    id: 'settings_fiware_emission_vocabulary' %>
+  <em class="info"><%= l(:text_fiware_emission_vocabulary_info) %></em>
+</p>
+
 <h3><%= l(:gtt_fiware_settings_attachment_download) %></h3>
 
 <p>

@@ -2,8 +2,8 @@
 
 Since version 3.1 the plugin lets organizations that share a context broker
 see and react to each other's work. Two organizations work on the same problem
-when their `Issue` entities point at the same source entity (the `refersTo`
-relationship); everything below builds on that.
+when their `Issue` (or `Task`) entities point at the same source entity (the
+`refersTo` relationship); everything below builds on that.
 
 Federation requires [issue emission](issue_emission.md) to be configured,
 including a public host name: entities emitted without one are not visible to
@@ -42,6 +42,22 @@ watch*, set the entity filter to type `Issue` and the watched attributes to
 `status`, then publish it. The subscription's own entities never trigger notes
 (they are recognized by the instance identifier in their ids), and an
 unchanged status is not repeated.
+
+## Instances with different vocabularies
+
+An instance publishes either `Issue` entities (GTT core, the default) or
+`Task` entities (the datamodels.jp task vocabulary), see
+[Issue emission](issue_emission.md#the-task-vocabulary). The entity ids have
+the same form in both, so organizations are recognized the same way.
+
+- Awareness and the "Also handled by" panel find both kinds: the plugin
+  sends one query per vocabulary and merges the answers. A `Task` counts as
+  open while its `progress` is `needs-action` or `in-process`.
+- A federation watch subscription selects one entity type with one context.
+  To watch organizations that publish `Task` entities, add a second watch
+  subscription: entity type `Task`, watched attribute `progress`, and
+  `https://datamodels.jp/context/task/v1.jsonld` as its context. Its notes
+  show the status as open or closed.
 
 ## Notes
 

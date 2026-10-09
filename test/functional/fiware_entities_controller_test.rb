@@ -44,6 +44,19 @@ class FiwareEntitiesControllerTest < ActionController::TestCase
     assert_equal @issue.priority.name, entity.dig('priority', 'value')
   end
 
+  # The on-demand representation follows the emission vocabulary (#152).
+  def test_serves_a_task_in_task_mode
+    with_settings plugin_redmine_gtt_fiware: INSTANCE_SETTINGS.merge('fiware_emission_vocabulary' => 'task') do
+      get :show, params: { id: @issue.id }
+    end
+    assert_response :success
+    entity = JSON.parse(response.body)
+    assert_equal "urn:ngsi-ld:Issue:redmine:test-town:#{@issue.id}", entity['id']
+    assert_equal 'Task', entity['type']
+    assert_equal @issue.subject, entity.dig('name', 'value')
+    assert_nil entity['title']
+  end
+
   # With several mappings for the tracker, the issue's own connection wins;
   # a broker-less issue gets the oldest mapping.
   def test_prefers_the_mapping_of_the_issues_own_connection

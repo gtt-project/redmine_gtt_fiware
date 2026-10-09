@@ -2,7 +2,8 @@ require File.expand_path('../../test_helper', __FILE__)
 
 class IssueEntityTest < ActiveSupport::TestCase
   fixtures :projects, :trackers, :projects_trackers, :issue_statuses,
-           :users, :email_addresses, :enumerations, :issues
+           :users, :email_addresses, :enumerations, :issues,
+           :versions, :issue_categories
 
   def setup
     @connection = BrokerConnection.create!(
@@ -216,5 +217,220 @@ class IssueEntityTest < ActiveSupport::TestCase
       e = RedmineGttFiware::IssueEntity.new(@issue, @mapping).to_h
       assert_nil e['source']
     end
+  end
+
+  # --- the task vocabulary (#152) ---------------------------------------------
+
+  TASK_SETTINGS = { 'fiware_instance_id' => 'test-town', 'fiware_emission_vocabulary' => 'task' }.freeze
+
+  def task_entity(issue = @issue, mapping = @mapping)
+    with_settings plugin_redmine_gtt_fiware: TASK_SETTINGS,
+                  host_name: 'redmine.example.com', protocol: 'https' do
+      return RedmineGttFiware::IssueEntity.build(issue, mapping).to_h
+    end
+  end
+
+  # gtt stays the default: without the setting (existing instances) and with
+  # an unknown value, the representation is exactly the frozen core one.
+  def test_default_vocabulary_is_the_gtt_core
+    [{}, { 'fiware_emission_vocabulary' => 'gtt' }, { 'fiware_emission_vocabulary' => 'bogus' }].each do |extra|
+      with_settings plugin_redmine_gtt_fiware: { 'fiware_instance_id' => 'test-town' }.merge(extra),
+                    host_name: 'redmine.example.com', protocol: 'https' do
+        built = RedmineGttFiware::IssueEntity.build(@issue, @mapping)
+        assert_instance_of RedmineGttFiware::IssueEntity, built
+        assert_equal RedmineGttFiware::IssueEntity.new(@issue, @mapping).to_h, built.to_h
+        assert_equal 'Issue', built.to_h['type']
+      end
+    end
+  end
+
+  def test_task_mode_always_emitted_properties
+    e = task_entity
+    # The id stays the IssueUrn, so switching never re-identifies an entity.
+    assert_equal "urn:ngsi-ld:Issue:redmine:test-town:#{@issue.id}", e['id']
+    assert_equal 'Task', e['type']
+    assert_equal @issue.subject, e.dig('name', 'value')
+    assert_equal 'needs-action', e.dig('progress', 'value')
+    assert_equal @issue.status.name, e.dig('statusLabel', 'value')
+    assert_equal 'WorkOrder', e.dig('subtype', 'value')
+    assert_equal "https://redmine.example.com/issues/#{@issue.id}", e.dig('source', 'value')
+    assert_equal @issue.id.to_s, e.dig('externalId', 'value')
+    assert_equal 'Relationship', e.dig('project', 'type')
+    assert_equal "urn:ngsi-ld:Project:redmine:test-town:#{@issue.project.identifier}",
+                 e.dig('project', 'object')
+    assert_equal 'DateTime', e.dig('dateCreated', 'value', '@type')
+    assert_equal 'DateTime', e.dig('dateModified', 'value', '@type')
+    assert_equal ['https://redmine.example.com/fiware/task-context.jsonld',
+                  RedmineGttFiware::IssueEntity::CORE_CONTEXT], e['@context']
+    # No GTT core term leaks into a Task.
+    %w[title status].each { |term| assert_nil e[term], "#{term} must not be emitted" }
+  end
+
+  def test_task_mode_context_is_core_only_without_a_configured_host
+    with_settings plugin_redmine_gtt_fiware: TASK_SETTINGS, host_name: '' do
+      e = RedmineGttFiware::IssueEntity.build(@issue, @mapping).to_h
+      assert_equal RedmineGttFiware::IssueEntity::CORE_CONTEXT, e['@context']
+      assert_nil e['source']
+    end
+  end
+
+  def test_task_mode_progress_is_completed_for_closed_statuses
+    @issue.status = IssueStatus.where(is_closed: true).first
+    e = task_entity
+    assert_equal 'completed', e.dig('progress', 'value')
+    assert_equal @issue.status.name, e.dig('statusLabel', 'value')
+  end
+
+  def test_task_mode_location_and_refers_to
+    @issue.geom = RedmineGtt::Conversions.to_geom(
+      '{"type":"Feature","geometry":{"type":"Point","coordinates":[139.69,35.69]},"properties":null}'
+    )
+    @issue.fiware_entity = 'urn:ngsi-ld:WasteContainer:042'
+    e = task_entity
+    assert_equal [139.69, 35.69], e.dig('location', 'value')['coordinates']
+    assert_equal 'urn:ngsi-ld:WasteContainer:042', e.dig('refersTo', 'object')
+  end
+
+  # Nothing beyond the always-emitted properties unless the admin exposed it.
+  def test_task_mode_no_standard_fields_without_exposure
+    e = task_entity
+    %w[description priority category milestone start due estimatedDuration
+       percentComplete parent assignee].each do |term|
+      assert_nil e[term], "#{term} must not be emitted without exposure"
+    end
+  end
+
+  def test_task_mode_exposed_fields_use_task_terms
+    @mapping.exposed_standard_fields = EmissionMapping::STANDARD_FIELDS.keys
+    @mapping.save!
+    @issue.description = 'Pothole next to the bus stop'
+    @issue.priority = IssuePriority.active.sorted.last
+    @issue.category = IssueCategory.find(1)
+    @issue.fixed_version = Version.find(2)
+    @issue.start_date = Date.new(2026, 7, 30)
+    @issue.due_date = Date.new(2026, 8, 15)
+    @issue.estimated_hours = 1.5
+    @issue.done_ratio = 40
+    @issue.assigned_to = User.find(2)
+    parent = Issue.find(2)
+    @issue.stubs(:parent).returns(parent)
+
+    e = task_entity
+    assert_equal 'Pothole next to the bus stop', e.dig('description', 'value')
+    assert_equal 1, e.dig('priority', 'value'), 'the highest active priority ranks 1'
+    assert_equal IssueCategory.find(1).name, e.dig('category', 'value')
+    assert_equal 'Relationship', e.dig('milestone', 'type')
+    assert_equal 'urn:ngsi-ld:Milestone:redmine:test-town:2', e.dig('milestone', 'object')
+    assert_equal({ '@type' => 'Date', '@value' => '2026-07-30' }, e.dig('start', 'value'))
+    assert_equal({ '@type' => 'Date', '@value' => '2026-08-15' }, e.dig('due', 'value'))
+    assert_equal 'PT1H30M', e.dig('estimatedDuration', 'value')
+    assert_equal 40, e.dig('percentComplete', 'value')
+    assert_equal "urn:ngsi-ld:Issue:redmine:test-town:#{parent.id}", e.dig('parent', 'object')
+    assert_equal [{ 'type' => 'Relationship', 'object' => 'urn:ngsi-ld:Person:redmine:test-town:2',
+                    'datasetId' => 'urn:ngsi-ld:dataset:assignee:1' }], e['assignee']
+    # The GTT names of the same fields are not emitted.
+    %w[targetVersion startDate dueDate estimatedTime percentDone].each do |term|
+      assert_nil e[term], "#{term} is a GTT term"
+    end
+  end
+
+  # Absent data is absent from a Task too, not null-valued.
+  def test_task_mode_exposed_fields_without_values_are_omitted
+    @mapping.exposed_standard_fields = EmissionMapping::STANDARD_FIELDS.keys
+    @mapping.save!
+    @issue.description = ''
+    @issue.category = nil
+    @issue.fixed_version = nil
+    @issue.start_date = nil
+    @issue.due_date = nil
+    @issue.estimated_hours = nil
+    @issue.assigned_to = nil
+    @issue.stubs(:parent).returns(nil)
+
+    e = task_entity
+    %w[description category milestone start due estimatedDuration parent assignee].each do |term|
+      assert_nil e[term], "#{term} must be absent without a value"
+    end
+  end
+
+  def test_task_mode_group_assignee_points_at_a_group
+    @mapping.exposed_standard_fields = %w[assignee]
+    @mapping.save!
+    group = Group.find(10)
+    @issue.assigned_to = group
+
+    assignee = task_entity['assignee']
+    assert_equal 1, assignee.size
+    assert_equal "urn:ngsi-ld:Group:redmine:test-town:#{group.id}", assignee.first['object']
+    assert_equal 'urn:ngsi-ld:dataset:assignee:1', assignee.first['datasetId']
+  end
+
+  # RFC 8984: 1 highest, 9 lowest, spread linearly over the active
+  # priorities and rounded; 0 means undefined.
+  def test_priority_rank_spreads_active_priorities_over_one_to_nine
+    IssuePriority.update_all(active: false)
+    low, normal, high, urgent = %w[RankLow RankNormal RankHigh RankUrgent].map do |name|
+      IssuePriority.create!(name: name, active: true)
+    end
+
+    rank = ->(priority) { RedmineGttFiware::TaskEntity.priority_rank(priority) }
+    assert_equal 1, rank.call(urgent)
+    assert_equal 4, rank.call(high)
+    assert_equal 6, rank.call(normal)
+    assert_equal 9, rank.call(low)
+  end
+
+  def test_priority_rank_is_zero_for_a_single_active_priority
+    IssuePriority.update_all(active: false)
+    only = IssuePriority.create!(name: 'RankOnly', active: true)
+    assert_equal 0, RedmineGttFiware::TaskEntity.priority_rank(only)
+  end
+
+  def test_priority_rank_is_zero_for_an_inactive_priority
+    inactive = IssuePriority.active.sorted.first
+    inactive.update_column(:active, false)
+    assert_equal 0, RedmineGttFiware::TaskEntity.priority_rank(inactive)
+  end
+
+  def test_estimated_hours_become_an_iso8601_duration
+    {
+      1.5 => 'PT1H30M', 2 => 'PT2H', 0.25 => 'PT15M', 100 => 'PT100H',
+      1.999 => 'PT2H', 0.1 => 'PT6M', 0.001 => 'PT0M', 0 => 'PT0M'
+    }.each do |hours, expected|
+      assert_equal expected, RedmineGttFiware::TaskEntity.iso8601_duration(hours), "#{hours} hours"
+    end
+  end
+
+  def test_task_mode_exposed_custom_fields_keep_their_instance_terms
+    string_cf = custom_field('string', 'Road surface')
+    @mapping.exposed_custom_fields = { string_cf.id => 'roadSurface' }
+    @mapping.save!
+    @issue.custom_field_values = { string_cf.id => 'gravel' }
+
+    assert_equal 'gravel', task_entity.dig('roadSurface', 'value')
+  end
+
+  # A custom term saved while the instance emitted the GTT vocabulary may
+  # collide with a task term; in task mode it is dropped rather than
+  # overwriting the task attribute.
+  def test_task_mode_drops_custom_terms_that_shadow_task_terms
+    string_cf = custom_field('string', 'Deadline note')
+    @mapping.exposed_custom_fields = { string_cf.id => 'due' }
+    @mapping.save!
+    @issue.custom_field_values = { string_cf.id => 'end of month' }
+    @issue.due_date = nil
+
+    assert_nil task_entity['due']
+  end
+
+  # Pull-side rendering (#4) in task mode: the always-emitted properties
+  # alone.
+  def test_task_mode_renders_without_a_mapping
+    e = task_entity(@issue, nil)
+    assert_equal 'Task', e['type']
+    assert_nil e['subtype']
+    assert_nil e['priority']
+    assert_equal "urn:ngsi-ld:Project:redmine:test-town:#{@issue.project.identifier}",
+                 e.dig('project', 'object')
   end
 end

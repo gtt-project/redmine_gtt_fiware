@@ -136,12 +136,25 @@ class SubscriptionTemplate < ApplicationRecord
   # value overrides the connection's default.
   # A federation watch (#70, 4c) subscribes to the emitted Issue type, so it
   # must expand Issue/refersTo/status through the published core vocabulary -
-  # the same context every emitting instance anchors its terms in. Otherwise
-  # the template/connection context wins as usual.
+  # the same context every emitting instance anchors its terms in. A watch
+  # on Task entities (instances emitting the task vocabulary, #152) needs the
+  # task context instead: one subscription has one context, so watching both
+  # kinds takes two subscriptions. Otherwise the template/connection context
+  # wins as usual.
   def effective_context
-    return RedmineGttFiware::FederationSiblings::CONTEXT_URL if federation_watch?
+    if federation_watch?
+      return RedmineGttFiware::EmissionVocabulary::TASK_CONTEXT if watches_tasks?
+
+      return RedmineGttFiware::FederationSiblings::CONTEXT_URL
+    end
 
     context.presence || broker_connection&.context
+  end
+
+  # Whether every entity selector of this template is for type Task.
+  def watches_tasks?
+    types = Array(entities).map { |entity| entity.is_a?(Hash) ? entity['type'].to_s : '' }
+    types.any? && types.all? { |type| type == 'Task' }
   end
 
   # Minimum interval between notifications for this subscription (#95). Same

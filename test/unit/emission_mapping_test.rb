@@ -132,6 +132,51 @@ class EmissionMappingTest < ActiveSupport::TestCase
                  EmissionMapping::STANDARD_FIELDS.keys.sort
   end
 
+  # Every exposure switch publishes a task term in task mode (#152).
+  def test_every_standard_field_has_a_task_term
+    assert_equal EmissionMapping::STANDARD_FIELDS.keys.sort,
+                 RedmineGttFiware::TaskEntity::TASK_TERMS.keys.sort
+  end
+
+  # --- task vocabulary (#152) ------------------------------------------------
+
+  TASK_SETTINGS = { 'fiware_instance_id' => 'test-town', 'fiware_emission_vocabulary' => 'task' }.freeze
+
+  # In task mode the instance terms sit on top of the task vocabulary's
+  # context, so subtypes must not shadow its terms or types.
+  def test_task_mode_rejects_subtypes_that_shadow_task_terms
+    with_settings plugin_redmine_gtt_fiware: TASK_SETTINGS do
+      %w[Task Project milestone Milestone name progress tm schema Issue].each do |reserved|
+        mapping = EmissionMapping.new(broker_connection: connection, tracker: Tracker.first, subtype: reserved)
+        assert_not mapping.valid?, "#{reserved.inspect} must be rejected in task mode"
+        assert mapping.errors[:subtype].present?
+      end
+    end
+  end
+
+  def test_task_mode_rejects_custom_terms_that_shadow_task_terms
+    with_settings plugin_redmine_gtt_fiware: TASK_SETTINGS do
+      mapping = EmissionMapping.new(broker_connection: connection, tracker: Tracker.first, subtype: 'WorkOrder')
+      %w[due start estimatedDuration externalId keywords category title].each do |reserved|
+        mapping.exposed_custom_fields = { 5 => reserved }
+        assert_not mapping.valid?, "#{reserved.inspect} must be rejected in task mode"
+        assert_equal({}, mapping.exposed_custom_fields)
+      end
+    end
+  end
+
+  # The GTT core is unchanged: task terms that are not GTT terms stay legal
+  # there, so existing mappings keep validating.
+  def test_gtt_mode_keeps_task_only_terms_legal
+    project = EmissionMapping.new(broker_connection: connection, tracker: Tracker.first, subtype: 'Project')
+    assert project.valid?
+
+    mapping = EmissionMapping.new(broker_connection: connection, tracker: Tracker.first, subtype: 'WorkOrder')
+    mapping.exposed_custom_fields = { 5 => 'due' }
+    assert mapping.valid?
+    assert_equal({ 5 => 'due' }, mapping.exposed_custom_fields)
+  end
+
   # Tracker names are free text, often non-ASCII; the suggestion must always
   # be a usable term.
   def test_suggested_subtype

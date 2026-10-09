@@ -25,6 +25,10 @@ Redmine::Plugin.register :redmine_gtt_fiware do
       # Issue emission (#69) stays off until an instance id is set; it is
       # baked into every emitted URN and must stay stable once chosen.
       'fiware_instance_id' => '',
+      # The emission vocabulary (#152): gtt (the frozen core) or task (the
+      # datamodels.jp task vocabulary). gtt keeps existing instances as
+      # they are.
+      'fiware_emission_vocabulary' => 'gtt',
     },
     partial: 'gtt_fiware/settings'
   )
