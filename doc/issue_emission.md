@@ -168,8 +168,11 @@ Details:
   and the published custom fields. Its `@graph` declares each subtype a
   subclass of `https://datamodels.jp/ns/task/Task`.
 - `Task` entities reference the instance's task context followed by the
-  NGSI-LD core context. Without a configured host name they use the core
-  context only, as in the GTT vocabulary.
+  NGSI-LD core context. Without a configured host name the instance context
+  is out of reach, so they reference GTT's public extension context
+  (`https://gtt-project.org/ns/fiware-task.jsonld`) instead; the task terms
+  keep their meaning, and instance subtypes and custom fields fall back to
+  the default vocabulary.
 - `GET /fiware/context.jsonld` stays as it is.
 
 ### Reserved terms

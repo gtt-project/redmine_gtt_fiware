@@ -146,7 +146,8 @@ class EmissionMappingTest < ActiveSupport::TestCase
   # context, so subtypes must not shadow its terms or types.
   def test_task_mode_rejects_subtypes_that_shadow_task_terms
     with_settings plugin_redmine_gtt_fiware: TASK_SETTINGS do
-      %w[Task Project milestone Milestone name progress tm schema Issue].each do |reserved|
+      %w[Task Project milestone Milestone name progress tm schema Issue
+         end homepage identifier isPublic milestoneStatus projectStatus].each do |reserved|
         mapping = EmissionMapping.new(broker_connection: connection, tracker: Tracker.first, subtype: reserved)
         assert_not mapping.valid?, "#{reserved.inspect} must be rejected in task mode"
         assert mapping.errors[:subtype].present?

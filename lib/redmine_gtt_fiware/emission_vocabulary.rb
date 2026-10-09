@@ -27,9 +27,10 @@ module RedmineGttFiware
     TASK_NAMESPACE = 'https://datamodels.jp/ns/task/'.freeze
     TASK_TYPE_IRI = "#{TASK_NAMESPACE}Task".freeze
 
-    # Every term the task-mode contexts define: the attribute names of the
-    # Task model (https://datamodels.jp/en/models/task/Task/), the subject's
-    # types, GTT's extension term, and the prefixes of the imported contexts.
+    # Every term the task-mode contexts define: every key of the imported
+    # datamodels.jp task context (the attributes of Task, Project and
+    # Milestone, and the subject's types), GTT's extension term, and the
+    # prefixes of the imported contexts.
     # Subtypes and custom-field terms must not shadow any of them in task
     # mode (EmissionMapping, TaskInstanceContext).
     TASK_TERMS = %w[
@@ -38,6 +39,7 @@ module RedmineGttFiware
       statusLabel subtype priority assignee author start due completedAt
       estimatedDuration percentComplete keywords location spatialId isPrivate
       source externalId dateCreated dateModified
+      end homepage identifier isPublic milestoneStatus projectStatus
       category
       tm schema gttfiware
     ].freeze

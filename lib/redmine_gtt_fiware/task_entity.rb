@@ -150,7 +150,9 @@ module RedmineGttFiware
     # rule as the GTT one: referenced only when a broker can reach it.
     def entity_context
       host = Setting.host_name.to_s.strip
-      return CORE_CONTEXT if host.blank?
+      # Without a host, the instance context is out of reach, but GTT's public
+      # extension context still gives the task terms their meaning.
+      return [EmissionVocabulary::TASK_EXTENSION_CONTEXT, CORE_CONTEXT] if host.blank?
 
       ["#{Setting.protocol}://#{host}/fiware/task-context.jsonld", CORE_CONTEXT]
     end

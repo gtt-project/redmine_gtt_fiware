@@ -266,10 +266,11 @@ class IssueEntityTest < ActiveSupport::TestCase
     %w[title status].each { |term| assert_nil e[term], "#{term} must not be emitted" }
   end
 
-  def test_task_mode_context_is_core_only_without_a_configured_host
+  def test_task_mode_keeps_the_task_vocabulary_without_a_configured_host
     with_settings plugin_redmine_gtt_fiware: TASK_SETTINGS, host_name: '' do
       e = RedmineGttFiware::IssueEntity.build(@issue, @mapping).to_h
-      assert_equal RedmineGttFiware::IssueEntity::CORE_CONTEXT, e['@context']
+      assert_equal [RedmineGttFiware::EmissionVocabulary::TASK_EXTENSION_CONTEXT,
+                    RedmineGttFiware::IssueEntity::CORE_CONTEXT], e['@context']
       assert_nil e['source']
     end
   end
