@@ -31,6 +31,16 @@ module RedmineGttFiware
   # read fails the deletion pass is skipped for this run; the next update
   # gets another chance.
   #
+  # The read-back and the deletions send the entity's own context in a Link
+  # header (#156), so the broker names the attributes as the entity does
+  # (`progress`, not `https://datamodels.jp/ns/task/progress`) and a deletion
+  # by short name hits the right attribute. Without it, every attribute
+  # looked stale and was deleted right after the append. A name the broker
+  # did not compact to a term (a full IRI such as https://... or urn:..., or a
+  # prefixed name such as gttfiware:status: anything with a colon, which the
+  # terms we emit never have) is never taken as stale: deleting too little is
+  # harmless, deleting too much is not.
+  #
   # One divergence attributes cannot fix: the entity type. An append never
   # changes it, so after the admin switched the emission vocabulary (#152,
   # Issue <-> Task, same id) the broker entity is deleted and created anew
@@ -68,17 +78,18 @@ module RedmineGttFiware
 
     private
 
-    # The broker's attribute names minus the current local ones.
+    # The broker's attribute names minus the current local ones, leaving out
+    # names it did not compact to a term (see the class comment).
     def stale_attribute_names(remote)
       return [] if remote.nil?
 
-      remote.keys - NON_ATTRIBUTE_KEYS - @entity.keys
+      (remote.keys - NON_ATTRIBUTE_KEYS - @entity.keys).reject { |name| name.include?(':') }
     end
 
-    # The read-back is not sent with our context, so the broker may answer
-    # the type as a full IRI (https://datamodels.jp/ns/task/Task) or a
-    # prefixed name; the comparison uses the last segment. A missing or
-    # unreadable remote type is no reason to recreate.
+    # A broker that cannot compact with our context may answer the type as a
+    # full IRI (https://datamodels.jp/ns/task/Task) or a prefixed name; the
+    # comparison uses the last segment. A missing or unreadable remote type
+    # is no reason to recreate.
     def type_changed?(remote)
       return false if remote.nil?
 
@@ -109,11 +120,29 @@ module RedmineGttFiware
       nil
     end
 
+    # Bodies carry their @context; requests without a body (the read-back,
+    # deletions) get it as a Link header.
     def request(method, subresource, body)
       resource = ["entities/#{@entity['id']}", subresource].compact.join('/')
+      headers = body.nil? && context_link ? { 'Link' => context_link } : {}
       BrokerHttp.request(method, "#{@connection.api_base}/#{resource}",
                          connection: @connection, token: @connection.auth_token,
+                         headers: headers,
                          body: body, content_type: body ? 'application/ld+json' : nil)
+    end
+
+    # The entity's own context as a Link header value: its first context URL
+    # other than the NGSI-LD core context (which brokers apply anyway). A
+    # Link header names a single document, and the entity's first context
+    # imports the vocabulary it uses. Nil when the entity has only the core
+    # context.
+    def context_link
+      return @context_link if defined?(@context_link)
+
+      url = Array(@entity['@context']).find do |entry|
+        entry.is_a?(String) && entry != IssueEntity::CORE_CONTEXT && !entry.include?('ngsi-ld-core-context')
+      end
+      @context_link = url && %(<#{url}>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json")
     end
   end
 end
