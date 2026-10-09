@@ -15,6 +15,18 @@ on [FIWARE Connections](broker_connections.md) since version 3.0.
   tell your work orders apart from theirs. [Issue emission](issue_emission.md)
   stays off while this is blank. Choose it once and keep it: changing it later
   re-identifies every emitted entity.
+- **Emission vocabulary**: the vocabulary of the emitted entities, for the
+  whole instance.
+  - *GTT core (Issue)*, the default: `Issue` entities in the GTT vocabulary,
+    as in earlier versions.
+  - *datamodels.jp task vocabulary (Task)*: `Task` entities that any
+    application written for the
+    [datamodels.jp task vocabulary](https://datamodels.jp/en/models/task/Task/)
+    can read.
+
+  Entity ids are the same in both, so you can switch later. Entities already
+  on a broker are replaced on their next update. The terms of each
+  vocabulary are listed in [Issue emission](issue_emission.md#the-task-vocabulary).
 
 ## Notification Attachment Downloads
 

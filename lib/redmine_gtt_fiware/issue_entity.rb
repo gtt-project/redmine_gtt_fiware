@@ -12,6 +12,15 @@ module RedmineGttFiware
       IssueUrn.build(issue)
     end
 
+    # The issue in the instance's chosen emission vocabulary (#152): this
+    # class for the GTT core (the default), TaskEntity for the datamodels.jp
+    # task vocabulary. Callers that publish or serve an issue go through
+    # here.
+    def self.build(issue, mapping = nil)
+      klass = EmissionVocabulary.task? ? TaskEntity : IssueEntity
+      klass.new(issue, mapping)
+    end
+
     # mapping may be nil for pull-side rendering (#4): the representation is
     # then the frozen core alone - no subtype, no exposed attributes.
     def initialize(issue, mapping = nil)

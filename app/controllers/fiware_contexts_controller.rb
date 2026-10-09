@@ -1,5 +1,8 @@
-# Serves the instance's self-published JSON-LD context (#69, step 2) at
-# GET /fiware/context.jsonld.
+# Serves the instance's self-published JSON-LD contexts: the GTT core one
+# (#69, step 2) at GET /fiware/context.jsonld, and the task vocabulary one
+# (#152) at GET /fiware/task-context.jsonld. Both are served whichever
+# vocabulary the instance emits, so an admin can read the task context
+# before switching.
 #
 # Deliberately public: brokers dereference @context at ingestion and schema
 # consumers must be able to read it without credentials, exactly like any
@@ -11,16 +14,23 @@ class FiwareContextsController < ApplicationController
   # framework-default forgery protection visible to static analysis.
   protect_from_forgery with: :exception
 
-  skip_before_action :check_if_login_required, only: [:show]
+  skip_before_action :check_if_login_required, only: [:show, :task_context]
 
   def show
-    context = RedmineGttFiware::InstanceContext.new(base_url)
+    render_context RedmineGttFiware::InstanceContext.new(base_url)
+  end
+
+  def task_context
+    render_context RedmineGttFiware::TaskInstanceContext.new(base_url)
+  end
+
+  private
+
+  def render_context(context)
     # Contexts are fetched by brokers on every ingestion; let them cache.
     expires_in 5.minutes, public: true
     render json: context.to_h, content_type: 'application/ld+json'
   end
-
-  private
 
   # The configured public host wins (same semantics as the callback URLs,
   # #101); the request host is the fallback so the document stays coherent

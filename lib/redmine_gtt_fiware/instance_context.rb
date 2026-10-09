@@ -69,10 +69,16 @@ module RedmineGttFiware
         {
           '@id' => "inst:#{subtype}",
           '@type' => 'rdfs:Class',
-          'rdfs:subClassOf' => { '@id' => 'gttfiware:Issue' },
+          'rdfs:subClassOf' => { '@id' => superclass_iri },
           'rdfs:label' => "#{subtype} (tracker: #{tracker_names.uniq.sort.join(', ')})"
         }
       end
+    end
+
+    # What the subtypes specialize: the core Issue here, the task
+    # vocabulary's Task in TaskInstanceContext.
+    def superclass_iri
+      'gttfiware:Issue'
     end
 
     # One property declaration per distinct exposed custom-field term (#69,

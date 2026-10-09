@@ -45,7 +45,7 @@ module RedmineGttFiware
 
       def upsert(issue)
         each_emission(issue) do |mapping, connection|
-          entity = IssueEntity.new(issue, mapping).to_h
+          entity = IssueEntity.build(issue, mapping).to_h
           response = request(connection, :post, 'entities', entity)
           # 409: the entity exists - EmissionRefresh updates its attributes
           # and deletes the ones the current representation no longer

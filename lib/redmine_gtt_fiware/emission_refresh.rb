@@ -30,6 +30,11 @@ module RedmineGttFiware
   # and it self-heals when the broker was changed by someone else. When the
   # read fails the deletion pass is skipped for this run; the next update
   # gets another chance.
+  #
+  # One divergence attributes cannot fix: the entity type. An append never
+  # changes it, so after the admin switched the emission vocabulary (#152,
+  # Issue <-> Task, same id) the broker entity is deleted and created anew
+  # from the current representation.
   class EmissionRefresh
     # Not attributes: identity, context, and the broker-managed timestamps
     # (CIM 009 system attributes, which a normalized entity may embed).
@@ -44,7 +49,10 @@ module RedmineGttFiware
     # failed or nothing was stale, otherwise the first failing deletion (or
     # the append response when every deletion went through).
     def call
-      stale = stale_attribute_names
+      remote = fetch_remote_entity
+      return recreate if type_changed?(remote)
+
+      stale = stale_attribute_names(remote)
       response = request(:post, 'attrs', @entity.except('id', 'type'))
       return response unless response.is_a?(Net::HTTPSuccess)
 
@@ -61,11 +69,34 @@ module RedmineGttFiware
     private
 
     # The broker's attribute names minus the current local ones.
-    def stale_attribute_names
-      remote = fetch_remote_entity
+    def stale_attribute_names(remote)
       return [] if remote.nil?
 
       remote.keys - NON_ATTRIBUTE_KEYS - @entity.keys
+    end
+
+    # The read-back is not sent with our context, so the broker may answer
+    # the type as a full IRI (https://datamodels.jp/ns/task/Task) or a
+    # prefixed name; the comparison uses the last segment. A missing or
+    # unreadable remote type is no reason to recreate.
+    def type_changed?(remote)
+      return false if remote.nil?
+
+      remote_types = Array(remote['type']).map { |type| type.to_s.split(%r{[#/:]}).last }.compact
+      remote_types.any? && !remote_types.include?(@entity['type'])
+    end
+
+    # Delete, then create from the full representation. A failed deletion is
+    # returned for the Emitter to log (404: already gone, create anyway).
+    def recreate
+      deletion = request(:delete, nil, nil)
+      unless deletion.is_a?(Net::HTTPSuccess) || deletion.is_a?(Net::HTTPNotFound)
+        return deletion
+      end
+
+      BrokerHttp.request(:post, "#{@connection.api_base}/entities",
+                         connection: @connection, token: @connection.auth_token,
+                         body: @entity, content_type: 'application/ld+json')
     end
 
     def fetch_remote_entity

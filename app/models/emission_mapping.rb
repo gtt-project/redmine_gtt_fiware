@@ -38,6 +38,20 @@ class EmissionMapping < ApplicationRecord
     %w[rdf rdfs gttfiware inst id type location dateCreated dateModified dateObserved]
   ).map(&:downcase).freeze
 
+  # In task mode (#152) the instance terms sit on top of the task
+  # vocabulary's context, so they must not shadow its terms either. A
+  # superset of the GTT list on purpose: a mapping valid in task mode stays
+  # valid when the admin switches back.
+  TASK_RESERVED_TERMS = (
+    RESERVED_SUBTYPES + RedmineGttFiware::EmissionVocabulary::TASK_TERMS.map(&:downcase)
+  ).uniq.freeze
+
+  # The reserved terms for the instance's current emission vocabulary,
+  # lowercase.
+  def self.reserved_terms
+    RedmineGttFiware::EmissionVocabulary.task? ? TASK_RESERVED_TERMS : RESERVED_SUBTYPES
+  end
+
   # Tolerant JSON coder: a hand-edited or corrupted column value degrades to
   # "nothing exposed" instead of raising - the public context endpoint and
   # every issue save iterate mappings, so a broken row must never take them
@@ -94,7 +108,7 @@ class EmissionMapping < ApplicationRecord
     raw.each_with_object({}) do |(cf_id, term), result|
       term = term.to_s
       next unless term.match?(SUBTYPE_PATTERN)
-      next if RESERVED_SUBTYPES.include?(term.downcase)
+      next if self.class.reserved_terms.include?(term.downcase)
 
       result[cf_id.to_i] = term
     end
@@ -132,7 +146,7 @@ class EmissionMapping < ApplicationRecord
   end
 
   def subtype_must_not_shadow_reserved_terms
-    return unless RESERVED_SUBTYPES.include?(subtype.to_s.downcase)
+    return unless self.class.reserved_terms.include?(subtype.to_s.downcase)
 
     errors.add :subtype, I18n.t('model.emission_mapping.reserved_subtype')
   end
@@ -150,7 +164,7 @@ class EmissionMapping < ApplicationRecord
     subtype_terms = ([subtype] + EmissionMapping.where.not(id: id).distinct.pluck(:subtype))
                     .compact.map(&:downcase)
     terms.each do |term|
-      if !term.match?(SUBTYPE_PATTERN) || RESERVED_SUBTYPES.include?(term.downcase) ||
+      if !term.match?(SUBTYPE_PATTERN) || self.class.reserved_terms.include?(term.downcase) ||
          subtype_terms.include?(term.downcase)
         errors.add :base, I18n.t('model.emission_mapping.invalid_custom_term', term: term)
       end

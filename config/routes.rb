@@ -23,6 +23,9 @@ resources :broker_connections, except: [:show]
 # plus the configured emission subtypes. Public - brokers dereference it at
 # ingestion and consumers read the schema from it.
 get 'fiware/context.jsonld', to: 'fiware_contexts#show', format: false
+# The same for the task vocabulary (#152): instance terms on top of GTT's
+# extension of the datamodels.jp task context.
+get 'fiware/task-context.jsonld', to: 'fiware_contexts#task_context', format: false
 
 # Issue-page federation panel (#70, 4b): other organizations' work orders
 # for the same source entity, fetched asynchronously.

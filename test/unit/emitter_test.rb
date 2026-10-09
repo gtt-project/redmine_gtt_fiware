@@ -172,6 +172,81 @@ class EmitterTest < ActiveSupport::TestCase
     assert_not requests.any? { |r| r.is_a?(Net::HTTP::Patch) }
   end
 
+  # --- the task vocabulary (#152) ---------------------------------------------
+
+  TASK_SETTINGS = EMISSION_SETTINGS.merge('fiware_emission_vocabulary' => 'task').freeze
+
+  def test_task_mode_emits_a_task_with_the_same_id
+    requests = stub_broker(created_response)
+    issue = nil
+    with_settings plugin_redmine_gtt_fiware: TASK_SETTINGS do
+      issue = build_issue
+      issue.save!
+    end
+
+    post = requests.find { |r| r.is_a?(Net::HTTP::Post) }
+    body = JSON.parse(post.body)
+    assert_equal "urn:ngsi-ld:Issue:redmine:test-town:#{issue.id}", body['id']
+    assert_equal 'Task', body['type']
+    assert_equal 'Emitted issue', body.dig('name', 'value')
+    assert_nil body['title']
+  end
+
+  # An append never changes the entity type: after a vocabulary switch the
+  # broker still holds an Issue under the same id, so it is deleted and
+  # created anew as a Task.
+  def test_vocabulary_switch_recreates_the_broker_entity
+    conflict = Net::HTTPConflict.new('1.1', '409', 'Conflict')
+    requests = []
+    responses = [conflict, remote_entity_response, no_content_response, created_response]
+    Net::HTTP.any_instance.stubs(:request).with { |req| requests << req; true }
+             .returns(*responses)
+
+    with_settings plugin_redmine_gtt_fiware: TASK_SETTINGS do
+      Rails.logger.expects(:error).never
+      build_issue.save!
+    end
+
+    delete = requests.find { |r| r.is_a?(Net::HTTP::Delete) }
+    assert_not_nil delete, 'the Issue entity must be deleted'
+    assert_match %r{/ngsi-ld/v1/entities/urn:ngsi-ld:Issue:redmine:test-town:\d+\z}, delete.path
+    create = requests.last
+    assert create.is_a?(Net::HTTP::Post)
+    assert_equal '/ngsi-ld/v1/entities', create.path
+    assert_equal 'Task', JSON.parse(create.body)['type']
+    assert_not requests.any? { |r| r.path.end_with?('/attrs') }, 'no attribute append on a type change'
+  end
+
+  # The read-back is not sent with our context, so the broker may answer the
+  # type as a full IRI; that is the same type, not a switch.
+  def test_type_answered_as_an_iri_is_not_a_switch
+    conflict = Net::HTTPConflict.new('1.1', '409', 'Conflict')
+    remote = remote_entity_response('type' => 'https://gtt-project.org/ns/fiware#Issue')
+    requests = []
+    Net::HTTP.any_instance.stubs(:request).with { |req| requests << req; true }
+             .returns(conflict, remote, no_content_response)
+
+    with_settings plugin_redmine_gtt_fiware: EMISSION_SETTINGS do
+      build_issue.save!
+    end
+
+    assert requests.any? { |r| r.is_a?(Net::HTTP::Post) && r.path.end_with?('/attrs') }
+    assert_not requests.any? { |r| r.is_a?(Net::HTTP::Delete) }
+  end
+
+  def test_failed_deletion_on_a_vocabulary_switch_is_logged
+    conflict = Net::HTTPConflict.new('1.1', '409', 'Conflict')
+    requests = []
+    Net::HTTP.any_instance.stubs(:request).with { |req| requests << req; true }
+             .returns(conflict, remote_entity_response, error_response)
+
+    with_settings plugin_redmine_gtt_fiware: TASK_SETTINGS do
+      Rails.logger.expects(:error).with { |msg| msg.include?('answered 500') }
+      build_issue.save!
+    end
+    assert_equal 3, requests.length, 'no create after a failed deletion'
+  end
+
   def test_issue_destroy_emits_a_delete
     requests = stub_broker(Net::HTTPNoContent.new('1.1', '204', 'No Content'))
     with_settings plugin_redmine_gtt_fiware: EMISSION_SETTINGS do
