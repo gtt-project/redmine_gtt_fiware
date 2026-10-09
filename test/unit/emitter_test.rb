@@ -172,6 +172,67 @@ class EmitterTest < ActiveSupport::TestCase
     assert_not requests.any? { |r| r.is_a?(Net::HTTP::Patch) }
   end
 
+  # The read-back and the deletions send the entity's own context (#156), so
+  # the broker names attributes as the entity does and a deletion by short
+  # name hits the right attribute.
+  def test_read_back_and_deletions_send_the_entity_context
+    conflict = Net::HTTPConflict.new('1.1', '409', 'Conflict')
+    remote = remote_entity_response('assignee' => { 'type' => 'Property', 'value' => 'x' })
+    requests = []
+    Net::HTTP.any_instance.stubs(:request).with { |req| requests << req; true }
+             .returns(conflict, remote, no_content_response, no_content_response)
+
+    with_settings plugin_redmine_gtt_fiware: EMISSION_SETTINGS, host_name: 'gtt.example.org', protocol: 'https' do
+      build_issue.save!
+    end
+
+    link = %(<https://gtt.example.org/fiware/context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json")
+    get = requests.find { |r| r.is_a?(Net::HTTP::Get) }
+    assert_equal link, get['Link']
+    delete = requests.find { |r| r.is_a?(Net::HTTP::Delete) }
+    assert delete.path.end_with?('/attrs/assignee')
+    assert_equal link, delete['Link']
+    append = requests.find { |r| r.is_a?(Net::HTTP::Post) && r.path.end_with?('/attrs') }
+    assert_nil append['Link'], 'a body carries its own @context'
+  end
+
+  # A broker that answers expanded names (it did not compact with our
+  # context) must not make every attribute look stale (#156): names it
+  # answers as full IRIs are never deleted.
+  def test_expanded_names_in_the_read_back_are_never_deleted
+    conflict = Net::HTTPConflict.new('1.1', '409', 'Conflict')
+    remote = remote_entity_response(
+      'https://gtt-project.org/ns/fiware#status' => { 'type' => 'Property', 'value' => 'open' },
+      'https://uri.etsi.org/ngsi-ld/default-context/title' => { 'type' => 'Property', 'value' => 'x' }
+    )
+    requests = []
+    Net::HTTP.any_instance.stubs(:request).with { |req| requests << req; true }
+             .returns(conflict, remote, no_content_response)
+
+    with_settings plugin_redmine_gtt_fiware: EMISSION_SETTINGS do
+      Rails.logger.expects(:error).never
+      build_issue.save!
+    end
+
+    assert_not requests.any? { |r| r.is_a?(Net::HTTP::Delete) },
+               'attributes named by full IRIs must not be deleted'
+  end
+
+  # With only the core context there is nothing to send: brokers apply it anyway.
+  def test_no_link_header_with_only_the_core_context
+    conflict = Net::HTTPConflict.new('1.1', '409', 'Conflict')
+    requests = []
+    Net::HTTP.any_instance.stubs(:request).with { |req| requests << req; true }
+             .returns(conflict, remote_entity_response, no_content_response)
+
+    with_settings plugin_redmine_gtt_fiware: EMISSION_SETTINGS, host_name: '' do
+      build_issue.save!
+    end
+
+    get = requests.find { |r| r.is_a?(Net::HTTP::Get) }
+    assert_nil get['Link']
+  end
+
   # --- the task vocabulary (#152) ---------------------------------------------
 
   TASK_SETTINGS = EMISSION_SETTINGS.merge('fiware_emission_vocabulary' => 'task').freeze
