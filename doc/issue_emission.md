@@ -160,19 +160,20 @@ Details:
 
 ### Contexts
 
-- GTT publishes <https://gtt-project.org/ns/fiware-task.jsonld>. It imports
-  the datamodels.jp task context
-  (`https://datamodels.jp/context/task/v1.jsonld`) and adds only `category`.
+- GTT's data model node publishes the `redmine` subject
+  (<https://models.gtt-project.org/ns/redmine>). Its context,
+  <https://models.gtt-project.org/context/redmine/v0.jsonld>, imports the
+  datamodels.jp task context and adds only `category`.
 - Each instance serves `GET /fiware/task-context.jsonld` (public). Its
   `@context` is that GTT context plus the instance's own terms: the subtypes
   and the published custom fields. Its `@graph` declares each subtype a
   subclass of `https://datamodels.jp/ns/task/Task`.
 - `Task` entities reference the instance's task context followed by the
   NGSI-LD core context. Without a configured host name the instance context
-  is out of reach, so they reference GTT's public extension context
-  (`https://gtt-project.org/ns/fiware-task.jsonld`) instead; the task terms
-  keep their meaning, and instance subtypes and custom fields fall back to
-  the default vocabulary.
+  is out of reach, so they reference the redmine subject's context
+  (`https://models.gtt-project.org/context/redmine/v0.jsonld`) instead;
+  the task terms keep their meaning, and instance subtypes and custom fields
+  fall back to the default vocabulary.
 - `GET /fiware/context.jsonld` stays as it is.
 
 ### Reserved terms

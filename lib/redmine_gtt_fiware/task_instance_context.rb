@@ -1,10 +1,11 @@
 module RedmineGttFiware
   # The instance's self-published JSON-LD context for the task vocabulary
-  # (#152), served next to the GTT one. It imports GTT's extension of the
-  # datamodels.jp task context and adds only what is instance-defined: the
-  # subtypes, declared rdfs:subClassOf the task vocabulary's Task, and the
-  # exposed custom-field terms. Both live under the same instance namespace
-  # as in the GTT context, since they mean the same thing in either mode.
+  # (#152), served next to the GTT one. It imports the redmine subject of
+  # GTT's node (the datamodels.jp task context plus category) and adds only
+  # what is instance-defined: the subtypes, declared rdfs:subClassOf the task
+  # vocabulary's Task, and the exposed custom-field terms. Both live under
+  # the same instance namespace as in the GTT context, since they mean the
+  # same thing in either mode.
   class TaskInstanceContext < InstanceContext
     def to_h
       {

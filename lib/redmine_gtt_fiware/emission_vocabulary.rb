@@ -4,8 +4,8 @@ module RedmineGttFiware
   # - gtt: the frozen GTT core (`Issue`, https://gtt-project.org/ns/fiware).
   #   The default; existing instances keep emitting exactly what they did.
   # - task: the neutral task vocabulary of the datamodels.jp catalog
-  #   (`Task`, https://datamodels.jp/ns/task/), plus GTT's small extension
-  #   context for what Task lacks (category).
+  #   (`Task`, https://datamodels.jp/ns/task/), plus the GTT node's redmine
+  #   subject for what Task lacks (category).
   #
   # Entity ids do not depend on this choice (IssueUrn either way), so an
   # admin can switch without re-identifying anything, and federation's echo
@@ -18,9 +18,11 @@ module RedmineGttFiware
     ALL = [GTT, TASK].freeze
     DEFAULT = GTT
 
-    # GTT's published extension of the task vocabulary: imports the
-    # datamodels.jp task context and adds only `category`.
-    TASK_EXTENSION_CONTEXT = 'https://gtt-project.org/ns/fiware-task.jsonld'.freeze
+    # The @context of the redmine subject on GTT's data model node
+    # (https://models.gtt-project.org/ns/redmine): imports the datamodels.jp
+    # task context and adds only `category`. v0 follows the subject's 0.x
+    # versions.
+    TASK_EXTENSION_CONTEXT = 'https://models.gtt-project.org/context/redmine/v0.jsonld'.freeze
     # The task vocabulary itself, for consumers that only read task terms
     # (federation queries).
     TASK_CONTEXT = 'https://datamodels.jp/context/task/v1.jsonld'.freeze
@@ -29,8 +31,8 @@ module RedmineGttFiware
 
     # Every term the task-mode contexts define: every key of the imported
     # datamodels.jp task context (the attributes of Task, Project and
-    # Milestone, and the subject's types), GTT's extension term, and the
-    # prefixes of the imported contexts.
+    # Milestone, and the subject's types), the redmine subject's term, and
+    # the prefixes of the imported contexts.
     # Subtypes and custom-field terms must not shadow any of them in task
     # mode (EmissionMapping, TaskInstanceContext).
     TASK_TERMS = %w[
@@ -41,7 +43,7 @@ module RedmineGttFiware
       source externalId dateCreated dateModified
       end homepage identifier isPublic milestoneStatus projectStatus
       category
-      tm schema gttfiware
+      tm schema redmine
     ].freeze
 
     module_function

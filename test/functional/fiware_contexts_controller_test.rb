@@ -131,15 +131,16 @@ class FiwareContextsControllerTest < ActionController::TestCase
     end
   end
 
-  # The task terms come from GTT's extension context, imported first; the
-  # inline object adds only instance terms under the instance namespace.
+  # The task terms come from the redmine subject of GTT's node, imported
+  # first; the inline object adds only instance terms under the instance
+  # namespace.
   def test_task_context_imports_the_gtt_task_extension
     with_settings host_name: 'redmine.public.example', protocol: 'https' do
       get :task_context
     end
     context = JSON.parse(response.body)['@context']
     assert_kind_of Array, context
-    assert_equal 'https://gtt-project.org/ns/fiware-task.jsonld', context.first
+    assert_equal 'https://models.gtt-project.org/context/redmine/v0.jsonld', context.first
     inline = context.last
     assert_equal 'https://redmine.public.example/fiware/vocab#', inline['inst']
     # No GTT core term is defined here: the instance emits task terms.
