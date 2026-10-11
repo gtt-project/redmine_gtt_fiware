@@ -43,10 +43,13 @@ class EmissionMappingTest < ActiveSupport::TestCase
     assert mapping.errors[:broker_connection].present?
   end
 
-  # A subtype must not shadow core vocabulary terms or context prefixes in
-  # the published document (#69 step 2), whatever the casing.
+  # A subtype must not shadow the task vocabulary's terms or types, context
+  # prefixes or NGSI-LD terms in the published document (#69 step 2, #152),
+  # whatever the casing.
   def test_subtype_must_not_shadow_reserved_terms
-    %w[Issue issue rdfs gttfiware inst location dateCreated type].each do |reserved|
+    %w[Issue issue Task task Project milestone Milestone name progress tm schema
+       end homepage identifier isPublic milestoneStatus projectStatus
+       rdfs inst location dateCreated type].each do |reserved|
       mapping = EmissionMapping.new(broker_connection: connection, tracker: Tracker.first, subtype: reserved)
       assert_not mapping.valid?, "#{reserved.inspect} must be rejected"
       assert mapping.errors[:subtype].present?
@@ -91,7 +94,7 @@ class EmissionMappingTest < ActiveSupport::TestCase
   # reader's defensive filter.
   def test_invalid_custom_terms_are_validation_errors
     mapping = EmissionMapping.new(broker_connection: connection, tracker: Tracker.first, subtype: 'WorkOrder')
-    ['road surface', 'title', 'rdf', '9lives'].each do |bad|
+    ['road surface', 'name', 'rdf', '9lives'].each do |bad|
       mapping.exposed_custom_fields = { 5 => bad }
       assert_not mapping.valid?, "#{bad.inspect} must be rejected"
       # ... and the reader drops it regardless.
@@ -126,56 +129,19 @@ class EmissionMappingTest < ActiveSupport::TestCase
     assert_equal 'customField42', fallback
   end
 
-  # The exposure catalog and the published vocabulary must not drift apart.
-  def test_standard_fields_match_the_published_terms
-    assert_equal RedmineGttFiware::InstanceContext::STANDARD_TERMS.sort,
-                 EmissionMapping::STANDARD_FIELDS.keys.sort
-  end
-
-  # Every exposure switch publishes a task term in task mode (#152).
+  # Every exposure switch publishes a task term (#152).
   def test_every_standard_field_has_a_task_term
     assert_equal EmissionMapping::STANDARD_FIELDS.keys.sort,
-                 RedmineGttFiware::TaskEntity::TASK_TERMS.keys.sort
+                 RedmineGttFiware::IssueEntity::TASK_TERMS.keys.sort
   end
 
-  # --- task vocabulary (#152) ------------------------------------------------
-
-  TASK_SETTINGS = { 'fiware_instance_id' => 'test-town', 'fiware_emission_vocabulary' => 'task' }.freeze
-
-  # In task mode the instance terms sit on top of the task vocabulary's
-  # context, so subtypes must not shadow its terms or types.
-  def test_task_mode_rejects_subtypes_that_shadow_task_terms
-    with_settings plugin_redmine_gtt_fiware: TASK_SETTINGS do
-      %w[Task Project milestone Milestone name progress tm schema Issue
-         end homepage identifier isPublic milestoneStatus projectStatus].each do |reserved|
-        mapping = EmissionMapping.new(broker_connection: connection, tracker: Tracker.first, subtype: reserved)
-        assert_not mapping.valid?, "#{reserved.inspect} must be rejected in task mode"
-        assert mapping.errors[:subtype].present?
-      end
-    end
-  end
-
-  def test_task_mode_rejects_custom_terms_that_shadow_task_terms
-    with_settings plugin_redmine_gtt_fiware: TASK_SETTINGS do
-      mapping = EmissionMapping.new(broker_connection: connection, tracker: Tracker.first, subtype: 'WorkOrder')
-      %w[due start estimatedDuration externalId keywords category title].each do |reserved|
-        mapping.exposed_custom_fields = { 5 => reserved }
-        assert_not mapping.valid?, "#{reserved.inspect} must be rejected in task mode"
-        assert_equal({}, mapping.exposed_custom_fields)
-      end
-    end
-  end
-
-  # The GTT core is unchanged: task terms that are not GTT terms stay legal
-  # there, so existing mappings keep validating.
-  def test_gtt_mode_keeps_task_only_terms_legal
-    project = EmissionMapping.new(broker_connection: connection, tracker: Tracker.first, subtype: 'Project')
-    assert project.valid?
-
+  def test_rejects_custom_terms_that_shadow_task_terms
     mapping = EmissionMapping.new(broker_connection: connection, tracker: Tracker.first, subtype: 'WorkOrder')
-    mapping.exposed_custom_fields = { 5 => 'due' }
-    assert mapping.valid?
-    assert_equal({ 5 => 'due' }, mapping.exposed_custom_fields)
+    %w[due start estimatedDuration externalId keywords category dateObserved].each do |reserved|
+      mapping.exposed_custom_fields = { 5 => reserved }
+      assert_not mapping.valid?, "#{reserved.inspect} must be rejected"
+      assert_equal({}, mapping.exposed_custom_fields)
+    end
   end
 
   # Tracker names are free text, often non-ASCII; the suggestion must always

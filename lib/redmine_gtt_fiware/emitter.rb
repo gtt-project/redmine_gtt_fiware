@@ -1,11 +1,11 @@
 require 'net/http'
 
 module RedmineGttFiware
-  # Synchronous v1 of the issue emission pipeline (#69, step 1): pushes core
-  # Issue entities to every NGSI-LD connection with an emission mapping for
-  # the issue's tracker. Failures are logged, never raised - an unreachable
-  # broker must never block saving an issue. This class is the seam for a
-  # later job-based backend.
+  # Synchronous v1 of the issue emission pipeline (#69, step 1): pushes task
+  # vocabulary entities (IssueEntity) to every NGSI-LD connection with an
+  # emission mapping for the issue's tracker. Failures are logged, never
+  # raised - an unreachable broker must never block saving an issue. This
+  # class is the seam for a later job-based backend.
   class Emitter
     # URN-safe slug; anything else counts as unset so a stray value cannot
     # produce malformed entity ids.
@@ -45,11 +45,12 @@ module RedmineGttFiware
 
       def upsert(issue)
         each_emission(issue) do |mapping, connection|
-          entity = IssueEntity.build(issue, mapping).to_h
+          entity = IssueEntity.new(issue, mapping).to_h
           response = request(connection, :post, 'entities', entity)
           # 409: the entity exists - EmissionRefresh updates its attributes
           # and deletes the ones the current representation no longer
-          # carries (#146).
+          # carries (#146), or recreates it when it still has the type of
+          # the retired GTT core vocabulary.
           if response.is_a?(Net::HTTPConflict)
             response = EmissionRefresh.new(connection, entity).call
           end

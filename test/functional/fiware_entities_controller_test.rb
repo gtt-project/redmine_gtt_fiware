@@ -12,7 +12,7 @@ class FiwareEntitiesControllerTest < ActionController::TestCase
     @issue = Issue.find(1)
   end
 
-  def test_serves_the_core_representation_without_a_mapping
+  def test_serves_the_always_emitted_properties_without_a_mapping
     with_settings plugin_redmine_gtt_fiware: INSTANCE_SETTINGS do
       get :show, params: { id: @issue.id }
     end
@@ -21,7 +21,7 @@ class FiwareEntitiesControllerTest < ActionController::TestCase
     entity = JSON.parse(response.body)
     assert_equal "urn:ngsi-ld:Issue:redmine:test-town:#{@issue.id}", entity['id']
     assert_equal 'Issue', entity['type']
-    assert_equal @issue.subject, entity.dig('title', 'value')
+    assert_equal @issue.subject, entity.dig('name', 'value')
     assert_nil entity['subtype'], 'no mapping, no subtype'
   end
 
@@ -41,20 +41,7 @@ class FiwareEntitiesControllerTest < ActionController::TestCase
     assert_response :success
     entity = JSON.parse(response.body)
     assert_equal 'WorkOrder', entity.dig('subtype', 'value')
-    assert_equal @issue.priority.name, entity.dig('priority', 'value')
-  end
-
-  # The on-demand representation follows the emission vocabulary (#152).
-  def test_serves_a_task_in_task_mode
-    with_settings plugin_redmine_gtt_fiware: INSTANCE_SETTINGS.merge('fiware_emission_vocabulary' => 'task') do
-      get :show, params: { id: @issue.id }
-    end
-    assert_response :success
-    entity = JSON.parse(response.body)
-    assert_equal "urn:ngsi-ld:Issue:redmine:test-town:#{@issue.id}", entity['id']
-    assert_equal 'Task', entity['type']
-    assert_equal @issue.subject, entity.dig('name', 'value')
-    assert_nil entity['title']
+    assert_equal RedmineGttFiware::IssueEntity.priority_rank(@issue.priority), entity.dig('priority', 'value')
   end
 
   # With several mappings for the tracker, the issue's own connection wins;

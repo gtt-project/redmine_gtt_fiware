@@ -1,8 +1,8 @@
 # Maps a tracker to the subtype its issues are emitted as, per broker
-# connection (#69). The subtype is the admin-chosen JSON-LD term that will be
-# declared a subclass of the core Issue type in the instance's published
-# context (design step 2); it travels as the `subtype` property because the
-# target brokers reject multi-type entities (spike on #69).
+# connection (#69). The subtype is the admin-chosen JSON-LD term declared a
+# subclass of the task vocabulary's Task in the instance's published context
+# (InstanceContext); it travels as the `subtype` property because the target
+# brokers reject multi-type entities (spike on #69).
 class EmissionMapping < ApplicationRecord
   self.table_name = 'fiware_emission_mappings'
 
@@ -10,10 +10,11 @@ class EmissionMapping < ApplicationRecord
   # CamelCase by convention (WorkOrder, RoadDamageReport), not enforced.
   SUBTYPE_PATTERN = /\A[A-Za-z][A-Za-z0-9]*\z/
 
-  # The standard issue fields an admin may expose per mapping (#69, step 2b),
-  # keyed by their published vocabulary term. Values name the Redmine field
-  # label so the UI needs no locale keys of its own. assignee is listed last
-  # and defaults off like everything else - publishing person names to a
+  # The standard issue fields an admin may expose per mapping (#69, step 2b).
+  # The keys are stored in exposed_attributes; IssueEntity::TASK_TERMS maps
+  # each to the task term it publishes. Values name the Redmine field label
+  # so the UI needs no locale keys of its own. assignee is listed last
+  # and defaults off like everything else - publishing who is assigned to a
   # shared broker is an explicit admin decision.
   STANDARD_FIELDS = {
     'description' => :field_description,
@@ -28,29 +29,14 @@ class EmissionMapping < ApplicationRecord
     'assignee' => :field_assigned_to
   }.freeze
 
-  # Terms a subtype must not shadow in the published context (#69, step 2):
-  # the core vocabulary, the exposable standard terms, the context's prefixes,
-  # and the NGSI-LD/core-context terms every entity relies on. Compared
-  # case-insensitively.
-  RESERVED_SUBTYPES = (
-    RedmineGttFiware::InstanceContext::CORE_TERMS +
-    STANDARD_FIELDS.keys +
-    %w[rdf rdfs gttfiware inst id type location dateCreated dateModified dateObserved]
-  ).map(&:downcase).freeze
-
-  # In task mode (#152) the instance terms sit on top of the task
-  # vocabulary's context, so they must not shadow its terms either. A
-  # superset of the GTT list on purpose: a mapping valid in task mode stays
-  # valid when the admin switches back.
-  TASK_RESERVED_TERMS = (
-    RESERVED_SUBTYPES + RedmineGttFiware::EmissionVocabulary::TASK_TERMS.map(&:downcase)
-  ).uniq.freeze
-
-  # The reserved terms for the instance's current emission vocabulary,
-  # lowercase.
-  def self.reserved_terms
-    RedmineGttFiware::EmissionVocabulary.task? ? TASK_RESERVED_TERMS : RESERVED_SUBTYPES
-  end
+  # Terms a subtype or custom-field term must not shadow in the published
+  # context (#69, step 2; #152): the task vocabulary's terms, the context's
+  # prefixes, and the NGSI-LD/core-context terms every entity relies on.
+  # Lowercase, compared case-insensitively.
+  RESERVED_TERMS = (
+    RedmineGttFiware::EmissionVocabulary::TASK_TERMS +
+    %w[rdf rdfs inst id type location dateCreated dateModified dateObserved]
+  ).map(&:downcase).uniq.freeze
 
   # Tolerant JSON coder: a hand-edited or corrupted column value degrades to
   # "nothing exposed" instead of raising - the public context endpoint and
@@ -108,7 +94,7 @@ class EmissionMapping < ApplicationRecord
     raw.each_with_object({}) do |(cf_id, term), result|
       term = term.to_s
       next unless term.match?(SUBTYPE_PATTERN)
-      next if self.class.reserved_terms.include?(term.downcase)
+      next if RESERVED_TERMS.include?(term.downcase)
 
       result[cf_id.to_i] = term
     end
@@ -146,7 +132,7 @@ class EmissionMapping < ApplicationRecord
   end
 
   def subtype_must_not_shadow_reserved_terms
-    return unless self.class.reserved_terms.include?(subtype.to_s.downcase)
+    return unless RESERVED_TERMS.include?(subtype.to_s.downcase)
 
     errors.add :subtype, I18n.t('model.emission_mapping.reserved_subtype')
   end
@@ -164,7 +150,7 @@ class EmissionMapping < ApplicationRecord
     subtype_terms = ([subtype] + EmissionMapping.where.not(id: id).distinct.pluck(:subtype))
                     .compact.map(&:downcase)
     terms.each do |term|
-      if !term.match?(SUBTYPE_PATTERN) || self.class.reserved_terms.include?(term.downcase) ||
+      if !term.match?(SUBTYPE_PATTERN) || RESERVED_TERMS.include?(term.downcase) ||
          subtype_terms.include?(term.downcase)
         errors.add :base, I18n.t('model.emission_mapping.invalid_custom_term', term: term)
       end

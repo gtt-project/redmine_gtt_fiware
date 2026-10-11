@@ -66,7 +66,7 @@ class SubscriptionTemplate < ApplicationRecord
   STATUS = ['active', 'inactive', 'oneshot'].freeze
 
   # Federation awareness at creation time (#70, 4a): what to do when another
-  # organization's Issue entity already refers to the notifying entity.
+  # organization's Task entity already refers to the notifying entity.
   FEDERATION_POLICIES = ['off', 'annotate', 'suppress'].freeze
   GEOMETRIES = ['point', 'line', 'polygon', 'box'].freeze
   ALTERATION_TYPES = ['entityCreate', 'entityChange', 'entityUpdate', 'entityDelete'].freeze
@@ -134,27 +134,15 @@ class SubscriptionTemplate < ApplicationRecord
 
   # The @context for this template's NGSI-LD subscription: the template's own
   # value overrides the connection's default.
-  # A federation watch (#70, 4c) subscribes to the emitted Issue type, so it
-  # must expand Issue/refersTo/status through the published core vocabulary -
-  # the same context every emitting instance anchors its terms in. A watch
-  # on Task entities (instances emitting the task vocabulary, #152) needs the
-  # task context instead: one subscription has one context, so watching both
-  # kinds takes two subscriptions. Otherwise the template/connection context
-  # wins as usual.
+  # A federation watch (#70, 4c) subscribes to the emitted work orders
+  # (#152) by datamodels.jp's names, so it must expand Task/refersTo/progress
+  # through the published task vocabulary - Task there is the same IRI as
+  # the redmine subject's Issue that instances emit. Otherwise the
+  # template/connection context wins as usual.
   def effective_context
-    if federation_watch?
-      return RedmineGttFiware::EmissionVocabulary::TASK_CONTEXT if watches_tasks?
-
-      return RedmineGttFiware::FederationSiblings::CONTEXT_URL
-    end
+    return RedmineGttFiware::EmissionVocabulary::TASK_CONTEXT if federation_watch?
 
     context.presence || broker_connection&.context
-  end
-
-  # Whether every entity selector of this template is for type Task.
-  def watches_tasks?
-    types = Array(entities).map { |entity| entity.is_a?(Hash) ? entity['type'].to_s : '' }
-    types.any? && types.all? { |type| type == 'Task' }
   end
 
   # Minimum interval between notifications for this subscription (#95). Same

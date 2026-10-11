@@ -1,8 +1,7 @@
 # Serves a single issue as an NGSI-LD entity (#4): the same representation
 # the emitter publishes, available on demand. With an emission mapping for
 # the issue's tracker the full curated representation is rendered; without
-# one, the always-emitted properties alone. The vocabulary (GTT core or
-# task) is the instance's emission setting (#152).
+# one, the always-emitted properties alone.
 class FiwareEntitiesController < ApplicationController
   # See SubscriptionIssuesController: the explicit declaration keeps the
   # framework-default forgery protection visible to static analysis.
@@ -19,7 +18,7 @@ class FiwareEntitiesController < ApplicationController
       return
     end
 
-    entity = RedmineGttFiware::IssueEntity.build(@issue, mapping_for(@issue)).to_h
+    entity = RedmineGttFiware::IssueEntity.new(@issue, mapping_for(@issue)).to_h
     render json: entity, content_type: 'application/ld+json'
   end
 

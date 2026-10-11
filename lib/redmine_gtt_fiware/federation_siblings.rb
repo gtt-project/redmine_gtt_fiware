@@ -1,31 +1,23 @@
 require 'net/http'
 
 module RedmineGttFiware
-  # Queries a broker for other organizations' Issue entities referring to the
-  # same source entity (#70): the shared-refersTo definition of "the same
-  # problem". Used at notification time (4a) and by the issue-page panel (4b).
+  # Queries a broker for other organizations' Task entities (#152)
+  # referring to the same source entity (#70): the shared-refersTo
+  # definition of "the same problem". Used at notification time (4a) and by
+  # the issue-page panel (4b).
   #
-  # Queries expand type/attribute names through a published vocabulary (one
-  # stable public context, so any instance's query matches any properly
-  # configured instance's entities). Instances emit either GTT Issue
-  # entities or datamodels.jp Task entities (#152), and the two vocabularies
-  # give refersTo different IRIs, so one query per vocabulary is sent and the
-  # results are merged. Failures degrade to an empty list - federation
-  # awareness must never break notification processing or an issue page.
+  # Queries expand type/attribute names through the published datamodels.jp
+  # task vocabulary (one stable public context, so any instance's query
+  # matches any properly configured instance's entities). type=Task matches
+  # GTT entities emitted as `Issue` too: brokers store the expanded type,
+  # and both names expand to the same IRI. Failures degrade to an
+  # empty list - federation awareness must never break notification
+  # processing or an issue page.
   class FederationSiblings
-    # The published core vocabulary, usable as a JSON-LD @context.
-    CONTEXT_URL = 'https://gtt-project.org/ns/fiware.jsonld'.freeze
-    LINK_HEADER = %(<#{CONTEXT_URL}>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json").freeze
     TASK_LINK_HEADER = %(<#{EmissionVocabulary::TASK_CONTEXT}>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json").freeze
 
-    # The entity type queried in each vocabulary and its Link header.
-    VOCABULARIES = {
-      'Issue' => LINK_HEADER,
-      'Task' => TASK_LINK_HEADER
-    }.freeze
-
     # RFC 8984 progress values that mean the work is over; a Task with any
-    # other progress is open, like an Issue with status open.
+    # other progress is open.
     FINISHED_PROGRESS = %w[completed failed cancelled].freeze
 
     CACHE_TTL = 60 # seconds; the issue-page panel refetches at most this often
@@ -59,13 +51,13 @@ module RedmineGttFiware
     # here rather than escaped: no real URN contains such characters.
     QUERYABLE_URN_PATTERN = /\A[A-Za-z0-9:._~-]+\z/
 
-    # Foreign Issue and Task entities whose refersTo points at entity_urn,
+    # Foreign Task entities whose refersTo points at entity_urn,
     # own instance excluded (that is what makes them *siblings*).
     def for_entity(entity_urn)
       return [] unless entity_urn.to_s.match?(QUERYABLE_URN_PATTERN)
 
-      # Only complete answers are cached: one broker hiccup must not blank
-      # (or halve) the issue-page panel for the whole TTL. A genuinely empty
+      # Only complete answers are cached: one broker hiccup must not blank the
+      # issue-page panel for the whole TTL. A genuinely empty
       # sibling list ([]) is cached as usual.
       key = cache_key(entity_urn)
       cached = Rails.cache.read(key)
@@ -82,66 +74,42 @@ module RedmineGttFiware
       ['gtt_fiware_siblings', @connection.id, entity_urn]
     end
 
-    # Returns [siblings, complete]. A failed query contributes nothing and
-    # marks the answer incomplete; the other vocabulary's siblings are still
-    # returned (a broker that cannot load one context must not hide the
-    # work orders of the other).
+    # Returns [siblings, complete]. A failed query yields no siblings and
+    # marks the answer incomplete.
     def fetch(entity_urn)
-      results = VOCABULARIES.map { |type, link| fetch_type(entity_urn, type, link) }
-      [results.compact.flatten.uniq(&:urn), results.none?(&:nil?)]
-    end
-
-    def fetch_type(entity_urn, type, link)
-      query = Rack::Utils.build_query(type: type, limit: QUERY_LIMIT,
+      query = Rack::Utils.build_query(type: 'Task', limit: QUERY_LIMIT,
                                       q: %(refersTo=="#{entity_urn}"))
       response = BrokerHttp.request(:get, "#{@connection.api_base}/entities?#{query}",
                                     connection: @connection, token: @connection.auth_token,
-                                    headers: { 'Accept' => 'application/ld+json', 'Link' => link })
+                                    headers: { 'Accept' => 'application/ld+json', 'Link' => TASK_LINK_HEADER })
       unless response.is_a?(Net::HTTPSuccess)
-        Rails.logger.warn "[FIWARE] Sibling query (#{type}) on #{@connection.name} answered #{response.code}"
-        return nil
+        Rails.logger.warn "[FIWARE] Sibling query on #{@connection.name} answered #{response.code}"
+        return [[], false]
       end
 
-      parse(response.body, type)
+      [parse(response.body), true]
     rescue StandardError => e
-      Rails.logger.warn "[FIWARE] Sibling query (#{type}) on #{@connection.name} failed: #{e.class}: #{e.message}"
-      nil
+      Rails.logger.warn "[FIWARE] Sibling query on #{@connection.name} failed: #{e.class}: #{e.message}"
+      [[], false]
     end
 
-    # The broker answered the query for one type, compacted with that
-    # vocabulary's context, so each answer is read with its attribute names.
-    def parse(body, type)
+    # The broker answered compacted with the task context, so each entity
+    # is read with the task attribute names.
+    def parse(body)
       entities = JSON.parse(body)
       return [] unless entities.is_a?(Array)
 
-      entities.filter_map { |entity| type == 'Task' ? task_sibling(entity) : sibling(entity) }
+      entities.filter_map { |entity| sibling(entity) }
     rescue JSON::ParserError
       []
     end
 
+    # A Task entity read into a Sibling: name is the title and progress is
+    # normalized to open/closed for the federation policy and the notes.
     # Foreign = the URN's instance id differs from ours. Entities without our
-    # URN shape (hand-made Issue entities from non-Redmine producers) count
+    # URN shape (hand-made Task entities from non-Redmine producers) count
     # as foreign too: someone else works on it, whoever they are.
     def sibling(entity)
-      urn = entity['id'].to_s
-      org = IssueUrn.instance_of(urn)
-      return nil if org.present? && org == Emitter.instance_id
-
-      Sibling.new(
-        urn: urn,
-        org: org || 'external',
-        subtype: value_of(entity['subtype']),
-        status: value_of(entity['status']),
-        status_label: value_of(entity['statusLabel']),
-        title: value_of(entity['title']),
-        source: safe_url(value_of(entity['source']))
-      )
-    end
-
-    # A Task entity (#152) read into the same Sibling: name is the title and
-    # progress is normalized to open/closed, so the federation policy and
-    # the notes treat both vocabularies alike.
-    def task_sibling(entity)
       urn = entity['id'].to_s
       org = IssueUrn.instance_of(urn)
       return nil if org.present? && org == Emitter.instance_id

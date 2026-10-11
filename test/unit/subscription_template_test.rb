@@ -151,19 +151,12 @@ class SubscriptionTemplateTest < ActiveSupport::TestCase
   end
 
   # A federation watch expands its types and attributes through the
-  # published vocabulary of what it watches: the GTT core for Issue, the
-  # task vocabulary for Task (#152).
-  def test_federation_watch_context_follows_the_watched_type
+  # published task vocabulary of what it watches (#152), whatever the
+  # template's own context says.
+  def test_federation_watch_uses_the_task_context
     template = SubscriptionTemplate.new(federation_watch: true, context: 'https://example.test/ignored.jsonld')
-    template.entities = [{ 'type' => 'Issue' }]
-    assert_equal RedmineGttFiware::FederationSiblings::CONTEXT_URL, template.effective_context
-
     template.entities = [{ 'type' => 'Task', 'idPattern' => '.*' }]
     assert_equal 'https://datamodels.jp/context/task/v1.jsonld', template.effective_context
-
-    # Mixed selectors cannot share one context; the GTT core stays.
-    template.entities = [{ 'type' => 'Task' }, { 'type' => 'Issue' }]
-    assert_equal RedmineGttFiware::FederationSiblings::CONTEXT_URL, template.effective_context
   end
 
   # #95: template overrides connection, connection overrides the default.

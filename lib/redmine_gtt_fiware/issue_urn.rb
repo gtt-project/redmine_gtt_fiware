@@ -1,10 +1,11 @@
 module RedmineGttFiware
-  # The URN shape of emitted Issue entities:
+  # The URN shape of emitted entities:
   #
   #   urn:ngsi-ld:Issue:redmine:<instance identifier>:<issue id>
   #
-  # Task entities of the task vocabulary (#152) keep this id too: switching
-  # the emission vocabulary never re-identifies an entity.
+  # The `Issue` segment dates from the retired GTT Issue vocabulary. Task
+  # entities (#152) keep it on purpose: ids must never change, or every
+  # entity already on a broker would be re-identified.
   #
   # This is wire protocol shared between federating instances, so building
   # and parsing live here in one place: a format change that misses a call
@@ -22,7 +23,7 @@ module RedmineGttFiware
     end
 
     # The instance identifier inside a URN, or nil when the URN does not
-    # have this shape (hand-made Issue entities from non-Redmine producers).
+    # have this shape (hand-made entities from non-Redmine producers).
     def instance_of(urn)
       urn.to_s[INSTANCE_PATTERN, 1]
     end

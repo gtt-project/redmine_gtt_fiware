@@ -41,13 +41,11 @@ module RedmineGttFiware
       end
     end
 
-    # The entity types this plugin emits issues as: Issue in the GTT core
-    # vocabulary, Task in the task vocabulary (#152). Both count as work
-    # orders whichever vocabulary this instance emits: suppressing only its
-    # own type would be loop-free for one instance, but two instances with
-    # different vocabularies watching each other would ping-pong (an Issue
-    # becomes a Task becomes an Issue ...).
-    WORK_ORDER_TYPES = %w[Issue Task].freeze
+    # The entity type this plugin emits issues as (#152), in every form a
+    # notification can carry it: its type is compacted with the
+    # subscription's context, so a GTT work order arrives as Issue (redmine
+    # subject), Task (datamodels.jp) or the full IRI.
+    WORK_ORDER_TYPES = EmissionVocabulary::TYPE_NAMES
 
     def initialize(template, logger: Rails.logger)
       @template = template
@@ -57,12 +55,11 @@ module RedmineGttFiware
     # raw_entity: one entity hash from the notification's data[] array.
     # Echo suppression, narrowed (#70 staging finding): issues created from
     # ordinary entities (sensors, reports) ARE emitted - that is the point of
-    # emission, and it cannot loop because the emitted entity's type (Issue,
-    # or Task in the task vocabulary) differs from what the subscription
-    # watches. The loop only exists when the notifying entity is itself a
-    # work order (a work order creating a work order creating ...), so
-    # exactly that case is suppressed - as is the federation watch, which
-    # annotates local issues in place.
+    # emission, and it cannot loop because the emitted entity's type (Issue)
+    # differs from what the subscription watches. The loop only exists when
+    # the notifying entity is itself a work order (a work order creating a
+    # work order creating ...), so exactly that case is suppressed - as is
+    # the federation watch, which annotates local issues in place.
     def process(raw_entity)
       entity = Entity.from(raw_entity, @template.standard)
       if @template.federation_watch?
@@ -132,7 +129,7 @@ module RedmineGttFiware
     end
 
     # Federation push updates (#70, 4c): the notified entity is a foreign
-    # organization's Issue or Task; journal its status onto every local issue
+    # organization's Task; journal its status onto every local issue
     # that refers to the same source entity. Own emissions are ignored (the
     # echo guard the design demands), and a repeated unchanged status adds no
     # second note.
@@ -146,11 +143,8 @@ module RedmineGttFiware
       return Result.new(federated: 0) if refers_to.blank?
 
       org = IssueUrn.instance_of(entity.id) || 'external'
-      # A Task (#152) carries progress instead of status; it is normalized
-      # to the same open/closed.
-      status = entity.attributes.dig('status', 'value').presence ||
-               FederationSiblings.status_from_progress(entity.attributes.dig('progress', 'value'))
-      status = status.to_s
+      # The Task's progress (#152), normalized to open/closed.
+      status = FederationSiblings.status_from_progress(entity.attributes.dig('progress', 'value')).to_s
       status_label = entity.attributes.dig('statusLabel', 'value').to_s
       # The label wins when it only differs from the normalized status by
       # casing ("Closed" vs "closed" must not read "Closed / closed").

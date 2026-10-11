@@ -53,8 +53,9 @@
                            size: 30, id: "emission_mapping_subtype_#{tracker.id}" %>
         <em class="info"><%= l(:field_emission_subtype_hint) %></em>
         <%# Admin-exposable standard fields (#69, step 2b). Everything beyond
-            the frozen core defaults to unexposed; assignee doubly so - it
-            publishes a person's name to a shared broker. %>
+            the always-emitted properties defaults to unexposed; assignee
+            doubly so - it publishes who works on an issue to a shared
+            broker. %>
         <span class="gtt-fiware-exposure">
           <%= l(:label_emission_exposed_fields) %>:
           <% EmissionMapping::STANDARD_FIELDS.each do |term, field_label| %>

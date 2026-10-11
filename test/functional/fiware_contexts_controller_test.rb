@@ -15,61 +15,44 @@ class FiwareContextsControllerTest < ActionController::TestCase
   def test_context_is_public
     @request.session[:user_id] = nil
     with_settings login_required: '1' do
-      get :show
+      get :task_context
       assert_response :success
       assert_equal 'application/ld+json', response.media_type
     end
   end
 
-  def test_context_carries_the_core_terms
-    get :show
-    context = JSON.parse(response.body)['@context']
-    RedmineGttFiware::InstanceContext::CORE_TERMS.each do |term|
-      assert context.key?(term), "core term #{term} must be defined"
+  # The task terms come from the redmine subject of GTT's node, imported
+  # first; the inline object adds only instance terms under the instance
+  # namespace.
+  def test_context_imports_the_gtt_task_extension
+    with_settings host_name: 'redmine.public.example', protocol: 'https' do
+      get :task_context
     end
-    # refersTo expands as an IRI, not a string.
-    assert_equal '@id', context.dig('refersTo', '@type')
+    context = JSON.parse(response.body)['@context']
+    assert_kind_of Array, context
+    assert_equal 'https://models.gtt-project.org/context/redmine/v0.jsonld', context.first
+    inline = context.last
+    assert_equal 'https://redmine.public.example/fiware/vocab#', inline['inst']
+    # Only prefixes and instance terms are defined inline.
+    assert_equal %w[inst rdf rdfs], inline.keys.sort
   end
 
-  # The exposable standard terms are published for every instance: exposure
-  # gates what is emitted, the vocabulary defines what the words mean.
-  def test_context_carries_the_standard_terms
-    get :show
-    context = JSON.parse(response.body)['@context']
-    RedmineGttFiware::InstanceContext::STANDARD_TERMS.each do |term|
-      assert context.key?(term), "standard term #{term} must be defined"
-    end
-    # parent is a Relationship, so it expands as an IRI.
-    assert_equal '@id', context.dig('parent', '@type')
-  end
-
-  def test_subtypes_are_declared_subclasses_of_issue
+  def test_subtypes_are_declared_subclasses_of_task
     EmissionMapping.create!(broker_connection: @connection, tracker: Tracker.find(1), subtype: 'WorkOrder')
     EmissionMapping.create!(broker_connection: @connection, tracker: Tracker.find(2), subtype: 'WorkOrder')
     EmissionMapping.create!(broker_connection: @connection, tracker: Tracker.find(3), subtype: 'Incident')
 
-    get :show
+    get :task_context
     body = JSON.parse(response.body)
-    assert_equal 'inst:WorkOrder', body['@context']['WorkOrder']
+    assert_equal 'inst:WorkOrder', body['@context'].last['WorkOrder']
 
     classes = body['@graph'].index_by { |node| node['@id'] }
     assert_equal 2, classes.size, 'one class per distinct subtype'
     work_order = classes['inst:WorkOrder']
-    assert_equal 'gttfiware:Issue', work_order.dig('rdfs:subClassOf', '@id')
+    assert_equal 'https://datamodels.jp/ns/task/Task', work_order.dig('rdfs:subClassOf', '@id')
     # The label names every mapped tracker.
     assert_includes work_order['rdfs:label'], Tracker.find(1).name
     assert_includes work_order['rdfs:label'], Tracker.find(2).name
-  end
-
-  # Defense in depth for pre-validation rows: a stray reserved subtype must
-  # never shadow a core term or prefix in the published document.
-  def test_reserved_subtype_rows_cannot_shadow_core_terms
-    legacy = EmissionMapping.new(broker_connection: @connection, tracker: Tracker.find(1), subtype: 'Issue')
-    legacy.save!(validate: false)
-
-    get :show
-    body = JSON.parse(response.body)
-    assert_equal 'gttfiware:Issue', body['@context']['Issue'], 'the core term must win'
   end
 
   # The same tracker mapped to the same subtype on several connections must
@@ -82,7 +65,7 @@ class FiwareContextsControllerTest < ActionController::TestCase
     EmissionMapping.create!(broker_connection: @connection, tracker: Tracker.find(1), subtype: 'WorkOrder')
     EmissionMapping.create!(broker_connection: other, tracker: Tracker.find(1), subtype: 'WorkOrder')
 
-    get :show
+    get :task_context
     label = JSON.parse(response.body)['@graph'].first['rdfs:label']
     assert_equal 1, label.scan(Tracker.find(1).name).size
   end
@@ -96,104 +79,46 @@ class FiwareContextsControllerTest < ActionController::TestCase
     mapping.exposed_custom_fields = { custom_field.id => 'roadSurface' }
     mapping.save!
 
-    get :show
+    get :task_context
     body = JSON.parse(response.body)
-    assert_equal 'inst:roadSurface', body['@context']['roadSurface']
+    assert_equal 'inst:roadSurface', body['@context'].last['roadSurface']
     node = body['@graph'].detect { |n| n['@id'] == 'inst:roadSurface' }
     assert_equal 'rdf:Property', node['@type']
     assert_includes node['rdfs:label'], 'Road surface'
+  end
+
+  # Defense in depth for rows saved before the task terms were reserved: the
+  # published context never redefines a task term.
+  def test_reserved_rows_cannot_redefine_task_terms
+    custom_field = IssueCustomField.create!(name: 'Deadline note', field_format: 'string',
+                                            is_for_all: true, trackers: Tracker.all)
+    mapping = EmissionMapping.new(broker_connection: @connection, tracker: Tracker.find(1), subtype: 'Project')
+    mapping.exposed_attributes = { 'custom' => { custom_field.id.to_s => 'due' } }
+    mapping.save!(validate: false)
+    # Issue is the redmine subject's name for the emitted type.
+    EmissionMapping.new(broker_connection: @connection, tracker: Tracker.find(2), subtype: 'Issue')
+                   .save!(validate: false)
+
+    get :task_context
+    inline = JSON.parse(response.body)['@context'].last
+    assert_not inline.key?('Project')
+    assert_not inline.key?('due')
+    assert_not inline.key?('Issue')
   end
 
   # The configured public host defines the instance namespace (#101
   # semantics); the request host is only the local fallback.
   def test_instance_namespace_follows_the_configured_host
     with_settings host_name: 'redmine.public.example', protocol: 'https' do
-      get :show
+      get :task_context
       body = JSON.parse(response.body)
-      assert_equal 'https://redmine.public.example/fiware/vocab#', body['@context']['inst']
+      assert_equal 'https://redmine.public.example/fiware/vocab#', body['@context'].last['inst']
     end
 
     with_settings host_name: '' do
-      get :show
+      get :task_context
       body = JSON.parse(response.body)
-      assert_equal 'http://test.host/fiware/vocab#', body['@context']['inst']
+      assert_equal 'http://test.host/fiware/vocab#', body['@context'].last['inst']
     end
-  end
-
-  # --- the task vocabulary context (#152) -------------------------------------
-
-  def test_task_context_is_public
-    @request.session[:user_id] = nil
-    with_settings login_required: '1' do
-      get :task_context
-      assert_response :success
-      assert_equal 'application/ld+json', response.media_type
-    end
-  end
-
-  # The task terms come from the redmine subject of GTT's node, imported
-  # first; the inline object adds only instance terms under the instance
-  # namespace.
-  def test_task_context_imports_the_gtt_task_extension
-    with_settings host_name: 'redmine.public.example', protocol: 'https' do
-      get :task_context
-    end
-    context = JSON.parse(response.body)['@context']
-    assert_kind_of Array, context
-    assert_equal 'https://models.gtt-project.org/context/redmine/v0.jsonld', context.first
-    inline = context.last
-    assert_equal 'https://redmine.public.example/fiware/vocab#', inline['inst']
-    # No GTT core term is defined here: the instance emits task terms.
-    %w[Issue title status gttfiware].each { |term| assert_not inline.key?(term), term }
-  end
-
-  def test_task_context_declares_subtypes_subclasses_of_task
-    EmissionMapping.create!(broker_connection: @connection, tracker: Tracker.find(1), subtype: 'WorkOrder')
-
-    get :task_context
-    body = JSON.parse(response.body)
-    assert_equal 'inst:WorkOrder', body['@context'].last['WorkOrder']
-    work_order = body['@graph'].detect { |node| node['@id'] == 'inst:WorkOrder' }
-    assert_equal 'https://datamodels.jp/ns/task/Task', work_order.dig('rdfs:subClassOf', '@id')
-    assert_includes work_order['rdfs:label'], Tracker.find(1).name
-  end
-
-  def test_task_context_publishes_custom_field_terms
-    custom_field = IssueCustomField.create!(name: 'Road surface', field_format: 'string',
-                                            is_for_all: true, trackers: Tracker.all)
-    mapping = EmissionMapping.create!(broker_connection: @connection, tracker: Tracker.find(1), subtype: 'WorkOrder')
-    mapping.exposed_custom_fields = { custom_field.id => 'roadSurface' }
-    mapping.save!
-
-    get :task_context
-    body = JSON.parse(response.body)
-    assert_equal 'inst:roadSurface', body['@context'].last['roadSurface']
-    assert body['@graph'].any? { |node| node['@id'] == 'inst:roadSurface' && node['@type'] == 'rdf:Property' }
-  end
-
-  # Rows saved while the instance emitted the GTT vocabulary may use a term
-  # the task vocabulary defines; the published task context never redefines
-  # it.
-  def test_task_context_never_redefines_task_terms
-    custom_field = IssueCustomField.create!(name: 'Deadline note', field_format: 'string',
-                                            is_for_all: true, trackers: Tracker.all)
-    mapping = EmissionMapping.create!(broker_connection: @connection, tracker: Tracker.find(1), subtype: 'Project')
-    mapping.exposed_custom_fields = { custom_field.id => 'due' }
-    mapping.save!
-
-    get :task_context
-    inline = JSON.parse(response.body)['@context'].last
-    assert_not inline.key?('Project')
-    assert_not inline.key?('due')
-  end
-
-  # The GTT context stays exactly as it was, whichever vocabulary is chosen.
-  def test_gtt_context_is_unchanged_in_task_mode
-    get :show
-    gtt = JSON.parse(response.body)
-    with_settings plugin_redmine_gtt_fiware: { 'fiware_emission_vocabulary' => 'task' } do
-      get :show
-    end
-    assert_equal gtt, JSON.parse(response.body)
   end
 end
