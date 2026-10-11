@@ -95,11 +95,15 @@ class FiwareContextsControllerTest < ActionController::TestCase
     mapping = EmissionMapping.new(broker_connection: @connection, tracker: Tracker.find(1), subtype: 'Project')
     mapping.exposed_attributes = { 'custom' => { custom_field.id.to_s => 'due' } }
     mapping.save!(validate: false)
+    # Issue is the redmine subject's name for the emitted type.
+    EmissionMapping.new(broker_connection: @connection, tracker: Tracker.find(2), subtype: 'Issue')
+                   .save!(validate: false)
 
     get :task_context
     inline = JSON.parse(response.body)['@context'].last
     assert_not inline.key?('Project')
     assert_not inline.key?('due')
+    assert_not inline.key?('Issue')
   end
 
   # The configured public host defines the instance namespace (#101

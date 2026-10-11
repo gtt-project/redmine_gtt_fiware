@@ -6,9 +6,11 @@ module RedmineGttFiware
   # definition of "the same problem". Used at notification time (4a) and by
   # the issue-page panel (4b).
   #
-  # Queries expand type/attribute names through the published task
-  # vocabulary (one stable public context, so any instance's query matches
-  # any properly configured instance's entities). Failures degrade to an
+  # Queries expand type/attribute names through the published datamodels.jp
+  # task vocabulary (one stable public context, so any instance's query
+  # matches any properly configured instance's entities). type=Task matches
+  # GTT entities emitted as `Issue` too: brokers store the expanded type,
+  # and both names expand to the same IRI. Failures degrade to an
   # empty list - federation awareness must never break notification
   # processing or an issue page.
   class FederationSiblings

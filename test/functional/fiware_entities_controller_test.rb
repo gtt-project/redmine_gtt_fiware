@@ -20,7 +20,7 @@ class FiwareEntitiesControllerTest < ActionController::TestCase
     assert_equal 'application/ld+json', response.media_type
     entity = JSON.parse(response.body)
     assert_equal "urn:ngsi-ld:Issue:redmine:test-town:#{@issue.id}", entity['id']
-    assert_equal 'Task', entity['type']
+    assert_equal 'Issue', entity['type']
     assert_equal @issue.subject, entity.dig('name', 'value')
     assert_nil entity['subtype'], 'no mapping, no subtype'
   end

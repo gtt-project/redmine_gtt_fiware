@@ -134,10 +134,11 @@ class SubscriptionTemplate < ApplicationRecord
 
   # The @context for this template's NGSI-LD subscription: the template's own
   # value overrides the connection's default.
-  # A federation watch (#70, 4c) subscribes to the emitted Task type (#152),
-  # so it must expand Task/refersTo/progress through the published task
-  # vocabulary - the same context every emitting instance anchors its terms
-  # in. Otherwise the template/connection context wins as usual.
+  # A federation watch (#70, 4c) subscribes to the emitted work orders
+  # (#152) by datamodels.jp's names, so it must expand Task/refersTo/progress
+  # through the published task vocabulary - Task there is the same IRI as
+  # the redmine subject's Issue that instances emit. Otherwise the
+  # template/connection context wins as usual.
   def effective_context
     return RedmineGttFiware::EmissionVocabulary::TASK_CONTEXT if federation_watch?
 

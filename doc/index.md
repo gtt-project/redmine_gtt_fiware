@@ -45,10 +45,11 @@ If you need a test broker, use [FIWARE-Small-Bang](https://github.com/lets-fiwar
 ## Reference
 
 - [datamodels.jp task vocabulary](https://datamodels.jp/en/models/task/Task/)
-  — the vocabulary of the `Task` entities published by
+  — the vocabulary of the entities published by
   [issue emission](issue_emission.md).
 - [GTT redmine subject](https://models.gtt-project.org/ns/redmine) — GTT's
-  extension of the task vocabulary (`category`).
+  extension of the task vocabulary: `Issue` (Redmine's name for `Task`) and
+  `category`. The plugin needs version 0.2.0 or later.
 - [Historical NGSI-LD vocabulary notes](reference/ngsi-ld-vocabulary.md) —
   preserved from the removed read API; the published vocabulary above
   supersedes it.

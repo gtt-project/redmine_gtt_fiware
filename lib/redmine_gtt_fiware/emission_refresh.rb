@@ -43,9 +43,9 @@ module RedmineGttFiware
   #
   # One divergence attributes cannot fix: the entity type. An append never
   # changes it, so a broker entity of another type under the same id - an
-  # `Issue` emitted before the GTT Issue vocabulary was retired in favour of
-  # Task (#152) - is deleted and created anew from the current
-  # representation.
+  # Issue of the retired GTT core vocabulary (#152), whose type IRI differs
+  # from the redmine subject's Issue - is deleted and created anew from the
+  # current representation.
   class EmissionRefresh
     # Not attributes: identity, context, and the broker-managed timestamps
     # (CIM 009 system attributes, which a normalized entity may embed).
@@ -87,15 +87,16 @@ module RedmineGttFiware
       (remote.keys - NON_ATTRIBUTE_KEYS - @entity.keys).reject { |name| name.include?(':') }
     end
 
-    # A broker that cannot compact with our context may answer the type as a
-    # full IRI (https://datamodels.jp/ns/task/Task) or a prefixed name; the
-    # comparison uses the last segment. A missing or unreadable remote type
-    # is no reason to recreate.
+    # Our type may come back as Issue (read back with our context), Task or
+    # the full IRI (EmissionVocabulary::TYPE_NAMES); anything else is another
+    # type. That includes a retired GTT-core Issue, which the broker answers
+    # as https://gtt-project.org/ns/fiware#Issue because our context cannot
+    # compact it. A missing remote type is no reason to recreate.
     def type_changed?(remote)
       return false if remote.nil?
 
-      remote_types = Array(remote['type']).map { |type| type.to_s.split(%r{[#/:]}).last }.compact
-      remote_types.any? && !remote_types.include?(@entity['type'])
+      remote_types = Array(remote['type']).map(&:to_s).reject(&:empty?)
+      remote_types.any? && (remote_types & EmissionVocabulary::TYPE_NAMES).empty?
     end
 
     # Delete, then create from the full representation. A failed deletion is

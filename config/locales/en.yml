@@ -40,7 +40,7 @@ en:
   project_module_gtt_fiware_emission: "GTT FIWARE Issue Emission"
   permission_gtt_fiware_emission: "Emit issues to FIWARE brokers"
   label_emission_mappings: "Issue Emission"
-  text_emission_mappings_info: "Issues of the checked trackers are emitted to this broker as NGSI-LD Task entities with the given subtype, from projects that enable the Issue Emission module. Requires the instance identifier in the plugin settings."
+  text_emission_mappings_info: "Issues of the checked trackers are emitted to this broker as NGSI-LD Issue entities (the task vocabulary of datamodels.jp) with the given subtype, from projects that enable the Issue Emission module. Requires the instance identifier in the plugin settings."
   field_emission_subtype_hint: "Subtype (a JSON-LD term, e.g. WorkOrder)"
   label_emission_exposed_fields: "Published attributes"
   label_emission_exposed_custom_fields: "Published custom fields"

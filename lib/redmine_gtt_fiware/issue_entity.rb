@@ -1,7 +1,8 @@
 module RedmineGttFiware
   # Serializes an issue as a Task of the datamodels.jp task vocabulary
-  # (#152). The entity id is the IssueUrn, unchanged from the retired GTT
-  # Issue vocabulary, so no emitted entity was re-identified.
+  # (#152), typed `Issue`: the redmine subject's name for the same IRI (see
+  # EmissionVocabulary). The entity id is the IssueUrn, unchanged from the
+  # retired GTT Issue vocabulary, so no emitted entity was re-identified.
   #
   # Semantics follow RFC 8984 (JSCalendar Task) where the vocabulary does:
   # progress, a 0-9 priority, an ISO 8601 estimatedDuration. Absent data is
@@ -71,7 +72,7 @@ module RedmineGttFiware
     def to_h
       entity = {
         'id' => self.class.urn(@issue),
-        'type' => 'Task',
+        'type' => EmissionVocabulary::ENTITY_TYPE,
         'name' => property(@issue.subject),
         # Redmine only knows open and closed; in-process would need a status
         # configuration this plugin does not have yet.

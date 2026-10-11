@@ -54,16 +54,17 @@ class EmitterTest < ActiveSupport::TestCase
     assert_equal 'emit-token', post['X-Api-Key']
     assert_equal 'testtown', post['NGSILD-Tenant']
     body = JSON.parse(post.body)
-    # The id keeps the IssueUrn shape (ids never change); the type is Task.
+    # The id keeps the IssueUrn shape (ids never change); the type is the
+    # redmine subject's Issue (datamodels.jp's Task IRI).
     assert_equal "urn:ngsi-ld:Issue:redmine:test-town:#{issue.id}", body['id']
-    assert_equal 'Task', body['type']
+    assert_equal 'Issue', body['type']
     assert_equal 'Emitted issue', body.dig('name', 'value')
     assert_equal 'WorkOrder', body.dig('subtype', 'value')
   end
 
   def remote_entity_response(extra_attributes = {})
     entity = {
-      'id' => 'urn:ngsi-ld:Issue:redmine:test-town:1', 'type' => 'Task',
+      'id' => 'urn:ngsi-ld:Issue:redmine:test-town:1', 'type' => 'Issue',
       'name' => { 'type' => 'Property', 'value' => 'Emitted issue' },
       'createdAt' => '2026-08-01T00:00:00Z', 'modifiedAt' => '2026-08-01T00:00:00Z'
     }.merge(extra_attributes)
@@ -240,58 +241,60 @@ class EmitterTest < ActiveSupport::TestCase
                  get['Link']
   end
 
-  # --- entities left over from the retired Issue vocabulary (#152) -----------
+  # --- entities left over from the retired GTT core vocabulary (#152) --------
 
-  # An append never changes the entity type: a broker that still holds an
-  # Issue under the same id (emitted before Task-only emission) gets it
-  # deleted and created anew as a Task. The broker cannot compact the old
-  # type with the task context, so it answers it as the full IRI of the
-  # retired vocabulary.
-  def test_a_legacy_issue_entity_is_recreated_as_a_task
-    conflict = Net::HTTPConflict.new('1.1', '409', 'Conflict')
-    remote = remote_entity_response('type' => 'https://gtt-project.org/ns/fiware#Issue')
+  def legacy_conflict(type, *after)
     requests = []
-    responses = [conflict, remote, no_content_response, created_response]
     Net::HTTP.any_instance.stubs(:request).with { |req| requests << req; true }
-             .returns(*responses)
-
-    with_settings plugin_redmine_gtt_fiware: EMISSION_SETTINGS do
-      Rails.logger.expects(:error).never
-      build_issue.save!
-    end
-
-    delete = requests.find { |r| r.is_a?(Net::HTTP::Delete) }
-    assert_not_nil delete, 'the Issue entity must be deleted'
-    assert_match %r{/ngsi-ld/v1/entities/urn:ngsi-ld:Issue:redmine:test-town:\d+\z}, delete.path
-    create = requests.last
-    assert create.is_a?(Net::HTTP::Post)
-    assert_equal '/ngsi-ld/v1/entities', create.path
-    assert_equal 'Task', JSON.parse(create.body)['type']
-    assert_not requests.any? { |r| r.path.end_with?('/attrs') }, 'no attribute append on a type change'
+             .returns(Net::HTTPConflict.new('1.1', '409', 'Conflict'),
+                      remote_entity_response('type' => type), *after)
+    requests
   end
 
-  # A broker that cannot compact with our context may answer our own type
-  # as a full IRI; that is the same type, not a legacy entity.
-  def test_task_type_answered_as_an_iri_is_not_recreated
-    conflict = Net::HTTPConflict.new('1.1', '409', 'Conflict')
-    remote = remote_entity_response('type' => 'https://datamodels.jp/ns/task/Task')
-    requests = []
-    Net::HTTP.any_instance.stubs(:request).with { |req| requests << req; true }
-             .returns(conflict, remote, no_content_response)
+  # An append never changes the entity type: a broker that still holds a
+  # GTT-core Issue under the same id gets it deleted and created anew. Our
+  # context cannot compact the old type, so the broker answers it as the
+  # full IRI: of the retired namespace (emitted with a host name) or of the
+  # NGSI-LD default context (emitted without one). The short name Issue is
+  # the same in both vocabularies; only the IRI tells them apart.
+  def test_a_legacy_gtt_core_entity_is_recreated
+    ['https://gtt-project.org/ns/fiware#Issue',
+     'https://uri.etsi.org/ngsi-ld/default-context/Issue'].each do |legacy_type|
+      requests = legacy_conflict(legacy_type, no_content_response, created_response)
 
-    with_settings plugin_redmine_gtt_fiware: EMISSION_SETTINGS do
-      build_issue.save!
+      with_settings plugin_redmine_gtt_fiware: EMISSION_SETTINGS do
+        build_issue.save!
+      end
+
+      delete = requests.find { |r| r.is_a?(Net::HTTP::Delete) }
+      assert_not_nil delete, "#{legacy_type}: the old entity must be deleted"
+      assert_match %r{/ngsi-ld/v1/entities/urn:ngsi-ld:Issue:redmine:test-town:\d+\z}, delete.path
+      create = requests.last
+      assert create.is_a?(Net::HTTP::Post)
+      assert_equal '/ngsi-ld/v1/entities', create.path
+      assert_equal 'Issue', JSON.parse(create.body)['type']
+      assert_not requests.any? { |r| r.path.end_with?('/attrs') }, 'no attribute append on a type change'
     end
-
-    assert requests.any? { |r| r.is_a?(Net::HTTP::Post) && r.path.end_with?('/attrs') }
-    assert_not requests.any? { |r| r.is_a?(Net::HTTP::Delete) }
   end
 
-  def test_failed_deletion_of_a_legacy_issue_entity_is_logged
-    conflict = Net::HTTPConflict.new('1.1', '409', 'Conflict')
-    requests = []
-    Net::HTTP.any_instance.stubs(:request).with { |req| requests << req; true }
-             .returns(conflict, remote_entity_response('type' => 'Issue'), error_response)
+  # Our own type, read back under any of its names (the redmine subject's
+  # Issue, datamodels.jp's Task, or the IRI when the broker cannot compact),
+  # is the same type: updated in place, never recreated.
+  def test_own_type_under_any_name_is_not_recreated
+    ['Issue', 'Task', 'https://datamodels.jp/ns/task/Task'].each do |own_type|
+      requests = legacy_conflict(own_type, no_content_response)
+
+      with_settings plugin_redmine_gtt_fiware: EMISSION_SETTINGS do
+        build_issue.save!
+      end
+
+      assert requests.any? { |r| r.is_a?(Net::HTTP::Post) && r.path.end_with?('/attrs') }, own_type
+      assert_not requests.any? { |r| r.is_a?(Net::HTTP::Delete) }, own_type
+    end
+  end
+
+  def test_failed_deletion_of_a_legacy_entity_is_logged
+    requests = legacy_conflict('https://gtt-project.org/ns/fiware#Issue', error_response)
 
     with_settings plugin_redmine_gtt_fiware: EMISSION_SETTINGS do
       Rails.logger.expects(:error).with { |msg| msg.include?('answered 500') }

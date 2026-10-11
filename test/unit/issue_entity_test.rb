@@ -26,8 +26,9 @@ class IssueEntityTest < ActiveSupport::TestCase
   def test_always_emitted_properties
     e = entity
     # The id keeps the IssueUrn shape, so no emitted entity is re-identified.
+    # Issue is the redmine subject's name for datamodels.jp's Task IRI.
     assert_equal "urn:ngsi-ld:Issue:redmine:test-town:#{@issue.id}", e['id']
-    assert_equal 'Task', e['type']
+    assert_equal 'Issue', e['type']
     assert_equal @issue.subject, e.dig('name', 'value')
     assert_equal 'needs-action', e.dig('progress', 'value')
     assert_equal @issue.status.name, e.dig('statusLabel', 'value')
@@ -282,7 +283,7 @@ class IssueEntityTest < ActiveSupport::TestCase
   # always-emitted properties alone.
   def test_renders_without_a_mapping
     e = entity(@issue, nil)
-    assert_equal 'Task', e['type']
+    assert_equal 'Issue', e['type']
     assert_nil e['subtype']
     assert_nil e['priority']
     assert_equal "urn:ngsi-ld:Project:redmine:test-town:#{@issue.project.identifier}",

@@ -41,8 +41,11 @@ module RedmineGttFiware
       end
     end
 
-    # The entity types this plugin emits issues as: Task (#152).
-    WORK_ORDER_TYPES = %w[Task].freeze
+    # The entity type this plugin emits issues as (#152), in every form a
+    # notification can carry it: its type is compacted with the
+    # subscription's context, so a GTT work order arrives as Issue (redmine
+    # subject), Task (datamodels.jp) or the full IRI.
+    WORK_ORDER_TYPES = EmissionVocabulary::TYPE_NAMES
 
     def initialize(template, logger: Rails.logger)
       @template = template
@@ -52,7 +55,7 @@ module RedmineGttFiware
     # raw_entity: one entity hash from the notification's data[] array.
     # Echo suppression, narrowed (#70 staging finding): issues created from
     # ordinary entities (sensors, reports) ARE emitted - that is the point of
-    # emission, and it cannot loop because the emitted entity's type (Task)
+    # emission, and it cannot loop because the emitted entity's type (Issue)
     # differs from what the subscription watches. The loop only exists when
     # the notifying entity is itself a work order (a work order creating a
     # work order creating ...), so exactly that case is suppressed - as is

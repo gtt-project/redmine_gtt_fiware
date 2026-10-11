@@ -146,7 +146,7 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
 
   # Issues created from ordinary entities ARE emitted - that is the point of
   # emission: the sensor event becomes a work order other organizations can
-  # see. No loop: the emitted type (Task) differs from what the
+  # see. No loop: the emitted type (Issue) differs from what the
   # subscription watches (#70 staging finding).
   def test_notification_created_issues_are_emitted
     enable_emission
@@ -167,17 +167,22 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
   end
 
   # The echo loop exists exactly when the notifying entity is itself a work
-  # order, a Task (#152) (a work order creating a work order creating ...):
-  # that case is suppressed.
-  def test_task_typed_notifications_are_not_emitted_back
+  # order (a work order creating a work order creating ...): that case is
+  # suppressed. The type is compacted with the subscription's context, so a
+  # GTT work order (#152) arrives as Issue (redmine subject), Task
+  # (datamodels.jp) or the full IRI; all three are work orders.
+  def test_work_order_typed_notifications_are_not_emitted_back
     enable_emission
     Net::HTTP.any_instance.expects(:request).never
+    types = ['Issue', 'Task', 'https://datamodels.jp/ns/task/Task']
     with_settings plugin_redmine_gtt_fiware: { 'fiware_instance_id' => 'test-town' } do
-      assert_difference 'Issue.count', 1 do
-        post_notification(entities: [entity('id' => 'urn:ngsi-ld:Issue:redmine:other-org:5', 'type' => 'Task')])
+      types.each_with_index do |type, index|
+        assert_difference 'Issue.count', 1, type do
+          post_notification(entities: [entity('id' => "urn:ngsi-ld:Issue:redmine:other-org:#{index}", 'type' => type)])
+        end
+        assert_response :success
       end
     end
-    assert_response :success
   end
 
   # --- federation awareness (#70, 4a) ----------------------------------------

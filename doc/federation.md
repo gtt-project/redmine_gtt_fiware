@@ -2,7 +2,9 @@
 
 Since version 3.1 the plugin lets organizations that share a context broker
 see and react to each other's work. Two organizations work on the same problem
-when their `Task` entities point at the same source entity (the
+when their work order entities (type `Issue`, which is datamodels.jp's
+`Task`, see [issue emission](issue_emission.md)) point at the same source
+entity (the
 `refersTo` relationship); everything below builds on that.
 
 Federation requires [issue emission](issue_emission.md) to be configured,
@@ -40,7 +42,8 @@ same entity ("the work order by nexco-east is now Closed").
 To set one up: create a subscription on an NGSI-LD connection, check *Federation
 watch*, set the entity filter to type `Task` and the watched attributes to
 `progress`, then publish it. A watch subscription always uses the task
-vocabulary's context (`https://datamodels.jp/context/task/v1.jsonld`). The
+vocabulary's context (`https://datamodels.jp/context/task/v1.jsonld`), in
+which the work orders that instances emit as `Issue` are named `Task`. The
 subscription's own entities never trigger notes (they are recognized by the
 instance identifier in their ids), and an unchanged status is not repeated.
 

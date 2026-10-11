@@ -47,7 +47,7 @@ class EmissionMappingTest < ActiveSupport::TestCase
   # prefixes or NGSI-LD terms in the published document (#69 step 2, #152),
   # whatever the casing.
   def test_subtype_must_not_shadow_reserved_terms
-    %w[Task task Project milestone Milestone name progress tm schema
+    %w[Issue issue Task task Project milestone Milestone name progress tm schema
        end homepage identifier isPublic milestoneStatus projectStatus
        rdfs inst location dateCreated type].each do |reserved|
       mapping = EmissionMapping.new(broker_connection: connection, tracker: Tracker.first, subtype: reserved)
