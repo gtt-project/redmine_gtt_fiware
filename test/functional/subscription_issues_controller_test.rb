@@ -146,7 +146,7 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
 
   # Issues created from ordinary entities ARE emitted - that is the point of
   # emission: the sensor event becomes a work order other organizations can
-  # see. No loop: the emitted type (Issue) differs from what the
+  # see. No loop: the emitted type (Task) differs from what the
   # subscription watches (#70 staging finding).
   def test_notification_created_issues_are_emitted
     enable_emission
@@ -166,27 +166,13 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
     assert_equal 'urn:ngsi-ld:TemperatureSensor:001', body.dig('refersTo', 'object')
   end
 
-  # The echo loop exists exactly when the notifying entity is itself an
-  # Issue (a work order creating a work order creating ...): that case is
-  # suppressed.
-  def test_issue_typed_notifications_are_not_emitted_back
-    enable_emission
-    Net::HTTP.any_instance.expects(:request).never
-    with_settings plugin_redmine_gtt_fiware: { 'fiware_instance_id' => 'test-town' } do
-      assert_difference 'Issue.count', 1 do
-        post_notification(entities: [entity('id' => 'urn:ngsi-ld:Issue:redmine:other-org:5', 'type' => 'Issue')])
-      end
-    end
-    assert_response :success
-  end
-
-  # The same loop exists with the task vocabulary (#152), where work orders
-  # are Task entities.
+  # The echo loop exists exactly when the notifying entity is itself a work
+  # order, a Task (#152) (a work order creating a work order creating ...):
+  # that case is suppressed.
   def test_task_typed_notifications_are_not_emitted_back
     enable_emission
     Net::HTTP.any_instance.expects(:request).never
-    with_settings plugin_redmine_gtt_fiware: { 'fiware_instance_id' => 'test-town',
-                                               'fiware_emission_vocabulary' => 'task' } do
+    with_settings plugin_redmine_gtt_fiware: { 'fiware_instance_id' => 'test-town' } do
       assert_difference 'Issue.count', 1 do
         post_notification(entities: [entity('id' => 'urn:ngsi-ld:Issue:redmine:other-org:5', 'type' => 'Task')])
       end
@@ -285,10 +271,10 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
                                 project_id: @template.project_id)
   end
 
-  def foreign_work_order(status: 'closed', id: 'urn:ngsi-ld:Issue:redmine:nexco-east:7')
+  def foreign_work_order(progress: 'completed', id: 'urn:ngsi-ld:Issue:redmine:nexco-east:7')
     {
-      'id' => id, 'type' => 'Issue',
-      'status' => { 'type' => 'Property', 'value' => status },
+      'id' => id, 'type' => 'Task',
+      'progress' => { 'type' => 'Property', 'value' => progress },
       'statusLabel' => { 'type' => 'Property', 'value' => 'Closed' },
       'refersTo' => { 'type' => 'Relationship', 'object' => 'urn:ngsi-ld:RoadDamage:001' }
     }
@@ -306,13 +292,11 @@ class SubscriptionIssuesControllerTest < ActionController::TestCase
     assert_includes note, 'Closed'
   end
 
-  # A work order of an instance emitting the task vocabulary (#152) carries
-  # progress instead of status; it reads as the same open/closed.
+  # The Task's progress (#152) reads as open/closed next to its own status
+  # label.
   def test_watch_journals_the_progress_of_a_foreign_task
     watch_setup
-    task = foreign_work_order.except('status').merge(
-      'type' => 'Task',
-      'progress' => { 'type' => 'Property', 'value' => 'completed' },
+    task = foreign_work_order.merge(
       'statusLabel' => { 'type' => 'Property', 'value' => 'Done' }
     )
     post_notification(entities: [task])

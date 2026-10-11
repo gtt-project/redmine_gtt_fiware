@@ -1,4 +1,4 @@
-# The issue-page federation panel (#70, 4b): other organizations' Issue
+# The issue-page federation panel (#70, 4b): other organizations' Task
 # entities referring to the same source entity, fetched asynchronously so a
 # slow broker never delays the issue page itself.
 class FederationController < ApplicationController

@@ -1,20 +1,12 @@
 module RedmineGttFiware
-  # Generates the instance's self-published JSON-LD context (#69, step 2):
-  # the core Issue vocabulary terms plus one class per configured emission
-  # subtype, each declared rdfs:subClassOf the core Issue. Consumers who
+  # Generates the instance's self-published JSON-LD context (#69, step 2;
+  # task vocabulary since #152). It imports the redmine subject of GTT's
+  # node (the datamodels.jp task context plus category) and adds only what
+  # is instance-defined: the subtypes, declared rdfs:subClassOf the task
+  # vocabulary's Task, and the exposed custom-field terms. Consumers who
   # dereference one URL learn the instance's full schema; the @graph is
   # ignored by @context processing and speaks to RDF tooling.
   class InstanceContext
-    # The published core vocabulary namespace. The core terms are frozen (see
-    # IssueEntity): renaming any of them is a breaking change for every
-    # consumer of every instance.
-    CORE_NAMESPACE = 'https://gtt-project.org/ns/fiware#'.freeze
-    CORE_TERMS = %w[Issue title status statusLabel subtype source refersTo].freeze
-    # The admin-exposable standard field terms (#69, step 2b). Published for
-    # every instance whether exposed or not: exposure gates what an instance
-    # emits, the vocabulary defines what the words mean.
-    STANDARD_TERMS = %w[description priority category targetVersion startDate
-                        dueDate estimatedTime percentDone parent assignee].freeze
     RDFS = 'http://www.w3.org/2000/01/rdf-schema#'.freeze
     RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'.freeze
 
@@ -26,59 +18,51 @@ module RedmineGttFiware
 
     def to_h
       {
-        '@context' => context_terms,
+        '@context' => [EmissionVocabulary::TASK_EXTENSION_CONTEXT, context_terms],
         '@graph' => subtype_classes + custom_field_properties
       }
     end
 
-    # Where instance-defined terms live: the subtypes now, the custom-field
-    # terms of step 2c later. The standard field terms deliberately do NOT
-    # live here - they mean the same on every instance, so they belong to the
-    # shared namespace (see STANDARD_TERMS).
+    # Where instance-defined terms live: the subtypes and the custom-field
+    # terms. The task terms deliberately do NOT live here - they mean the
+    # same on every instance, so they come from the imported context.
     def vocab_namespace
       "#{@base_url}/fiware/vocab#"
     end
 
     private
 
+    # An instance term may never redefine a task term (or a prefix):
+    # validation rejects such terms (EmissionMapping), and the skip here is
+    # defense in depth for rows saved before that rule, so a stray term can
+    # never shadow an imported term in the published document.
     def context_terms
       terms = {
         'rdf' => RDF,
         'rdfs' => RDFS,
-        'gttfiware' => CORE_NAMESPACE,
         'inst' => vocab_namespace
       }
-      (CORE_TERMS + STANDARD_TERMS).each { |term| terms[term] = "gttfiware:#{term}" }
-      # Relationship terms point at other entities, so they expand as IRIs,
-      # not strings.
-      terms['refersTo'] = { '@id' => 'gttfiware:refersTo', '@type' => '@id' }
-      terms['parent'] = { '@id' => 'gttfiware:parent', '@type' => '@id' }
-      # Validation rejects reserved subtype and custom terms (EmissionMapping);
-      # the skip is defense in depth for pre-validation rows, so a stray term
-      # can never shadow a core term or prefix in the published document.
-      subtypes.each_key { |subtype| terms[subtype] = "inst:#{subtype}" unless terms.key?(subtype) }
-      custom_terms.each_key { |term| terms[term] = "inst:#{term}" unless terms.key?(term) }
+      reserved = (EmissionVocabulary::TASK_TERMS + terms.keys).map(&:downcase)
+      (subtypes.keys + custom_terms.keys).each do |term|
+        next if reserved.include?(term.downcase) || terms.key?(term)
+
+        terms[term] = "inst:#{term}"
+      end
       terms
     end
 
     # One class declaration per distinct configured subtype, anchored to the
-    # core Issue. The label names the mapped trackers so a human reading the
-    # schema can see what feeds each subtype.
+    # task vocabulary's Task. The label names the mapped trackers so a human
+    # reading the schema can see what feeds each subtype.
     def subtype_classes
       subtypes.map do |subtype, tracker_names|
         {
           '@id' => "inst:#{subtype}",
           '@type' => 'rdfs:Class',
-          'rdfs:subClassOf' => { '@id' => superclass_iri },
+          'rdfs:subClassOf' => { '@id' => EmissionVocabulary::TASK_TYPE_IRI },
           'rdfs:label' => "#{subtype} (tracker: #{tracker_names.uniq.sort.join(', ')})"
         }
       end
-    end
-
-    # What the subtypes specialize: the core Issue here, the task
-    # vocabulary's Task in TaskInstanceContext.
-    def superclass_iri
-      'gttfiware:Issue'
     end
 
     # One property declaration per distinct exposed custom-field term (#69,

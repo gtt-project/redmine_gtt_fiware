@@ -44,11 +44,11 @@ If you need a test broker, use [FIWARE-Small-Bang](https://github.com/lets-fiwar
 
 ## Reference
 
-- [GTT FIWARE core vocabulary](https://gtt-project.org/ns/fiware) — the
-  published terms used by [issue emission](issue_emission.md) (the default).
 - [datamodels.jp task vocabulary](https://datamodels.jp/en/models/task/Task/)
-  — the alternative emission vocabulary (`Task` entities), see
-  [issue emission](issue_emission.md#the-task-vocabulary).
+  — the vocabulary of the `Task` entities published by
+  [issue emission](issue_emission.md).
+- [GTT redmine subject](https://models.gtt-project.org/ns/redmine) — GTT's
+  extension of the task vocabulary (`category`).
 - [Historical NGSI-LD vocabulary notes](reference/ngsi-ld-vocabulary.md) —
   preserved from the removed read API; the published vocabulary above
   supersedes it.

@@ -19,12 +19,10 @@ end
 # Instance-level broker connections, managed by admins (#67).
 resources :broker_connections, except: [:show]
 
-# The instance's self-published JSON-LD context (#69, step 2): core terms
-# plus the configured emission subtypes. Public - brokers dereference it at
-# ingestion and consumers read the schema from it.
-get 'fiware/context.jsonld', to: 'fiware_contexts#show', format: false
-# The same for the task vocabulary (#152): instance terms on top of GTT's
-# extension of the datamodels.jp task context.
+# The instance's self-published JSON-LD context (#69, step 2; #152): the
+# configured emission subtypes and custom-field terms on top of GTT's
+# extension of the datamodels.jp task context. Public - brokers dereference
+# it at ingestion and consumers read the schema from it.
 get 'fiware/task-context.jsonld', to: 'fiware_contexts#task_context', format: false
 
 # Issue-page federation panel (#70, 4b): other organizations' work orders

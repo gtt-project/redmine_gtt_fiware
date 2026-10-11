@@ -54,14 +54,17 @@ class EmitterTest < ActiveSupport::TestCase
     assert_equal 'emit-token', post['X-Api-Key']
     assert_equal 'testtown', post['NGSILD-Tenant']
     body = JSON.parse(post.body)
+    # The id keeps the IssueUrn shape (ids never change); the type is Task.
     assert_equal "urn:ngsi-ld:Issue:redmine:test-town:#{issue.id}", body['id']
+    assert_equal 'Task', body['type']
+    assert_equal 'Emitted issue', body.dig('name', 'value')
     assert_equal 'WorkOrder', body.dig('subtype', 'value')
   end
 
   def remote_entity_response(extra_attributes = {})
     entity = {
-      'id' => 'urn:ngsi-ld:Issue:redmine:test-town:1', 'type' => 'Issue',
-      'title' => { 'type' => 'Property', 'value' => 'Emitted issue' },
+      'id' => 'urn:ngsi-ld:Issue:redmine:test-town:1', 'type' => 'Task',
+      'name' => { 'type' => 'Property', 'value' => 'Emitted issue' },
       'createdAt' => '2026-08-01T00:00:00Z', 'modifiedAt' => '2026-08-01T00:00:00Z'
     }.merge(extra_attributes)
     response = Net::HTTPOK.new('1.1', '200', 'OK')
@@ -95,7 +98,7 @@ class EmitterTest < ActiveSupport::TestCase
     body = JSON.parse(append.body)
     assert_nil body['id']
     assert_nil body['type']
-    assert body.key?('status')
+    assert body.key?('progress')
     assert_not requests.any? { |r| r.is_a?(Net::HTTP::Delete) },
                'nothing was stale, so no attribute must be deleted'
   end
@@ -121,7 +124,7 @@ class EmitterTest < ActiveSupport::TestCase
     assert_equal 2, deletes.length, 'each stale attribute must be deleted individually'
     assert deletes.any? { |path| path.end_with?('/attrs/assignee') }
     assert deletes.any? { |path| path.end_with?('/attrs/refersTo') }
-    assert_not deletes.any? { |path| path.include?('/attrs/title') },
+    assert_not deletes.any? { |path| path.include?('/attrs/name') },
                'attributes the representation still carries must not be deleted'
   end
 
@@ -186,7 +189,7 @@ class EmitterTest < ActiveSupport::TestCase
       build_issue.save!
     end
 
-    link = %(<https://gtt.example.org/fiware/context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json")
+    link = %(<https://gtt.example.org/fiware/task-context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json")
     get = requests.find { |r| r.is_a?(Net::HTTP::Get) }
     assert_equal link, get['Link']
     delete = requests.find { |r| r.is_a?(Net::HTTP::Delete) }
@@ -202,10 +205,10 @@ class EmitterTest < ActiveSupport::TestCase
   def test_expanded_names_in_the_read_back_are_never_deleted
     conflict = Net::HTTPConflict.new('1.1', '409', 'Conflict')
     remote = remote_entity_response(
-      'https://gtt-project.org/ns/fiware#status' => { 'type' => 'Property', 'value' => 'open' },
-      'https://uri.etsi.org/ngsi-ld/default-context/title' => { 'type' => 'Property', 'value' => 'x' },
+      'https://datamodels.jp/ns/task/progress' => { 'type' => 'Property', 'value' => 'needs-action' },
+      'https://uri.etsi.org/ngsi-ld/default-context/name' => { 'type' => 'Property', 'value' => 'x' },
       'urn:example:term:assignee' => { 'type' => 'Property', 'value' => 'x' },
-      'gttfiware:category' => { 'type' => 'Property', 'value' => 'x' }
+      'redmine:category' => { 'type' => 'Property', 'value' => 'x' }
     )
     requests = []
     Net::HTTP.any_instance.stubs(:request).with { |req| requests << req; true }
@@ -220,8 +223,9 @@ class EmitterTest < ActiveSupport::TestCase
                'attributes named by IRIs or prefixed names must not be deleted'
   end
 
-  # With only the core context there is nothing to send: brokers apply it anyway.
-  def test_no_link_header_with_only_the_core_context
+  # Without a host the instance context is out of reach; the read-back
+  # names the redmine subject's public context instead.
+  def test_link_header_without_a_host_names_the_redmine_context
     conflict = Net::HTTPConflict.new('1.1', '409', 'Conflict')
     requests = []
     Net::HTTP.any_instance.stubs(:request).with { |req| requests << req; true }
@@ -232,40 +236,26 @@ class EmitterTest < ActiveSupport::TestCase
     end
 
     get = requests.find { |r| r.is_a?(Net::HTTP::Get) }
-    assert_nil get['Link']
+    assert_equal %(<#{RedmineGttFiware::EmissionVocabulary::TASK_EXTENSION_CONTEXT}>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"),
+                 get['Link']
   end
 
-  # --- the task vocabulary (#152) ---------------------------------------------
+  # --- entities left over from the retired Issue vocabulary (#152) -----------
 
-  TASK_SETTINGS = EMISSION_SETTINGS.merge('fiware_emission_vocabulary' => 'task').freeze
-
-  def test_task_mode_emits_a_task_with_the_same_id
-    requests = stub_broker(created_response)
-    issue = nil
-    with_settings plugin_redmine_gtt_fiware: TASK_SETTINGS do
-      issue = build_issue
-      issue.save!
-    end
-
-    post = requests.find { |r| r.is_a?(Net::HTTP::Post) }
-    body = JSON.parse(post.body)
-    assert_equal "urn:ngsi-ld:Issue:redmine:test-town:#{issue.id}", body['id']
-    assert_equal 'Task', body['type']
-    assert_equal 'Emitted issue', body.dig('name', 'value')
-    assert_nil body['title']
-  end
-
-  # An append never changes the entity type: after a vocabulary switch the
-  # broker still holds an Issue under the same id, so it is deleted and
-  # created anew as a Task.
-  def test_vocabulary_switch_recreates_the_broker_entity
+  # An append never changes the entity type: a broker that still holds an
+  # Issue under the same id (emitted before Task-only emission) gets it
+  # deleted and created anew as a Task. The broker cannot compact the old
+  # type with the task context, so it answers it as the full IRI of the
+  # retired vocabulary.
+  def test_a_legacy_issue_entity_is_recreated_as_a_task
     conflict = Net::HTTPConflict.new('1.1', '409', 'Conflict')
+    remote = remote_entity_response('type' => 'https://gtt-project.org/ns/fiware#Issue')
     requests = []
-    responses = [conflict, remote_entity_response, no_content_response, created_response]
+    responses = [conflict, remote, no_content_response, created_response]
     Net::HTTP.any_instance.stubs(:request).with { |req| requests << req; true }
              .returns(*responses)
 
-    with_settings plugin_redmine_gtt_fiware: TASK_SETTINGS do
+    with_settings plugin_redmine_gtt_fiware: EMISSION_SETTINGS do
       Rails.logger.expects(:error).never
       build_issue.save!
     end
@@ -280,11 +270,11 @@ class EmitterTest < ActiveSupport::TestCase
     assert_not requests.any? { |r| r.path.end_with?('/attrs') }, 'no attribute append on a type change'
   end
 
-  # The read-back is not sent with our context, so the broker may answer the
-  # type as a full IRI; that is the same type, not a switch.
-  def test_type_answered_as_an_iri_is_not_a_switch
+  # A broker that cannot compact with our context may answer our own type
+  # as a full IRI; that is the same type, not a legacy entity.
+  def test_task_type_answered_as_an_iri_is_not_recreated
     conflict = Net::HTTPConflict.new('1.1', '409', 'Conflict')
-    remote = remote_entity_response('type' => 'https://gtt-project.org/ns/fiware#Issue')
+    remote = remote_entity_response('type' => 'https://datamodels.jp/ns/task/Task')
     requests = []
     Net::HTTP.any_instance.stubs(:request).with { |req| requests << req; true }
              .returns(conflict, remote, no_content_response)
@@ -297,13 +287,13 @@ class EmitterTest < ActiveSupport::TestCase
     assert_not requests.any? { |r| r.is_a?(Net::HTTP::Delete) }
   end
 
-  def test_failed_deletion_on_a_vocabulary_switch_is_logged
+  def test_failed_deletion_of_a_legacy_issue_entity_is_logged
     conflict = Net::HTTPConflict.new('1.1', '409', 'Conflict')
     requests = []
     Net::HTTP.any_instance.stubs(:request).with { |req| requests << req; true }
-             .returns(conflict, remote_entity_response, error_response)
+             .returns(conflict, remote_entity_response('type' => 'Issue'), error_response)
 
-    with_settings plugin_redmine_gtt_fiware: TASK_SETTINGS do
+    with_settings plugin_redmine_gtt_fiware: EMISSION_SETTINGS do
       Rails.logger.expects(:error).with { |msg| msg.include?('answered 500') }
       build_issue.save!
     end

@@ -1,20 +1,14 @@
 # Issue Emission
 
-Since version 3.1 the plugin can publish issues to an NGSI-LD broker as
-`Issue` entities: one entity per issue, kept up to date when the issue is
-created, updated, closed or deleted. Other systems on the broker can then see
-whether a problem is being handled, in what state, and where.
+Since version 3.1 the plugin can publish issues to an NGSI-LD broker: one
+entity per issue, kept up to date when the issue is created, updated, closed
+or deleted. Other systems on the broker can then see whether a problem is
+being handled, in what state, and where.
 
-The entities use one of two vocabularies, chosen once for the whole instance
-in the [plugin settings](plugin_settings.md):
-
-- **GTT core** (the default): `Issue` entities in the GTT vocabulary
-  (<https://gtt-project.org/ns/fiware>). Nothing changes for existing
-  instances.
-- **Task**: `Task` entities in the task vocabulary of the
-  [datamodels.jp](https://datamodels.jp/en/models/task/Task/) catalog. Any
-  NGSI-LD application written for that vocabulary can read them. See
-  [The task vocabulary](#the-task-vocabulary) below.
+Issues are published as `Task` entities of the task vocabulary of the
+[datamodels.jp](https://datamodels.jp/en/models/task/Task/) catalog, so any
+NGSI-LD application written for that vocabulary can read them. The values
+follow RFC 8984 (JSCalendar tasks) where the vocabulary does.
 
 ## Enabling emission
 
@@ -31,114 +25,49 @@ Three things must be configured; nothing is published until all are in place.
    purpose: sharing issue data with a broker is an explicit decision.
 
 Private issues are never emitted. If the broker is unreachable, the failure is
-logged and the issue is saved normally.
+logged and the issue is saved normally. Absent values are left out, never
+sent as empty.
+
+An issue created from a notified work order (a `Task`) is not emitted, so
+two instances that watch each other do not pass the same work order back
+and forth.
 
 ## What is published
 
-This section describes the GTT core vocabulary. For the task vocabulary, see
-[below](#the-task-vocabulary).
-
-Always (the core properties):
-
-| Property | Content |
-| --- | --- |
-| `title` | issue subject |
-| `status` | `open` or `closed` |
-| `statusLabel` | the Redmine status name |
-| `subtype` | the mapped subtype for the tracker |
-| `source` | the issue URL (when a host name is configured) |
-| `dateCreated`, `dateModified` | timestamps |
-| `location` | the issue geometry as GeoJSON, when present |
-| `refersTo` | the entity that triggered the issue, when it came from a notification |
-
-Optionally, per tracker mapping (all off by default):
-
-- **Published attributes**: description, priority, category, target version,
-  start and due date, estimated time, % done, parent (as a link to the parent
-  issue's entity), assignee. Publishing the assignee's name to a shared broker
-  is an explicit decision.
-- **Published custom fields**: each with its own term name, typed by the
-  field's format.
-
-## Authentication
-
-Emission runs on the server, so it can only authenticate with a connection's
-*stored* token. Connections without a token emit unauthenticated, which works
-for open brokers.
-
-## Public identity and the entity id
-
-Entity ids follow `urn:ngsi-ld:Issue:redmine:<instance-id>:<issue-id>` and
-stay stable for the life of the issue. The id is the same in both
-vocabularies, also for `Task` entities.
-
-When **Administration → Settings → Host name** is configured, emitted entities
-also reference the instance's own context document (see below), so their terms
-resolve through the published vocabulary. Without a host name, entities are
-emitted with the NGSI-LD core context only; they are still valid, but
-cross-organization queries based on the published vocabulary will not find
-them. For federation, configure the host name.
-
-## The published schema
-
-- The core vocabulary is published at
-  <https://gtt-project.org/ns/fiware>: the terms every emitting instance uses
-  with the same meaning.
-- Each instance serves its own context at `GET /fiware/context.jsonld`
-  (public): the configured subtypes, declared as subclasses of the core
-  `Issue`, and every exposed attribute term. Reading this one URL is enough to
-  interpret the instance's entities.
-- For the task vocabulary, each instance also serves
-  `GET /fiware/task-context.jsonld` (public, see below).
-
-## The task vocabulary
-
-With **Emission vocabulary: Task** in the plugin settings, issues are
-published as `Task` entities of the datamodels.jp task vocabulary
-(<https://datamodels.jp/en/models/task/Task/>). The values follow RFC 8984
-(JSCalendar tasks) where the vocabulary does.
-
-What stays the same:
-
-- The entity id (`urn:ngsi-ld:Issue:redmine:<instance-id>:<issue-id>`).
-- The tracker mappings, subtypes and the "published attributes" checkboxes.
-  Each checkbox publishes the task term from the table below.
-- Published custom fields: same term names, in the instance's own
-  vocabulary.
-- Private issues are never emitted; absent values are left out, never sent
-  as empty.
-
-### Terms
-
 Always published:
 
-| Redmine | GTT core | Task |
-| --- | --- | --- |
-| subject | `title` | `name` |
-| status open / closed | `status`: `open` / `closed` | `progress`: `needs-action` / `completed` |
-| status name | `statusLabel` | `statusLabel` |
-| tracker mapping | `subtype` | `subtype` |
-| issue URL | `source` | `source` |
-| geometry | `location` | `location` |
-| notification entity | `refersTo` | `refersTo` |
-| created, updated | `dateCreated`, `dateModified` | `dateCreated`, `dateModified` |
-| issue number | — | `externalId` (as text, for example `"42"`) |
-| project | — | `project`: a Relationship to `urn:ngsi-ld:Project:redmine:<instance-id>:<project identifier>` |
+| Redmine | Task term |
+| --- | --- |
+| subject | `name` |
+| status open / closed | `progress`: `needs-action` / `completed` |
+| status name | `statusLabel` |
+| tracker mapping | `subtype` |
+| issue URL (when a host name is configured) | `source` |
+| geometry, when present | `location` (GeoJSON) |
+| notification entity, when the issue came from a notification | `refersTo` |
+| created, updated | `dateCreated`, `dateModified` |
+| issue number | `externalId` (as text, for example `"42"`) |
+| project | `project`: a Relationship to `urn:ngsi-ld:Project:redmine:<instance-id>:<project identifier>` |
 
-Published when the checkbox is on (all off by default):
+Published when the checkbox is on in the tracker mapping (all off by
+default):
 
-| Checkbox | GTT core | Task |
-| --- | --- | --- |
-| Description | `description` | `description` |
-| Priority | `priority` (the name) | `priority`: a number from 1 to 9, see below |
-| Category | `category` | `category` (a GTT extension term, see below) |
-| Target version | `targetVersion` (the name) | `milestone`: a Relationship to `urn:ngsi-ld:Milestone:redmine:<instance-id>:<version id>` |
-| Start date | `startDate` | `start` (a date) |
-| Due date | `dueDate` | `due` (a date) |
-| Estimated time | `estimatedTime` (hours) | `estimatedDuration`: an ISO 8601 duration, 1.5 hours → `PT1H30M` (whole minutes) |
-| % Done | `percentDone` | `percentComplete` |
-| Parent task | `parent` | `parent`: a Relationship to the parent issue's id |
-| Assignee | `assignee` (the name) | `assignee`: a Relationship to `urn:ngsi-ld:Person:redmine:<instance-id>:<user id>`, or `urn:ngsi-ld:Group:redmine:<instance-id>:<group id>` for a group |
+| Checkbox | Task term |
+| --- | --- |
+| Description | `description` |
+| Priority | `priority`: a number from 1 to 9, see below |
+| Category | `category` (a GTT extension term, see below) |
+| Target version | `milestone`: a Relationship to `urn:ngsi-ld:Milestone:redmine:<instance-id>:<version id>` |
+| Start date | `start` (a date) |
+| Due date | `due` (a date) |
+| Estimated time | `estimatedDuration`: an ISO 8601 duration, 1.5 hours → `PT1H30M` (whole minutes) |
+| % Done | `percentComplete` |
+| Parent task | `parent`: a Relationship to the parent issue's id |
+| Assignee | `assignee`: a Relationship to `urn:ngsi-ld:Person:redmine:<instance-id>:<user id>`, or `urn:ngsi-ld:Group:redmine:<instance-id>:<group id>` for a group |
+
+**Published custom fields** are also set per tracker mapping: each with its
+own term name, typed by the field's format, in the instance's own
+vocabulary.
 
 Details:
 
@@ -150,7 +79,7 @@ Details:
   the issue's priority is no longer active.
 - **Assignee** is a multi-valued Relationship, so it is sent as a list with
   one entry and the `datasetId` `urn:ngsi-ld:dataset:assignee:1`. It contains
-  the user's or group's id, not the name. Publishing it is still an explicit
+  the user's or group's id, not the name. Publishing it is an explicit
   decision.
 - **Project and milestone**: only the Relationship is published. The
   `Project` and `Milestone` entities themselves are not emitted (yet); the
@@ -158,7 +87,26 @@ Details:
 - **Start and due** are plain dates (`{"@type": "Date", "@value":
   "2026-07-30"}`), as Redmine has no time of day for them.
 
-### Contexts
+## Authentication
+
+Emission runs on the server, so it can only authenticate with a connection's
+*stored* token. Connections without a token emit unauthenticated, which works
+for open brokers.
+
+## Public identity and the entity id
+
+Entity ids follow `urn:ngsi-ld:Issue:redmine:<instance-id>:<issue-id>` and
+stay stable for the life of the issue. The `Issue` in the id is historical:
+earlier versions published `Issue` entities, and the ids were kept so that
+no entity is re-identified.
+
+When **Administration → Settings → Host name** is configured, emitted entities
+reference the instance's own context document (see below). Without a host
+name, they reference the redmine subject's public context instead; the task
+terms keep their meaning, and instance subtypes and custom fields fall back
+to the default vocabulary. For federation, configure the host name.
+
+## The published schema
 
 - GTT's data model node publishes the `redmine` subject
   (<https://models.gtt-project.org/ns/redmine>). Its context,
@@ -167,42 +115,32 @@ Details:
 - Each instance serves `GET /fiware/task-context.jsonld` (public). Its
   `@context` is that GTT context plus the instance's own terms: the subtypes
   and the published custom fields. Its `@graph` declares each subtype a
-  subclass of `https://datamodels.jp/ns/task/Task`.
-- `Task` entities reference the instance's task context followed by the
-  NGSI-LD core context. Without a configured host name the instance context
-  is out of reach, so they reference the redmine subject's context
-  (`https://models.gtt-project.org/context/redmine/v0.jsonld`) instead;
-  the task terms keep their meaning, and instance subtypes and custom fields
-  fall back to the default vocabulary.
-- `GET /fiware/context.jsonld` stays as it is.
+  subclass of `https://datamodels.jp/ns/task/Task`. Reading this one URL is
+  enough to interpret the instance's entities.
+- Entities reference the instance's context followed by the NGSI-LD core
+  context.
 
 ### Reserved terms
 
-In task mode a subtype or a custom field term may not be one of the task
-vocabulary's terms (for example `Task`, `Project`, `Milestone`, `name`,
-`progress`, `due`, `start`, `keywords`, `category`), in any upper or lower
-case. The GTT reserved terms stay reserved too. Mappings saved earlier with
-such a term must be renamed before the connection form can be saved again.
-Until then, such a custom field is not published, and such a subtype is
-still sent as the `subtype` value but is not defined in the task context.
+A subtype or a custom field term may not be one of the task vocabulary's
+terms (for example `Task`, `Project`, `Milestone`, `name`, `progress`,
+`due`, `start`, `keywords`, `category`), a context prefix (`rdf`, `rdfs`,
+`inst`) or an NGSI-LD term (`id`, `type`, `location`, `dateCreated`,
+`dateModified`, `dateObserved`), in any upper or lower case. Mappings saved
+earlier with such a term must be renamed before the connection form can be
+saved again. Until then, such a custom field is not published, and such a
+subtype is still sent as the `subtype` value but is not defined in the
+instance context.
 
-### Switching vocabularies
+## Entities from earlier versions
 
-- Switch in the plugin settings. Entity ids do not change.
-- Entities already on a broker change on their next update: an existing
-  entity of the other type is deleted and created again as the new type,
-  because NGSI-LD cannot change the type of an entity in place. Issues that
-  are not updated keep their old representation until then.
-- Applications and subscriptions that select by type or attribute name
-  (`Issue`, `title`, `status`) must be changed to the task terms (`Task`,
-  `name`, `progress`).
-- [Federation](federation.md) works between instances that use different
-  vocabularies, with one extra watch subscription; see there.
-- An issue created from a notified work order, an `Issue` or a `Task`, is
-  not emitted, whichever vocabulary the instance uses. Suppressing only the
-  instance's own type would not loop on one instance, but two instances with
-  different vocabularies that watch each other would pass the same work
-  order back and forth (`Issue` → `Task` → `Issue` …).
+Earlier versions could publish `Issue` entities in the GTT vocabulary
+(`https://gtt-project.org/ns/fiware`). That vocabulary is retired. An
+`Issue` entity still on a broker is replaced on the issue's next update: the
+entity has the same id, so the plugin deletes it and creates it again as a
+`Task`, because NGSI-LD cannot change the type of an entity in place. Issues
+that are not updated keep their old entity until then; delete those on the
+broker if you do not want to wait.
 
 ## Issues as NGSI-LD on demand
 
