@@ -97,7 +97,7 @@ module RedmineGttFiware
       property(self.class.priority_rank(@issue.priority)) if @issue.priority
     end
 
-    # category is not a task term: GTT's extension context defines it.
+    # category is not a task term: the redmine subject of GTT's node defines it.
     def task_category
       property(@issue.category.name) if @issue.category
     end
@@ -150,8 +150,8 @@ module RedmineGttFiware
     # rule as the GTT one: referenced only when a broker can reach it.
     def entity_context
       host = Setting.host_name.to_s.strip
-      # Without a host, the instance context is out of reach, but GTT's public
-      # extension context still gives the task terms their meaning.
+      # Without a host, the instance context is out of reach, but the redmine
+      # subject's public context still gives the task terms their meaning.
       return [EmissionVocabulary::TASK_EXTENSION_CONTEXT, CORE_CONTEXT] if host.blank?
 
       ["#{Setting.protocol}://#{host}/fiware/task-context.jsonld", CORE_CONTEXT]
